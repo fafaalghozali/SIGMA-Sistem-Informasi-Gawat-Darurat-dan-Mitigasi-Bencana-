@@ -20,7 +20,8 @@ fun RegisterScreen(onRegister: (String, String, String, String) -> Unit) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
-    val roles = listOf("Masyarakat", "Relawan", "BNPB")
+    // BNPB removed from registration as per new requirements
+    val roles = listOf("Masyarakat", "Relawan")
     var selectedRole by remember { mutableStateOf(roles[0]) }
 
     Column(

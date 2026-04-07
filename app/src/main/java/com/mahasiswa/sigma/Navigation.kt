@@ -72,7 +72,7 @@ fun SigmaNavigation(
                             popUpTo(Screen.Register.route) { inclusive = true }
                         }
                     } else {
-                        Toast.makeText(context, "Email already exists", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Email already exists or Role not allowed", Toast.LENGTH_SHORT).show()
                     }
                 }
             )

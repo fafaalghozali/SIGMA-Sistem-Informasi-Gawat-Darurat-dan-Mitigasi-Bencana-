@@ -117,16 +117,24 @@ fun LoginScreen(onLogin: (String, String, String) -> Unit, onNavigateToRegister:
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Row {
+        if (selectedRole != "BNPB") {
+            Row {
+                Text(
+                    text = "Don't have an account? ",
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Text(
+                    text = "Register here",
+                    modifier = Modifier.clickable { onNavigateToRegister() },
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        } else {
             Text(
-                text = "Don't have an account? ",
+                text = "BNPB accounts are managed by system admin",
+                fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.secondary
-            )
-            Text(
-                text = "Register here",
-                modifier = Modifier.clickable { onNavigateToRegister() },
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
             )
         }
     }

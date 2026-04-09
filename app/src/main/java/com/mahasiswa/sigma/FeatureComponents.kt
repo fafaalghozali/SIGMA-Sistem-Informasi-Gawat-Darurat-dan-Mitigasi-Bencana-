@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mahasiswa.sigma.ui.theme.SIGMATheme
 
 @Composable
 fun FeatureTemplate(title: String, actionText: String? = null, onAction: (() -> Unit)? = null) {

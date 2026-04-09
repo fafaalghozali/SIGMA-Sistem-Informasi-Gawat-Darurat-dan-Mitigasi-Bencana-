@@ -5,15 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,35 +16,38 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    userName: String, 
-    userRole: String, 
-    onLogout: () -> Unit, 
-    onFeatureClick: (DashboardMenuModel) -> Unit
+    onLogout: () -> Unit,
+    onFeatureClick: (Int) -> Unit
 ) {
-    val menuItems = getMenuByRole(userRole)
-
-    val roleGreeting = when (userRole) {
-        "BNPB" -> "Monitoring dan kontrol sistem bencana"
-        "Relawan" -> "Kelola tugas dan koordinasi tim"
-        else -> "Pantau informasi bencana di sekitar Anda"
-    }
+    val menuItems = listOf(
+        DashboardMenuModel(2, "Lapor Bencana", "Kirim laporan"),
+        DashboardMenuModel(10, "Panduan Bencana", "Tips mitigasi")
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("SIGMA Dashboard") },
                 actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout")
+                    // Replaced Logout Icon with a Text-based Button
+                    TextButton(onClick = onLogout) {
+                        Text(
+                            text = "Logout",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { 
-                onFeatureClick(DashboardMenuModel(99, "Call Emergency", "", Icons.Default.Call))
-            }) {
-                Icon(Icons.Default.Call, contentDescription = "SOS")
+            // Replaced FloatingActionButton Icon with a Text-based Button
+            Button(
+                onClick = { onFeatureClick(99) },
+                shape = MaterialTheme.shapes.large,
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+            ) {
+                Text("Telepon", fontWeight = FontWeight.Bold)
             }
         }
     ) { padding ->
@@ -59,8 +57,8 @@ fun DashboardScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            Text(text = "Welcome, $userName", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text(text = roleGreeting, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
+            Text(text = "Welcome to SIGMA", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(text = "Sistem Informasi Gawat Darurat dan Mitigasi Bencana", fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
             
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -68,10 +66,10 @@ fun DashboardScreen(
                 columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxWidth()
             ) {
                 items(menuItems) { item ->
-                    MenuCard(item, onFeatureClick)
+                    MenuCard(item) { onFeatureClick(item.id) }
                 }
             }
         }
@@ -79,56 +77,39 @@ fun DashboardScreen(
 }
 
 @Composable
-fun MenuCard(item: DashboardMenuModel, onClick: (DashboardMenuModel) -> Unit) {
+fun MenuCard(item: DashboardMenuModel, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp)
-            .clickable { onClick(item) },
+            .height(120.dp)
+            .clickable { onClick() },
         shape = MaterialTheme.shapes.medium
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
+            modifier = Modifier.fillMaxSize().padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.title,
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = item.title, 
                 fontWeight = FontWeight.Bold, 
-                fontSize = 14.sp, 
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                fontSize = 16.sp, 
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = item.description,
+                fontSize = 12.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                color = MaterialTheme.colorScheme.secondary
             )
         }
     }
 }
 
-fun getMenuByRole(role: String): List<DashboardMenuModel> {
-    val list = mutableListOf<DashboardMenuModel>()
-    list.add(DashboardMenuModel(2, "Lapor Bencana", "Kirim laporan", Icons.Default.Warning))
-    list.add(DashboardMenuModel(10, "Panduan Bencana", "Tips mitigasi", Icons.AutoMirrored.Filled.MenuBook))
-
-    if (role == "Relawan" || role == "BNPB") {
-        list.add(DashboardMenuModel(6, "Manajemen Relawan", "Tugas tim", Icons.Default.Person))
-    }
-    if (role == "BNPB") {
-        list.add(DashboardMenuModel(7, "Verifikasi", "Validasi data", Icons.Default.CheckCircle))
-        list.add(DashboardMenuModel(8, "Monitoring", "Statistik", Icons.Default.Assessment))
-    }
-    return list
-}
-
 data class DashboardMenuModel(
     val id: Int,
     val title: String,
-    val description: String,
-    val icon: ImageVector
+    val description: String
 )
-
-

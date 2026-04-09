@@ -8,11 +8,9 @@ import com.mahasiswa.sigma.ui.theme.SIGMATheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val prefManager = PreferenceManager(this)
-        
         setContent {
             SIGMATheme {
-                SigmaNavigation(context = this, prefManager = prefManager)
+                SigmaNavigation(context = this)
             }
         }
     }

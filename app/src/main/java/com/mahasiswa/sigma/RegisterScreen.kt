@@ -1,26 +1,25 @@
 package com.mahasiswa.sigma
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(onRegister: (String, String, String, String) -> Unit) {
+fun RegisterScreen(
+    onNavigateToDashboard: () -> Unit,
+    onNavigateToLogin: () -> Unit
+) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
-    // BNPB removed from registration as per new requirements
     val roles = listOf("Masyarakat", "Relawan")
     var selectedRole by remember { mutableStateOf(roles[0]) }
 
@@ -44,8 +43,7 @@ fun RegisterScreen(onRegister: (String, String, String, String) -> Unit) {
             value = name,
             onValueChange = { name = it },
             label = { Text("Full Name") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -54,9 +52,7 @@ fun RegisterScreen(onRegister: (String, String, String, String) -> Unit) {
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            singleLine = true
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -65,22 +61,7 @@ fun RegisterScreen(onRegister: (String, String, String, String) -> Unit) {
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = confirmPassword,
-            onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true
+            modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -119,19 +100,34 @@ fun RegisterScreen(onRegister: (String, String, String, String) -> Unit) {
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-            onClick = {
-                if (name.isNotBlank() && email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank()) {
-                    if (password == confirmPassword) {
-                        onRegister(name, email, password, selectedRole)
-                    }
-                }
-            },
+            onClick = onNavigateToDashboard,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
             shape = MaterialTheme.shapes.medium
         ) {
             Text("Register", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row {
+            Text(
+                text = "Already have an account? ",
+                color = MaterialTheme.colorScheme.secondary
+            )
+            Text(
+                text = "Login here",
+                modifier = Modifier.clickable { onNavigateToLogin() },
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        TextButton(onClick = onNavigateToDashboard) {
+            Text("Skip Registration", color = MaterialTheme.colorScheme.tertiary)
         }
     }
 }

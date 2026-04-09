@@ -16,7 +16,6 @@ fun LoginScreen(
     onNavigateToDashboard: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    // Minimal state to allow typing as requested, but no validation logic is attached.
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
@@ -119,13 +118,6 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Bypass/Skip option as requested
-        TextButton(onClick = onNavigateToDashboard) {
-            Text("Skip Authentication", color = MaterialTheme.colorScheme.tertiary)
         }
     }
 }

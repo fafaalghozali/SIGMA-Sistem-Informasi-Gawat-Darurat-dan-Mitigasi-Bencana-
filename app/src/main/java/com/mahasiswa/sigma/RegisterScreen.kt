@@ -123,11 +123,5 @@ fun RegisterScreen(
                 fontWeight = FontWeight.Bold
             )
         }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        TextButton(onClick = onNavigateToDashboard) {
-            Text("Skip Registration", color = MaterialTheme.colorScheme.tertiary)
-        }
     }
 }

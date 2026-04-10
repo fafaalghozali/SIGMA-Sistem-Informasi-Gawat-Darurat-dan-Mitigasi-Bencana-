@@ -54,8 +54,6 @@ class DashboardActivity : ComponentActivity() {
     }
 
     override fun onBackPressed() {
-        // Logika sederhana untuk kembali ke dashboard jika sedang di halaman fitur
-        // Di aplikasi produksi, sebaiknya gunakan NavHost internal
         super.onBackPressed()
     }
 }

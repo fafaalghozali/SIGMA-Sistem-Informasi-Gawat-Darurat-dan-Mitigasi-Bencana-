@@ -9,6 +9,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.provider.MediaStore
+import androidx.compose.ui.platform.LocalContext
+import android.graphics.Bitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.asImageBitmap
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,10 +82,38 @@ fun DisasterReportScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            val context = LocalContext.current
+
+            var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+            val launcher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.TakePicturePreview()
+            ) { bitmap: Bitmap? ->
+                imageBitmap = bitmap
+            }
+
+            if (imageBitmap != null) {
+                Image(
+                    bitmap = imageBitmap!!.asImageBitmap(),
+                    contentDescription = "Hasil Foto",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .padding(bottom = 16.dp)
+                )
+            } else {
+                Text("Belum ada foto")
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             Button(
-                onClick = { /* Open Camera Mock */ },
+                onClick = {
+                    launcher.launch(null)
+                },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
             ) {
                 Text("Ambil Foto")
             }

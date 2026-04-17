@@ -8,9 +8,15 @@ enum class SkillsVolunteer {
     MEDIS, SAR, LOGISTIK, KONSUMSI, PSIKOSOSIAL
 }
 
+enum class ReportStatus(val displayName: String) {
+    PENDING("Pending"),
+    DECLINE("Decline"),
+    RESOLVED("Resolved"),
+    SIAGA_1("Siaga 1"),
+    SIAGA_2("Siaga 2"),
+    AWAS("Awas");
 
-enum class ReportStatus {
-    PENDING, DECLINE, RESOLVED, SIAGA_1, SIAGA_2, DANGER
+    override fun toString(): String = displayName
 }
 
 data class User(
@@ -56,7 +62,7 @@ data class Volunteer(
 
 data class DisasterGuidance(
     val id: String,
-    val type: String, // e.g., "Gempa Bumi", "Banjir"
+    val type: String,
     val before: List<String>,
     val during: List<String>,
     val after: List<String>

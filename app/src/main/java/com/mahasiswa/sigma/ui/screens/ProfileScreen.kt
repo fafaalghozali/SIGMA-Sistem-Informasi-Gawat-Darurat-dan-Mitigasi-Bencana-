@@ -33,11 +33,9 @@ fun ProfileScreen(
     var name by remember { mutableStateOf("User Sigma") }
     var email by remember { mutableStateOf("user@sigma.id") }
 
-    // State untuk menyimpan gambar (bisa Uri atau Bitmap)
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
-
-    // Ambil hasil dari ImagePickerScreen melalui savedStateHandle
+    
     val newImageUri = navController
         .currentBackStackEntry
         ?.savedStateHandle
@@ -49,19 +47,18 @@ fun ProfileScreen(
         ?.savedStateHandle
         ?.getLiveData<Bitmap>("image_bitmap")
         ?.observeAsState()
-
-    // Update state jika ada hasil baru
+    
     LaunchedEffect(newImageUri?.value) {
         newImageUri?.value?.let {
             imageUri = it
-            imageBitmap = null // Reset bitmap jika dapat Uri baru
+            imageBitmap = null
         }
     }
 
     LaunchedEffect(newImageBitmap?.value) {
         newImageBitmap?.value?.let {
             imageBitmap = it
-            imageUri = null // Reset Uri jika dapat Bitmap baru
+            imageUri = null
         }
     }
 
@@ -86,42 +83,52 @@ fun ProfileScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // FOTO PROFIL (klik untuk navigasi ke ImagePicker)
-            Box(
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(CircleShape)
-                    .clickable {
-                        navController.navigate("image_picker")
-                    },
-                contentAlignment = Alignment.Center
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (imageBitmap != null) {
-                    Image(
-                        bitmap = imageBitmap!!.asImageBitmap(),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else if (imageUri != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(imageUri),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Default Profile",
-                        modifier = Modifier.size(80.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(CircleShape)
+                        .clickable {
+                            navController.navigate("image_picker")
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (imageBitmap != null) {
+                        Image(
+                            bitmap = imageBitmap!!.asImageBitmap(),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (imageUri != null) {
+                        Image(
+                            painter = rememberAsyncImagePainter(imageUri),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Default Profile",
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Ketuk untuk Ubah Foto", style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    text = "Ketuk untuk Ubah Foto",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.clickable {
+                        navController.navigate("image_picker")
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -161,7 +168,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { /* Simpan (opsional) */ },
+                onClick = { },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Simpan Perubahan")

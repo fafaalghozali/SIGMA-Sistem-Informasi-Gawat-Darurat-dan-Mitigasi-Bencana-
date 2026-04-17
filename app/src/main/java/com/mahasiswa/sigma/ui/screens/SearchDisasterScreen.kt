@@ -79,7 +79,6 @@ fun SearchDisasterScreen(onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Filter Chips simplified
                 FilterChip(selected = false, onClick = {}, label = { Text("Danger") })
                 FilterChip(selected = false, onClick = {}, label = { Text("Siaga") })
                 FilterChip(selected = false, onClick = {}, label = { Text("Resolved") })
@@ -101,13 +100,13 @@ fun SearchDisasterScreen(onBack: () -> Unit) {
                                 Text(disaster.type, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                                 Badge(
                                     containerColor = when(disaster.status) {
-                                        ReportStatus.DANGER -> Color.Red
+                                        ReportStatus.AWAS -> Color.Red
                                         ReportStatus.SIAGA_1 -> Color.Blue
                                         ReportStatus.SIAGA_2 -> Color.DarkGray
                                         else -> Color.Green
                                     }
                                 ) {
-                                    Text(disaster.status.name, color = Color.White)
+                                    Text(disaster.status.displayName, color = Color.White)
                                 }
                             }
                             Text("Lokasi: ${disaster.location}", fontSize = 14.sp)

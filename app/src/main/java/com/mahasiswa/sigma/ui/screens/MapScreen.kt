@@ -45,19 +45,24 @@ fun MapScreen(onBack: () -> Unit) {
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Legenda:", fontWeight = FontWeight.Bold)
+                        Text("Status Bencana:", fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(modifier = Modifier.size(12.dp).background(Color.Red))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Zona Darurat (Awas)")
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(12.dp).background(Color.Blue))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Zona Bahaya (Siaga 1)")
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(12.dp).background(Color.Yellow))
+                            Box(modifier = Modifier.size(12.dp).background(Color.DarkGray))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Zona Waspada (Siaga 2)")
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(12.dp).background(Color.Blue))
+                            Box(modifier = Modifier.size(12.dp).background(Color.LightGray))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Titik Pengungsian")
                         }

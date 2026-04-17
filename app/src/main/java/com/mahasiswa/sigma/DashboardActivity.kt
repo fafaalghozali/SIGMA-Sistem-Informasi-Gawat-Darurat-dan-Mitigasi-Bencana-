@@ -10,50 +10,60 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.mahasiswa.sigma.ui.screens.*
 
 class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        val userRole = intent.getStringExtra("USER_ROLE") ?: "Masyarakat"
+
         setContent {
             SIGMATheme {
                 var currentScreen by remember { mutableStateOf("dashboard") }
 
-                if (currentScreen == "dashboard") {
-                    DashboardScreen(
+                when (currentScreen) {
+                    "dashboard" -> {
+                        DashboardScreen(
+                            userRole = userRole,
+                            onNavigateToProfile = { currentScreen = "profile" },
+                            onFeatureClick = { id ->
+                                when (id) {
+                                    1 -> currentScreen = "map"
+                                    2 -> currentScreen = "disaster_report"
+                                    3 -> currentScreen = "shelter_info"
+                                    7 -> currentScreen = "search_disaster"
+                                    10 -> PdfUtils.openPdfFromAssets(this)
+                                    5 -> currentScreen = "volunteer_registration"
+                                    6 -> currentScreen = "admin_verification"
+                                    99 -> {
+                                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))
+                                        startActivity(intent)
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    "profile" -> ProfileScreen(
+                        userRole = userRole,
+                        onBack = { currentScreen = "dashboard" },
                         onLogout = {
                             val intent = Intent(this, MainActivity::class.java)
                             startActivity(intent)
                             finish()
-                        },
-                        onFeatureClick = { id ->
-                            when (id) {
-                                2 -> currentScreen = "disaster_report"
-                                10 -> PdfUtils.openPdfFromAssets(this)
-                                99 -> {
-                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))
-                                    startActivity(intent)
-                                }
-                            }
                         }
                     )
-                } else if (currentScreen == "disaster_report") {
-                    FeatureTemplate(
-                        title = "Lapor Bencana",
-                        actionText = "Kirim Laporan (Email)",
-                        onAction = {
-                            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                                data = Uri.parse("mailto:bnpb@gmail.com")
-                                putExtra(Intent.EXTRA_SUBJECT, "Laporan Bencana SIGMA")
-                            }
-                            startActivity(Intent.createChooser(intent, "Kirim Email"))
-                        }
+                    "map" -> MapScreen(onBack = { currentScreen = "dashboard" })
+                    "disaster_report" -> DisasterReportScreen(
+                        onBack = { currentScreen = "dashboard" },
+                        onSubmit = { _, _, _ -> currentScreen = "dashboard" }
                     )
+                    "search_disaster" -> SearchDisasterScreen(onBack = { currentScreen = "dashboard" })
+                    "shelter_info" -> ShelterInfoScreen(onBack = { currentScreen = "dashboard" })
+                    "volunteer_registration" -> VolunteerRegistrationScreen(onBack = { currentScreen = "dashboard" })
+                    "admin_verification" -> AdminVerificationScreen(onBack = { currentScreen = "dashboard" })
                 }
             }
         }
-    }
-
-    override fun onBackPressed() {
-        super.onBackPressed()
     }
 }

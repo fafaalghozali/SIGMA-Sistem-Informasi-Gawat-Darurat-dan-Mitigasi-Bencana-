@@ -21,10 +21,10 @@ data class ShelterMock(
 @Composable
 fun ShelterInfoScreen(onBack: () -> Unit) {
     val shelters = listOf(
-        ShelterMock("Posko GOR Jakarta", "1.2 km", "80/100", "Tersedia"),
-        ShelterMock("Masjid Al-Barkah", "2.5 km", "50/50", "Penuh"),
-        ShelterMock("Sekolah Dasar 01", "3.8 km", "30/200", "Tersedia"),
-        ShelterMock("Kantor Kelurahan", "5.0 km", "10/40", "Tersedia")
+        ShelterMock("Stadion UNS", "1.2 km", "80/100", "Tersedia"),
+        ShelterMock("Taman Cerdas", "2.5 km", "50/50", "Penuh"),
+        ShelterMock("Solo Techno Park", "3.8 km", "30/200", "Tersedia"),
+        ShelterMock("SPBU Pedaringan", "5.0 km", "10/40", "Tersedia")
     )
 
     Scaffold(

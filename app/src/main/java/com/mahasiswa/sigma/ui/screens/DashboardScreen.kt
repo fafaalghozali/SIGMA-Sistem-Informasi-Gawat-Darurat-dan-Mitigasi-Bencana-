@@ -1,12 +1,15 @@
 package com.mahasiswa.sigma.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
@@ -28,6 +31,7 @@ fun DashboardScreen(
     onNavigateToProfile: () -> Unit
 ) {
     var showNotification by remember { mutableStateOf(true) }
+    val isDark = isSystemInDarkTheme()
 
     val menuItems = mutableListOf(
         DashboardMenuModel(1, "Peta Bencana", "Zona bahaya", Icons.Default.Map),
@@ -45,10 +49,15 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SIGMA Dashboard") },
+                title = { Text("SIGMA Dashboard", color = MaterialTheme.colorScheme.onSurface) },
                 actions = {
                     IconButton(onClick = onNavigateToProfile) {
-                        Icon(Icons.Default.AccountCircle, contentDescription = "Profile", modifier = Modifier.size(32.dp))
+                        Icon(
+                            Icons.Default.AccountCircle, 
+                            contentDescription = "Profile", 
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             )
@@ -57,58 +66,184 @@ fun DashboardScreen(
             ExtendedFloatingActionButton(
                 onClick = { onFeatureClick(99) },
                 icon = { Icon(Icons.Default.Phone, contentDescription = null) },
-                text = { Text("DARURAT 112") },
+                text = { Text("DARURAT") },
                 containerColor = MaterialTheme.colorScheme.error,
                 contentColor = MaterialTheme.colorScheme.onError
             )
         }
     ) { padding ->
-        Column(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
+                .padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Emergency Notification Alert
-            AnimatedVisibility(visible = showNotification) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+            // 1. Emergency Notification Alert (Full Width)
+            item(span = { GridItemSpan(2) }) {
+                AnimatedVisibility(visible = showNotification) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isDark) Color(0xFF422222) else Color(0xFFFFEBEE),
+                            contentColor = if (isDark) Color(0xFFFFEBEE) else Color(0xFFB71C1C)
+                        )
                     ) {
-                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("PERINGATAN DARURAT", fontWeight = FontWeight.Bold, color = Color.Red, fontSize = 12.sp)
-                            Text("Potensi banjir rob di pesisir Jakarta Utara. Tetap waspada!", fontSize = 14.sp)
-                        }
-                        IconButton(onClick = { showNotification = false }) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(18.dp))
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = if (isDark) Color(0xFFFF8A80) else Color.Red)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("PERINGATAN DARURAT", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
+                                Text("Potensi banjir rob di pesisir Jakarta Utara. Tetap waspada!", fontSize = 14.sp)
+                            }
+                            IconButton(onClick = { showNotification = false }) {
+                                Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(18.dp))
+                            }
                         }
                     }
                 }
             }
 
-            Text(text = "Halo, $userRole", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text(text = "Sistem Informasi Gawat Darurat", fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
-            
-            Spacer(modifier = Modifier.height(24.dp))
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(menuItems) { item ->
-                    MenuCard(item) { onFeatureClick(item.id) }
+            // 2. Greeting Section (Full Width)
+            item(span = { GridItemSpan(2) }) {
+                Column {
+                    Text(
+                        text = "Halo, $userRole", 
+                        fontSize = 24.sp, 
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Sistem Informasi Gawat Darurat", 
+                        fontSize = 14.sp, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
+
+            // 3. News Section (Full Width)
+            item(span = { GridItemSpan(2) }) {
+                NewsSection()
+            }
+
+            // 4. Menu Title (Full Width)
+            item(span = { GridItemSpan(2) }) {
+                Text(
+                    text = "Menu Layanan",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            // 5. Grid Menu Items (2 Columns)
+            items(menuItems) { item ->
+                MenuCard(item) { onFeatureClick(item.id) }
+            }
+
+            // Bottom Spacer for FAB
+            item(span = { GridItemSpan(2) }) {
+                Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun NewsSection() {
+    val isDark = isSystemInDarkTheme()
+    val newsItems = remember(isDark) {
+        listOf(
+            NewsItem(1, "Banjir bandang melanda wilayah utara Jakarta", "10 min ago", "DARURAT", if (isDark) Color(0xFF422222) else Color(0xFFFFEBEE)),
+            NewsItem(2, "Gempa bumi M 5.2 terasa hingga pusat kota", "30 min ago", "INFO", if (isDark) Color(0xFF1B2C42) else Color(0xFFE3F2FD)),
+            NewsItem(3, "Prakiraan cuaca: Hujan lebat esok hari di Jawa Barat", "1 hour ago", "WASPADA", if (isDark) Color(0xFF423422) else Color(0xFFFFF3E0)),
+            NewsItem(4, "Penyaluran bantuan logistik di posko pengungsian", "2 hours ago", "INFO", if (isDark) Color(0xFF224229) else Color(0xFFE8F5E9))
+        )
+    }
+
+    Column(modifier = Modifier.padding(vertical = 16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Berita Terkini",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            TextButton(onClick = { /*Lihat Semua Berita */ }) {
+                Text("Lihat Semua", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+        
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp)
+        ) {
+            items(newsItems) { item ->
+                NewsCard(item)
+            }
+        }
+    }
+}
+
+@Composable
+fun NewsCard(item: NewsItem) {
+    val isDark = isSystemInDarkTheme()
+    Card(
+        modifier = Modifier
+            .width(280.dp)
+            .height(130.dp),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = item.backgroundColor,
+            contentColor = if (isDark) Color.White.copy(alpha = 0.9f) else Color.Black.copy(alpha = 0.8f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Surface(
+                    color = if (isDark) Color.White.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.1f),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = item.category,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        color = if (isDark) Color.White else MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = item.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    lineHeight = 20.sp,
+                    color = if (isDark) Color.White else Color.Black
+                )
+            }
+            Text(
+                text = item.time,
+                fontSize = 11.sp,
+                color = if (isDark) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
+            )
         }
     }
 }
@@ -122,7 +257,8 @@ fun MenuCard(item: DashboardMenuModel, onClick: () -> Unit) {
             .clickable { onClick() },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Column(
@@ -141,13 +277,14 @@ fun MenuCard(item: DashboardMenuModel, onClick: () -> Unit) {
                 text = item.title, 
                 fontWeight = FontWeight.Bold, 
                 fontSize = 14.sp, 
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = item.description,
                 fontSize = 11.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                color = MaterialTheme.colorScheme.secondary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -158,4 +295,12 @@ data class DashboardMenuModel(
     val title: String,
     val description: String,
     val icon: ImageVector
+)
+
+data class NewsItem(
+    val id: Int,
+    val title: String,
+    val time: String,
+    val category: String,
+    val backgroundColor: Color
 )

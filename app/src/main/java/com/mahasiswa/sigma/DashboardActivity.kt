@@ -7,33 +7,43 @@ import com.mahasiswa.sigma.ui.theme.SIGMATheme
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.mahasiswa.sigma.ui.screens.*
+import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.data.auth.AuthManager
 
 class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        val userRole = intent.getStringExtra("USER_ROLE") ?: "Masyarakat"
+        val roleString = intent.getStringExtra("USER_ROLE")
+        val userRole = UserRole.fromString(roleString)
+        val userEmail = intent.getStringExtra("USER_EMAIL") ?: ""
 
         setContent {
             SIGMATheme {
-                DashboardNavigation(userRole = userRole)
+                val context = LocalContext.current
+                val authManager = remember { AuthManager(context) }
+                val userName = authManager.getUserName(userEmail)
+                
+                DashboardNavigation(userRole = userRole, userName = userName, userEmail = userEmail)
             }
         }
     }
 
     @Composable
-    fun DashboardNavigation(userRole: String) {
+    fun DashboardNavigation(userRole: UserRole, userName: String, userEmail: String) {
         val navController = rememberNavController()
 
         NavHost(navController = navController, startDestination = "dashboard") {
             composable("dashboard") {
                 DashboardScreen(
                     userRole = userRole,
-                    onNavigateToProfile = { navController.navigate("profile") },
+                    userName = userName,
                     onFeatureClick = { id ->
                         when (id) {
                             1 -> navController.navigate("map")
@@ -48,12 +58,15 @@ class DashboardActivity : ComponentActivity() {
                                 startActivity(intent)
                             }
                         }
-                    }
+                    },
+                    onNavigateToProfile = { navController.navigate("profile") }
                 )
             }
             composable("profile") {
                 ProfileScreen(
                     userRole = userRole,
+                    userName = userName,
+                    userEmail = userEmail,
                     navController = navController,
                     onBack = { navController.popBackStack() },
                     onLogout = {
@@ -74,8 +87,7 @@ class DashboardActivity : ComponentActivity() {
             }
             composable("disaster_report") {
                 DisasterReportScreen(
-                    onBack = { navController.popBackStack() },
-                    onSubmit = { _, _, _ -> navController.popBackStack() }
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable("search_disaster") {

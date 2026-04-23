@@ -22,28 +22,33 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mahasiswa.sigma.data.model.UserRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    userRole: String,
+    userRole: UserRole,
+    userName: String,
     onFeatureClick: (Int) -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
     var showNotification by remember { mutableStateOf(true) }
     val isDark = isSystemInDarkTheme()
 
-    val menuItems = mutableListOf(
-        DashboardMenuModel(1, "Peta Bencana", "Zona bahaya", Icons.Default.Map),
-        DashboardMenuModel(2, "Lapor Bencana", "Kirim laporan", Icons.Default.Report),
-        DashboardMenuModel(3, "Info Posko", "Titik pengungsian", Icons.Default.HomeWork),
-        DashboardMenuModel(10, "Panduan Bencana", "Tips mitigasi PDF", Icons.AutoMirrored.Filled.MenuBook),
-        DashboardMenuModel(5, "Registrasi Relawan", "Daftar relawan", Icons.Default.PersonAdd),
-        DashboardMenuModel(7, "Cari Bencana", "Search & Filter", Icons.Default.Search)
-    )
+    val menuItems = remember(userRole) {
+        val baseMenu = mutableListOf(
+            DashboardMenuModel(1, "Peta Bencana", "Zona bahaya", Icons.Default.Map),
+            DashboardMenuModel(2, "Lapor Bencana", "Kirim laporan", Icons.Default.Report),
+            DashboardMenuModel(3, "Info Posko", "Titik pengungsian", Icons.Default.HomeWork),
+            DashboardMenuModel(10, "Panduan Bencana", "Tips mitigasi PDF", Icons.AutoMirrored.Filled.MenuBook),
+            DashboardMenuModel(5, "Registrasi Relawan", "Daftar relawan", Icons.Default.PersonAdd),
+            DashboardMenuModel(7, "Cari Bencana", "Search & Filter", Icons.Default.Search)
+        )
 
-    if (userRole == "BNPB") {
-        menuItems.add(DashboardMenuModel(6, "Verifikasi Laporan", "Validasi data", Icons.Default.VerifiedUser))
+        if (userRole == UserRole.BNPB) {
+            baseMenu.add(DashboardMenuModel(6, "Verifikasi Laporan", "Validasi data", Icons.Default.VerifiedUser))
+        }
+        baseMenu
     }
 
     Scaffold(
@@ -115,7 +120,7 @@ fun DashboardScreen(
             item(span = { GridItemSpan(2) }) {
                 Column {
                     Text(
-                        text = "Halo, $userRole", 
+                        text = "Halo, $userName",
                         fontSize = 24.sp, 
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground

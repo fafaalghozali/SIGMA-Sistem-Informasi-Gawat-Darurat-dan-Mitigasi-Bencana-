@@ -53,6 +53,8 @@ dependencies {
     implementation(libs.androidx.compose.runtime.livedata)
     implementation(libs.material)
     implementation(libs.coil.compose)
+    implementation("com.google.code.gson:gson:2.13.2")
+    implementation(libs.play.services.location)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

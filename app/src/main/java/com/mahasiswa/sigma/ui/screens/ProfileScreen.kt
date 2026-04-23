@@ -21,17 +21,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.mahasiswa.sigma.data.model.UserRole
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    userRole: String,
+    userRole: UserRole,
+    userName: String,
+    userEmail: String,
     navController: NavController,
     onBack: () -> Unit,
     onLogout: () -> Unit
 ) {
-    var name by remember { mutableStateOf("User Sigma") }
-    var email by remember { mutableStateOf("user@sigma.id") }
+    var name by remember { mutableStateOf(userName) }
+    var email by remember { mutableStateOf(userEmail) }
 
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
@@ -161,7 +164,7 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Role: ", fontWeight = FontWeight.Bold)
-                    Text(userRole)
+                    Text(userRole.displayName)
                 }
             }
 

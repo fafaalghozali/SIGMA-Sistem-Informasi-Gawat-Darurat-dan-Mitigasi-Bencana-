@@ -12,6 +12,7 @@ import com.mahasiswa.sigma.DashboardActivity
 import com.mahasiswa.sigma.ui.screens.SplashScreen
 import com.mahasiswa.sigma.ui.screens.LoginScreen
 import com.mahasiswa.sigma.ui.screens.RegisterScreen
+import com.mahasiswa.sigma.data.model.UserRole
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
@@ -38,9 +39,10 @@ fun SigmaNavigation(
 
         composable(Screen.Login.route) {
             LoginScreen(
-                onNavigateToDashboard = { role ->
+                onNavigateToDashboard = { role, email ->
                     val intent = Intent(context, DashboardActivity::class.java).apply {
-                        putExtra("USER_ROLE", role)
+                        putExtra("USER_ROLE", role.name)
+                        putExtra("USER_EMAIL", email)
                     }
                     context.startActivity(intent)
                     (context as? Activity)?.finish()
@@ -53,10 +55,8 @@ fun SigmaNavigation(
 
         composable(Screen.Register.route) {
             RegisterScreen(
-                onNavigateToDashboard = {
-                    val intent = Intent(context, DashboardActivity::class.java)
-                    context.startActivity(intent)
-                    (context as? Activity)?.finish()
+                onNavigateToDashboard = { _ ->
+                    // Redirection is handled inside RegisterScreen to onNavigateToLogin
                 },
                 onNavigateToLogin = {
                     navController.popBackStack()

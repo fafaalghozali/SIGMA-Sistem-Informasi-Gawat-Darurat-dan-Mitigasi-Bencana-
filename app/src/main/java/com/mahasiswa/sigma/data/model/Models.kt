@@ -1,7 +1,15 @@
 package com.mahasiswa.sigma.data.model
 
-enum class UserRole {
-    MASYARAKAT, RELAWAN, BNPB
+enum class UserRole(val displayName: String) {
+    MASYARAKAT("Masyarakat"),
+    RELAWAN("Relawan"),
+    BNPB("BNPB");
+
+    companion object {
+        fun fromString(value: String?): UserRole {
+            return entries.find { it.displayName == value || it.name == value } ?: MASYARAKAT
+        }
+    }
 }
 
 enum class SkillsVolunteer {
@@ -41,6 +49,7 @@ data class DisasterReport(
 data class Shelter(
     val id: String,
     val name: String,
+    val address: String,
     val location: String,
     val capacity: Int,
     val availableSpace: Int,

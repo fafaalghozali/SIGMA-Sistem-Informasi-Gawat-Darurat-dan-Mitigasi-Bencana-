@@ -7,14 +7,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,6 +38,7 @@ fun RegisterScreen(
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     val selectedRole = UserRole.MASYARAKAT
     var showDialog by remember { mutableStateOf(false) }
     var registrationSuccess by remember { mutableStateOf(false) }
@@ -46,107 +53,141 @@ fun RegisterScreen(
         return localPart.length >= 5 && domainPart.contains(".")
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Daftar Akun",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-        
-        Spacer(modifier = Modifier.height(32.dp))
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Nama Lengkap") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            placeholder = { Text("contoh@email.com") }
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { 
-                if (!it.contains("\n")) password = it 
-            },
-            label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = selectedRole.displayName,
-            onValueChange = {},
-            readOnly = true,
-            enabled = false,
-            label = { Text("Role Anda") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                disabledBorderColor = MaterialTheme.colorScheme.outline,
-                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(if (showDialog) 10.dp else 0.dp)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Daftar Akun",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
-        )
+            
+            Spacer(modifier = Modifier.height(32.dp))
 
-        Spacer(modifier = Modifier.height(32.dp))
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nama Lengkap") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
 
-        Button(
-            onClick = {
-                if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
-                    if (isEmailValid(email)) {
-                        val isSaved = authManager.registerUser(email, password, selectedRole, name)
-                        if (isSaved) {
-                            registrationSuccess = true
-                            dialogMessage = "Akun Anda telah berhasil didaftarkan ke sistem SIGMA. Silakan masuk untuk melanjutkan."
-                            showDialog = true
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                placeholder = { Text("contoh@email.com") }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { 
+                    if (!it.contains("\n")) password = it 
+                },
+                label = { Text("Password") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val image = if (passwordVisible)
+                        Icons.Filled.Visibility
+                    else Icons.Filled.VisibilityOff
+
+                    val description = if (passwordVisible) "Sembunyikan password" else "Tampilkan password"
+
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = description)
+                    }
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = selectedRole.displayName,
+                onValueChange = {},
+                readOnly = true,
+                enabled = false,
+                label = { Text("Role Anda") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                    disabledBorderColor = MaterialTheme.colorScheme.outline,
+                    disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                )
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = {
+                    if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
+                        if (isEmailValid(email)) {
+                            val isSaved = authManager.registerUser(email, password, selectedRole, name)
+                            if (isSaved) {
+                                registrationSuccess = true
+                                dialogMessage = "Akun Anda telah berhasil didaftarkan ke sistem SIGMA. Silakan masuk untuk melanjutkan."
+                                showDialog = true
+                            } else {
+                                registrationSuccess = false
+                                dialogMessage = "Terjadi kesalahan saat menyimpan data. Silakan coba lagi."
+                                showDialog = true
+                            }
                         } else {
                             registrationSuccess = false
-                            dialogMessage = "Terjadi kesalahan saat menyimpan data. Silakan coba lagi."
+                            dialogMessage = "Email tidak valid. Pastikan ada '@', '.', dan minimal 5 karakter sebelum '@'."
                             showDialog = true
                         }
                     } else {
                         registrationSuccess = false
-                        dialogMessage = "Email tidak valid. Pastikan ada '@', '.', dan minimal 5 karakter sebelum '@'."
+                        dialogMessage = "Mohon lengkapi semua data sebelum mendaftar."
                         showDialog = true
                     }
-                } else {
-                    registrationSuccess = false
-                    dialogMessage = "Mohon lengkapi semua data sebelum mendaftar."
-                    showDialog = true
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Text("Daftar Sekarang", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text("Daftar Sekarang", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row {
+                Text(text = "Sudah punya akun? ", color = MaterialTheme.colorScheme.secondary)
+                Text(
+                    text = "Masuk di sini",
+                    modifier = Modifier.clickable { onNavigateToLogin() },
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         if (showDialog) {
+            // Glassmorphism overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+                    .clickable(enabled = false) {}
+            )
             AlertDialog(
                 onDismissRequest = { if (!registrationSuccess) showDialog = false },
                 icon = {
@@ -215,20 +256,8 @@ fun RegisterScreen(
                     }
                 },
                 shape = RoundedCornerShape(24.dp),
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                 tonalElevation = 8.dp
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Row {
-            Text(text = "Sudah punya akun? ", color = MaterialTheme.colorScheme.secondary)
-            Text(
-                text = "Masuk di sini",
-                modifier = Modifier.clickable { onNavigateToLogin() },
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
             )
         }
     }

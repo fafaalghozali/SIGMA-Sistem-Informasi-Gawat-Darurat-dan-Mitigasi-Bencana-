@@ -1,37 +1,32 @@
 package com.mahasiswa.sigma.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-data class PendingReport(
-    val id: String,
-    val title: String,
-    val reporter: String,
-    val description: String,
-    val time: String
-)
+import com.mahasiswa.sigma.data.model.SkillsVolunteer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminVerificationScreen(onBack: () -> Unit) {
-    val pendingReports = listOf(
-        PendingReport("1", "Banjir Bandang", "Andi (Masyarakat)", "Air setinggi 1 meter di jalan utama.", "10 menit yang lalu"),
-        PendingReport("2", "Kebakaran Hutan", "Budi (Relawan)", "Titik api terlihat di lereng bukit.", "30 menit yang lalu"),
-        PendingReport("3", "Tanah Longsor", "Citra (Masyarakat)", "Akses jalan terputus akibat longsoran.", "1 jam yang lalu")
-    )
+fun VolunteerRegistrationScreen(onBack: () -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+
+    val skillOptions = SkillsVolunteer.entries
+    var selectedSkill by remember { mutableStateOf(skillOptions[0]) }
+    var skillExpanded by remember { mutableStateOf(false) }
+
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Verifikasi Laporan (BNPB)") },
+                title = { Text("Pendaftaran Relawan") },
                 navigationIcon = {
                     TextButton(onClick = onBack) {
                         Text("Kembali")
@@ -40,49 +35,90 @@ fun AdminVerificationScreen(onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            items(pendingReports) { report ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            Text("Lengkapi Data Relawan", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nama Lengkap") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            ExposedDropdownMenuBox(
+                expanded = skillExpanded,
+                onExpandedChange = { skillExpanded = !skillExpanded },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = selectedSkill.name,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Keahlian / Spesialisasi") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = skillExpanded) },
+                    modifier = Modifier
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = skillExpanded,
+                    onDismissRequest = { skillExpanded = false }
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(report.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Pelapor: ${report.reporter}", fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary)
-                        Text(report.time, fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary)
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(report.description)
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = {  },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-                            ) {
-                                Text("Verifikasi")
+                    skillOptions.forEach { skill ->
+                        DropdownMenuItem(
+                            text = { Text(skill.name) },
+                            onClick = {
+                                selectedSkill = skill
+                                skillExpanded = false
                             }
-                            OutlinedButton(
-                                onClick = { },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Tolak")
-                            }
-                        }
+                        )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = address,
+                onValueChange = { address = it },
+                label = { Text("Alamat Domisili") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = phoneNumber,
+                onValueChange = { phoneNumber = it },
+                label = { Text("Nomor Telepon") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = { },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Kirim Pendaftaran")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                "Relawan yang terdaftar akan diverifikasi oleh BNPB sebelum mendapatkan penugasan resmi di lapangan.",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.secondary
+            )
         }
     }
 }

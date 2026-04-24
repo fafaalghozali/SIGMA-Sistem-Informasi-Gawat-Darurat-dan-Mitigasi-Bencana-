@@ -44,17 +44,16 @@ fun DisasterReportScreen(
 ) {
     val context = LocalContext.current
     val repository = remember { ReportRepository(context) }
-    
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var locationAddress by remember { mutableStateOf("Mendeteksi lokasi...") }
     var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    
-    // State untuk memuat laporan dari repository permanen
+
     var reportsList by remember { mutableStateOf(repository.getAllReports()) }
 
     val fusedLocationClient = remember { com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(context) }
-    
+
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -105,7 +104,6 @@ fun DisasterReportScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                // Section 1: Lokasi
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -126,7 +124,6 @@ fun DisasterReportScreen(
             }
 
             item {
-                // Section 2: Input Form
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -149,7 +146,6 @@ fun DisasterReportScreen(
             }
 
             item {
-                // Section 3: Ambil Foto
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -177,7 +173,6 @@ fun DisasterReportScreen(
             }
 
             item {
-                // Tombol Kirim
                 Button(
                     onClick = {
                         if (title.isNotEmpty() && description.isNotEmpty()) {
@@ -186,12 +181,9 @@ fun DisasterReportScreen(
                                 description = description,
                                 location = locationAddress
                             )
-                            // Simpan ke SharedPreferences secara permanen
                             repository.saveReport(newReport)
-                            // Update UI
                             reportsList = repository.getAllReports()
-                            
-                            // Reset Input
+
                             title = ""
                             description = ""
                             imageBitmap = null
@@ -210,7 +202,6 @@ fun DisasterReportScreen(
                 Spacer(modifier = Modifier.height(40.dp))
             }
 
-            // Divider Riwayat
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.History, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
@@ -220,7 +211,6 @@ fun DisasterReportScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // List Laporan
             if (reportsList.isEmpty()) {
                 item {
                     Text(
@@ -235,20 +225,18 @@ fun DisasterReportScreen(
             } else {
                 items(reportsList, key = { it.id }) { report ->
                     ReportItemCard(report) { updatedReport ->
-                        // Update report in repository and UI when status changes
                         repository.updateReport(updatedReport)
                         reportsList = repository.getAllReports()
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             }
-            
+
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }
     }
 }
 
-// Fungsi Helper untuk mengambil koordinat
 private fun getCurrentLocation(
     fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient,
     onLocationReceived: (Double, Double) -> Unit
@@ -260,7 +248,6 @@ private fun getCurrentLocation(
             }
         }
     } catch (e: SecurityException) {
-        // Handle exception
     }
 }
 
@@ -272,10 +259,9 @@ fun ReportItemCard(
     val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
     val dateString = sdf.format(Date(report.timestamp))
 
-    // Logika otomatis update status setelah 15 detik
     LaunchedEffect(report.id) {
         if (report.status == "Pending") {
-            delay(15000) // Delay 15 detik
+            delay(15000)
             onStatusUpdate(
                 report.copy(
                     status = "Accepted"

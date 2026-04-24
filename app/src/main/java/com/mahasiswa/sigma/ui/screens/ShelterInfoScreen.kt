@@ -97,14 +97,14 @@ fun ShelterInfoScreen(onBack: () -> Unit) {
                                     )
                                 }
                             }
-                            
+
                             Spacer(modifier = Modifier.height(12.dp))
-                            
+
                             Text("Jarak: ${shelter.distance}", fontSize = 14.sp)
                             Text("Kapasitas: ${shelter.capacity} orang", fontSize = 14.sp)
-                            
+
                             Spacer(modifier = Modifier.height(16.dp))
-                            
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -151,14 +151,13 @@ fun ShelterInfoScreen(onBack: () -> Unit) {
         }
 
         if (showLogisticsDialog && selectedShelterLogistics != null) {
-            // Glassmorphism Overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.4f))
                     .clickable(enabled = false) {}
             )
-            
+
             AlertDialog(
                 onDismissRequest = { showLogisticsDialog = false },
                 title = {
@@ -183,8 +182,8 @@ fun ShelterInfoScreen(onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        
-                        // Modern Tag-like Layout using FlowRow
+
+
                         FlowRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -206,7 +205,7 @@ fun ShelterInfoScreen(onBack: () -> Unit) {
                                 }
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             "*Bantuan Anda sangat berarti bagi warga di pengungsian.",
@@ -239,10 +238,10 @@ fun ShelterInfoScreen(onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                        text = "Tutup",
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        color =Color.Red,
-                        fontWeight = FontWeight.Bold
+                            text = "Tutup",
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            color =Color.Red,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 },

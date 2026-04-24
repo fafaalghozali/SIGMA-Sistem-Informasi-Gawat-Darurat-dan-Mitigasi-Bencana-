@@ -11,7 +11,6 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,7 +18,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.mahasiswa.sigma.data.model.UserRole
 
@@ -29,7 +27,6 @@ fun ProfileScreen(
     userRole: UserRole,
     userName: String,
     userEmail: String,
-    navController: NavController,
     onBack: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -39,32 +36,6 @@ fun ProfileScreen(
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
     
-    val newImageUri = navController
-        .currentBackStackEntry
-        ?.savedStateHandle
-        ?.getLiveData<Uri>("image_uri")
-        ?.observeAsState()
-
-    val newImageBitmap = navController
-        .currentBackStackEntry
-        ?.savedStateHandle
-        ?.getLiveData<Bitmap>("image_bitmap")
-        ?.observeAsState()
-    
-    LaunchedEffect(newImageUri?.value) {
-        newImageUri?.value?.let {
-            imageUri = it
-            imageBitmap = null
-        }
-    }
-
-    LaunchedEffect(newImageBitmap?.value) {
-        newImageBitmap?.value?.let {
-            imageBitmap = it
-            imageUri = null
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -94,7 +65,6 @@ fun ProfileScreen(
                         .size(120.dp)
                         .clip(CircleShape)
                         .clickable {
-                            navController.navigate("image_picker")
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -125,11 +95,8 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
-                    text = "Ketuk untuk Ubah Foto",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.clickable {
-                        navController.navigate("image_picker")
-                    }
+                    text = "Foto Profil",
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 

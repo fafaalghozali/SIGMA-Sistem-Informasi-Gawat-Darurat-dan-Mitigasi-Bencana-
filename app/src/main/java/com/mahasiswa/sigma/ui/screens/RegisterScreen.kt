@@ -44,7 +44,6 @@ fun RegisterScreen(
     var registrationSuccess by remember { mutableStateOf(false) }
     var dialogMessage by remember { mutableStateOf("") }
 
-    // Email validation helper
     fun isEmailValid(email: String): Boolean {
         val emailParts = email.split("@")
         if (emailParts.size != 2) return false
@@ -181,7 +180,6 @@ fun RegisterScreen(
         }
 
         if (showDialog) {
-            // Glassmorphism overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()

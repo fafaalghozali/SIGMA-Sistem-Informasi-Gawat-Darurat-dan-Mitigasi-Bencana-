@@ -67,14 +67,14 @@ fun AdminVerificationScreen(onBack: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
-                                onClick = { /* Verify and update status */ },
+                                onClick = {  },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                             ) {
                                 Text("Verifikasi")
                             }
                             OutlinedButton(
-                                onClick = { /* Decline report */ },
+                                onClick = { },
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text("Tolak")

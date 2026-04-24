@@ -34,12 +34,11 @@ fun MapScreen(onBack: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                // Mock Map Representation
                 Text("Visualisasi Peta Bencana", fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 Text("[Simulasi Peta Google Maps]", color = Color.DarkGray)
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Card(
                     modifier = Modifier.padding(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)

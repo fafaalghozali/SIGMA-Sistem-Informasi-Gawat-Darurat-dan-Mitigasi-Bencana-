@@ -22,7 +22,7 @@ fun VolunteerRegistrationScreen(onBack: () -> Unit) {
     var selectedSkill by remember { mutableStateOf(skillOptions[0]) }
     var skillExpanded by remember { mutableStateOf(false) }
 
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -54,7 +54,6 @@ fun VolunteerRegistrationScreen(onBack: () -> Unit) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Dropdown untuk Keahlian menggunakan Enum
             ExposedDropdownMenuBox(
                 expanded = skillExpanded,
                 onExpandedChange = { skillExpanded = !skillExpanded },
@@ -107,14 +106,14 @@ fun VolunteerRegistrationScreen(onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { /* Kirim Data Relawan */ },
+                onClick = { },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Kirim Pendaftaran")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Text(
                 "Relawan yang terdaftar akan diverifikasi oleh BNPB sebelum mendapatkan penugasan resmi di lapangan.",
                 fontSize = 12.sp,

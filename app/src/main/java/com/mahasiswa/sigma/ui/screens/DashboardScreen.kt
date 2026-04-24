@@ -54,17 +54,45 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SIGMA Dashboard", color = MaterialTheme.colorScheme.onSurface) },
-                actions = {
-                    IconButton(onClick = onNavigateToProfile) {
-                        Icon(
-                            Icons.Default.AccountCircle, 
-                            contentDescription = "Profile", 
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                title = {
+                    Column {
+                        Text(
+                            text = "Halo, $userName",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 0.5.sp,
+                                fontSize = 20.sp
+                            ),
+                            color = if (isDark) MaterialTheme.colorScheme.onSurface else Color.White
+                        )
+                        Text(
+                            text = "Sistem Informasi Gawat Darurat",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 1.sp
+                            ),
+                            color = if (isDark) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.8f)
                         )
                     }
-                }
+                },
+                actions = {
+                    IconButton(
+                        onClick = onNavigateToProfile,
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Profile",
+                            modifier = Modifier.size(36.dp),
+                            tint = if (isDark) MaterialTheme.colorScheme.primary else Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = if (isDark) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.primary,
+                    titleContentColor = if (isDark) MaterialTheme.colorScheme.onSurface else Color.White,
+                    actionIconContentColor = if (isDark) MaterialTheme.colorScheme.onSurface else Color.White
+                )
             )
         },
         floatingActionButton = {
@@ -86,7 +114,6 @@ fun DashboardScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 1. Emergency Notification Alert (Full Width)
             item(span = { GridItemSpan(2) }) {
                 AnimatedVisibility(visible = showNotification) {
                     Card(
@@ -106,7 +133,7 @@ fun DashboardScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("PERINGATAN DARURAT", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
-                                Text("Potensi banjir rob di pesisir Jakarta Utara. Tetap waspada!", fontSize = 14.sp)
+                                Text("Intensitas Hujan tinggi berpotensi menyebabkan banjir di wilayah Surakarta", fontSize = 14.sp)
                             }
                             IconButton(onClick = { showNotification = false }) {
                                 Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(18.dp))
@@ -116,29 +143,11 @@ fun DashboardScreen(
                 }
             }
 
-            // 2. Greeting Section (Full Width)
-            item(span = { GridItemSpan(2) }) {
-                Column {
-                    Text(
-                        text = "Halo, $userName",
-                        fontSize = 24.sp, 
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "Sistem Informasi Gawat Darurat", 
-                        fontSize = 14.sp, 
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
 
-            // 3. News Section (Full Width)
             item(span = { GridItemSpan(2) }) {
                 NewsSection()
             }
 
-            // 4. Menu Title (Full Width)
             item(span = { GridItemSpan(2) }) {
                 Text(
                     text = "Menu Layanan",
@@ -149,12 +158,10 @@ fun DashboardScreen(
                 )
             }
 
-            // 5. Grid Menu Items (2 Columns)
             items(menuItems) { item ->
                 MenuCard(item) { onFeatureClick(item.id) }
             }
 
-            // Bottom Spacer for FAB
             item(span = { GridItemSpan(2) }) {
                 Spacer(modifier = Modifier.height(80.dp))
             }
@@ -167,10 +174,10 @@ fun NewsSection() {
     val isDark = isSystemInDarkTheme()
     val newsItems = remember(isDark) {
         listOf(
-            NewsItem(1, "Banjir bandang melanda wilayah utara Jakarta", "10 min ago", "DARURAT", if (isDark) Color(0xFF422222) else Color(0xFFFFEBEE)),
-            NewsItem(2, "Gempa bumi M 5.2 terasa hingga pusat kota", "30 min ago", "INFO", if (isDark) Color(0xFF1B2C42) else Color(0xFFE3F2FD)),
-            NewsItem(3, "Prakiraan cuaca: Hujan lebat esok hari di Jawa Barat", "1 hour ago", "WASPADA", if (isDark) Color(0xFF423422) else Color(0xFFFFF3E0)),
-            NewsItem(4, "Penyaluran bantuan logistik di posko pengungsian", "2 hours ago", "INFO", if (isDark) Color(0xFF224229) else Color(0xFFE8F5E9))
+            NewsItem(1, "Banjir bandang melanda wilayah Sukoharjo", "10 min ago", "INFO", if (isDark) Color(0xFF1B2C42) else Color(0xFFE3F2FD)),
+            NewsItem(2, "Gempa bumi M 5,0 SR di Daerah Ternate, Maluku Utara hingga Rektorat UNS", "3 hours ago", "DARURAT", if (isDark) Color(0xFF422222) else Color(0xFFFFEBEE)),
+            NewsItem(3, "Prakiraan cuaca: Hujan lebat esok hari di Soloraya", "1 hour ago", "WASPADA", if (isDark) Color(0xFF423422) else Color(0xFFFFF3E0)),
+            NewsItem(4, "Penyaluran bantuan logistik di posko pengungsian terkenda jembatan terputus", "2 hours ago", "INFO", if (isDark) Color(0xFF1B2C42) else Color(0xFFE3F2FD))
         )
     }
 
@@ -186,7 +193,7 @@ fun NewsSection() {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
-            TextButton(onClick = { /*Lihat Semua Berita */ }) {
+            TextButton(onClick = { }) {
                 Text("Lihat Semua", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
             }
         }

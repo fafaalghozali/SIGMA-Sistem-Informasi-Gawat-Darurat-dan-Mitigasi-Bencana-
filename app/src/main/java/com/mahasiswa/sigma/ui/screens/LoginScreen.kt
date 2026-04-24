@@ -40,7 +40,10 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
-    val roles = UserRole.entries
+    val roles = remember {
+        UserRole.entries.filter { it == UserRole.MASYARAKAT || it == UserRole.RELAWAN }
+    }
+
     var selectedRole by remember { mutableStateOf(roles[0]) }
     
     var showErrorDialog by remember { mutableStateOf(false) }

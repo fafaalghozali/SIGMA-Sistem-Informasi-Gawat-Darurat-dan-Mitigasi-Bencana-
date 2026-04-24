@@ -67,7 +67,6 @@ class DashboardActivity : ComponentActivity() {
                     userRole = userRole,
                     userName = userName,
                     userEmail = userEmail,
-                    navController = navController,
                     onBack = { navController.popBackStack() },
                     onLogout = {
                         val intent = Intent(this@DashboardActivity, MainActivity::class.java)

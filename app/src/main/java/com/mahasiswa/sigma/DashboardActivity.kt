@@ -15,6 +15,8 @@ import androidx.navigation.compose.rememberNavController
 import com.mahasiswa.sigma.ui.screens.*
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.data.repository.ReportRepository
+import com.mahasiswa.sigma.data.model.LocalDisasterReport
 
 class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,8 +88,26 @@ class DashboardActivity : ComponentActivity() {
             }
             composable("disaster_report") {
                 DisasterReportScreen(
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onNavigateToDetail = { report ->
+                        navController.navigate("report_detail/${report.id}")
+                    }
                 )
+            }
+            composable("report_detail/{reportId}") { backStackEntry ->
+                val reportId = backStackEntry.arguments?.getString("reportId")
+                val context = LocalContext.current
+                val repository = remember { ReportRepository(context) }
+                val report = remember(reportId) { 
+                    repository.getAllReports().find { it.id == reportId } 
+                }
+                
+                report?.let {
+                    ReportDetailScreen(
+                        report = it,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
             composable("search_disaster") {
                 SearchDisasterScreen(onBack = { navController.popBackStack() })

@@ -40,7 +40,8 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DisasterReportScreen(
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToDetail: (LocalDisasterReport) -> Unit
 ) {
     val context = LocalContext.current
     val repository = remember { ReportRepository(context) }
@@ -224,10 +225,14 @@ fun DisasterReportScreen(
                 }
             } else {
                 items(reportsList, key = { it.id }) { report ->
-                    ReportItemCard(report) { updatedReport ->
-                        repository.updateReport(updatedReport)
-                        reportsList = repository.getAllReports()
-                    }
+                    ReportItemCard(
+                        report = report,
+                        onStatusUpdate = { updatedReport ->
+                            repository.updateReport(updatedReport)
+                            reportsList = repository.getAllReports()
+                        },
+                        onClick = { onNavigateToDetail(report) }
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             }
@@ -254,7 +259,8 @@ private fun getCurrentLocation(
 @Composable
 fun ReportItemCard(
     report: LocalDisasterReport,
-    onStatusUpdate: (LocalDisasterReport) -> Unit
+    onStatusUpdate: (LocalDisasterReport) -> Unit,
+    onClick: () -> Unit
 ) {
     val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
     val dateString = sdf.format(Date(report.timestamp))
@@ -271,7 +277,9 @@ fun ReportItemCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface

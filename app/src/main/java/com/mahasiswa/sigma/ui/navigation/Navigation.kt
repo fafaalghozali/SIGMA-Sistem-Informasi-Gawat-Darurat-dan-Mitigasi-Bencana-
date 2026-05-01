@@ -47,7 +47,6 @@ fun NavDisplay(
 
 @Composable
 fun SigmaNavigation() {
-    // Gunakan rememberSaveable agar backstack tidak hilang saat rotasi
     val backStack = rememberSaveable(
         saver = listSaver<SnapshotStateList<Route>, Route>(
             save = { it.toList() },

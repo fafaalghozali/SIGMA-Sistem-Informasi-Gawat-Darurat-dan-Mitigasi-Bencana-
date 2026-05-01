@@ -34,7 +34,6 @@ fun SearchDisasterScreen(onBack: () -> Unit) {
 
     var filteredDisasters by remember { mutableStateOf(allDisasters) }
 
-    // Update filteredDisasters whenever searchQuery changes
     LaunchedEffect(searchQuery) {
         filteredDisasters = allDisasters.filter { d ->
             d.location.contains(searchQuery, ignoreCase = true) || d.type.contains(searchQuery, ignoreCase = true)

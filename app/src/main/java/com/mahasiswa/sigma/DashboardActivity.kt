@@ -22,7 +22,6 @@ class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Ambil data awal dari intent
         val intentRole = intent.getStringExtra("USER_ROLE")
         val intentEmail = intent.getStringExtra("USER_EMAIL") ?: ""
 
@@ -31,7 +30,6 @@ class DashboardActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val authManager = remember { AuthManager(context) }
 
-                // Gunakan rememberSaveable agar data TIDAK hilang saat rotasi
                 var userRoleState by rememberSaveable {
                     mutableStateOf(UserRole.fromString(intentRole))
                 }
@@ -53,7 +51,6 @@ class DashboardActivity : ComponentActivity() {
 
     @Composable
     fun DashboardNavigation(userRole: UserRole, userName: String, userEmail: String) {
-        // NavController sudah otomatis menangani statusnya sendiri saat rotasi
         val navController = rememberNavController()
 
         NavHost(navController = navController, startDestination = "dashboard") {
@@ -87,7 +84,6 @@ class DashboardActivity : ComponentActivity() {
                     onBack = { navController.popBackStack() },
                     onLogout = {
                         val intent = Intent(this@DashboardActivity, MainActivity::class.java)
-                        // Gunakan flag ini agar kembali ke layar login dengan bersih
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         startActivity(intent)
                         finish()
@@ -106,7 +102,7 @@ class DashboardActivity : ComponentActivity() {
             composable("disaster_report") {
                 DisasterReportScreen(
                     onBack = { navController.popBackStack() },
-                    onNavigateToDetail = { report ->
+                    onNavigateToDetail = { report: LocalDisasterReport ->
                         navController.navigate("report_detail/${report.id}")
                     }
                 )

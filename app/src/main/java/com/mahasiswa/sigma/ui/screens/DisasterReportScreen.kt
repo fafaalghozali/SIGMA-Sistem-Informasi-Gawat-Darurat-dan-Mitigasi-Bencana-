@@ -343,7 +343,6 @@ fun DisasterReportScreen(
             )
         }
 
-        // Memanggil ImagePickerBottomSheet dari ImagePickerScreen.kt
         if (showPhotoSourceSheet) {
             ImagePickerBottomSheet(
                 sheetState = sheetState,

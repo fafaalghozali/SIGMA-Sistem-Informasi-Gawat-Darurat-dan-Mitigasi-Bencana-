@@ -5,10 +5,6 @@ import android.app.Activity
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
-import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,12 +17,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,7 +31,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -70,23 +63,9 @@ fun DisasterReportScreen(
     var showPhotoSourceSheet by rememberSaveable { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-    var reportsList by rememberSaveable { mutableStateOf(repository.getAllReports()) }
+    var reportsList by remember { mutableStateOf(repository.getAllReports()) }
 
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-
-    fun uriToBitmap(uri: Uri): Bitmap? {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val source = ImageDecoder.createSource(context.contentResolver, uri)
-                ImageDecoder.decodeBitmap(source)
-            } else {
-                @Suppress("DEPRECATION")
-                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
 
     val settingResultRequest = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -143,35 +122,6 @@ fun DisasterReportScreen(
             checkLocationSettings()
         } else {
             locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-    }
-
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        imageBitmap = bitmap
-        showPhotoSourceSheet = false
-    }
-
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let { imageBitmap = uriToBitmap(it) }
-        showPhotoSourceSheet = false
-    }
-
-    val fileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let { imageBitmap = uriToBitmap(it) }
-        showPhotoSourceSheet = false
-    }
-
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            cameraLauncher.launch(null)
         }
     }
 
@@ -393,120 +343,16 @@ fun DisasterReportScreen(
             )
         }
 
+        // Memanggil ImagePickerBottomSheet dari ImagePickerScreen.kt
         if (showPhotoSourceSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showPhotoSourceSheet = false },
+            ImagePickerBottomSheet(
                 sheetState = sheetState,
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp,
-                scrimColor = Color.Black.copy(alpha = 0.4f),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                dragHandle = {
-                    Box(
-                        modifier = Modifier
-                            .padding(vertical = 16.dp)
-                            .size(width = 40.dp, height = 4.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    )
+                onDismiss = { showPhotoSourceSheet = false },
+                onImageSelected = { bitmap ->
+                    imageBitmap = bitmap
                 }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .padding(bottom = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Lampirkan Gambar",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Pilih salah satu metode untuk mengambil foto kejadian",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        PhotoSourceOption(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.CameraAlt,
-                            label = "Kamera",
-                            accentColor = Color(0xFF4285F4),
-                            onClick = {
-                                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                                    cameraLauncher.launch(null)
-                                } else {
-                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                                }
-                            }
-                        )
-                        PhotoSourceOption(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.Default.PhotoLibrary,
-                            label = "Galeri",
-                            accentColor = Color(0xFF34A853),
-                            onClick = { galleryLauncher.launch("image/*") }
-                        )
-                        PhotoSourceOption(
-                            modifier = Modifier.weight(1f),
-                            icon = Icons.AutoMirrored.Filled.InsertDriveFile,
-                            label = "File",
-                            accentColor = Color(0xFFFBBC05),
-                            onClick = { fileLauncher.launch(arrayOf("image/*")) }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PhotoSourceOption(
-    modifier: Modifier = Modifier,
-    icon: ImageVector,
-    label: String,
-    accentColor: Color,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() }
-            .padding(vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(60.dp)
-                .clip(CircleShape)
-                .background(accentColor.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accentColor,
-                modifier = Modifier.size(28.dp)
             )
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.SemiBold
-        )
     }
 }
 

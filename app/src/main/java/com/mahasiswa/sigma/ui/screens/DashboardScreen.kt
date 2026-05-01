@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,7 +33,7 @@ fun DashboardScreen(
     onFeatureClick: (Int) -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
-    var showNotification by remember { mutableStateOf(true) }
+    var showNotification by rememberSaveable { mutableStateOf(true) }
     val isDark = isSystemInDarkTheme()
 
     val menuItems = remember(userRole) {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -14,13 +15,13 @@ import com.mahasiswa.sigma.data.model.SkillsVolunteer
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VolunteerRegistrationScreen(onBack: () -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var address by rememberSaveable { mutableStateOf("") }
+    var phoneNumber by rememberSaveable { mutableStateOf("") }
 
     val skillOptions = SkillsVolunteer.entries
-    var selectedSkill by remember { mutableStateOf(skillOptions[0]) }
-    var skillExpanded by remember { mutableStateOf(false) }
+    var selectedSkill by rememberSaveable { mutableStateOf(skillOptions[0]) }
+    var skillExpanded by rememberSaveable { mutableStateOf(false) }
 
 
     Scaffold(

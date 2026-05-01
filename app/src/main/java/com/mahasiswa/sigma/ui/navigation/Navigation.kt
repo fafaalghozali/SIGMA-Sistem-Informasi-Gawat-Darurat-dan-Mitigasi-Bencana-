@@ -9,6 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,7 +47,14 @@ fun NavDisplay(
 
 @Composable
 fun SigmaNavigation() {
-    val backStack = remember { mutableStateListOf<Route>(Route.Splash) }
+    // Gunakan rememberSaveable agar backstack tidak hilang saat rotasi
+    val backStack = rememberSaveable(
+        saver = listSaver<SnapshotStateList<Route>, Route>(
+            save = { it.toList() },
+            restore = { it.toMutableStateList() }
+        )
+    ) { mutableStateListOf<Route>(Route.Splash) }
+
     val context = LocalContext.current
     val authManager = remember { AuthManager(context) }
 

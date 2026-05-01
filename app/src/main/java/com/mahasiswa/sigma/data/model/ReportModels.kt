@@ -1,5 +1,6 @@
 package com.mahasiswa.sigma.data.model
 
+import java.io.Serializable
 import java.util.UUID
 
 data class LocalDisasterReport(
@@ -9,4 +10,4 @@ data class LocalDisasterReport(
     val location: String,
     val status: String = "Pending",
     val timestamp: Long = System.currentTimeMillis()
-)
+) : Serializable

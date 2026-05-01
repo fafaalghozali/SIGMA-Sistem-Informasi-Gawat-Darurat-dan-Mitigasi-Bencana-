@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -25,13 +26,20 @@ data class DisasterInfo(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchDisasterScreen(onBack: () -> Unit) {
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     
     val allDisasters = listOf(
         DisasterInfo("Banjir", "Sukoharjo", ReportStatus.SIAGA_1, "14 April 2026"),
     )
 
     var filteredDisasters by remember { mutableStateOf(allDisasters) }
+
+    // Update filteredDisasters whenever searchQuery changes
+    LaunchedEffect(searchQuery) {
+        filteredDisasters = allDisasters.filter { d ->
+            d.location.contains(searchQuery, ignoreCase = true) || d.type.contains(searchQuery, ignoreCase = true)
+        }
+    }
 
     Scaffold(
         topBar = {

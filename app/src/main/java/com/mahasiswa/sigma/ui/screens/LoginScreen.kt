@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -36,20 +37,20 @@ fun LoginScreen(
     val context = LocalContext.current
     val authManager = remember { AuthManager(context) }
     
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var expanded by remember { mutableStateOf(false) }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val roles = remember {
         UserRole.entries.filter { it == UserRole.MASYARAKAT || it == UserRole.RELAWAN }
     }
 
-    var selectedRole by remember { mutableStateOf(roles[0]) }
+    var selectedRole by rememberSaveable { mutableStateOf(roles[0]) }
     
-    var showErrorDialog by remember { mutableStateOf(false) }
-    var showSuccessDialog by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
-    var loggedInName by remember { mutableStateOf("") }
+    var showErrorDialog by rememberSaveable { mutableStateOf(false) }
+    var showSuccessDialog by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by rememberSaveable { mutableStateOf("") }
+    var loggedInName by rememberSaveable { mutableStateOf("") }
 
     val isBlurEnabled = showErrorDialog || showSuccessDialog
 

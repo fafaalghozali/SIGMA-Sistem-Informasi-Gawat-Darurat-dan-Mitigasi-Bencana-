@@ -2,8 +2,9 @@ package com.mahasiswa.sigma.ui.navigation
 
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
+import java.io.Serializable
 
-sealed class Route {
+sealed class Route : Serializable {
     object Splash : Route()
     object Login : Route()
     object Register : Route()

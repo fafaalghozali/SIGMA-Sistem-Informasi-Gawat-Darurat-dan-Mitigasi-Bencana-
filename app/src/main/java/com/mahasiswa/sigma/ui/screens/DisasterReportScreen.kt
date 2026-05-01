@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -61,15 +62,15 @@ fun DisasterReportScreen(
     val context = LocalContext.current
     val repository = remember { ReportRepository(context) }
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var locationAddress by remember { mutableStateOf("Mendeteksi lokasi...") }
+    var title by rememberSaveable { mutableStateOf("") }
+    var description by rememberSaveable { mutableStateOf("") }
+    var locationAddress by rememberSaveable { mutableStateOf("Mendeteksi lokasi...") }
     var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var showIncompleteDialog by remember { mutableStateOf(false) }
-    var showPhotoSourceSheet by remember { mutableStateOf(false) }
+    var showIncompleteDialog by rememberSaveable { mutableStateOf(false) }
+    var showPhotoSourceSheet by rememberSaveable { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-    var reportsList by remember { mutableStateOf(repository.getAllReports()) }
+    var reportsList by rememberSaveable { mutableStateOf(repository.getAllReports()) }
 
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 

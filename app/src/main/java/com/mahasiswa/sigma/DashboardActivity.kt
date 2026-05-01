@@ -1,44 +1,59 @@
 package com.mahasiswa.sigma
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.mahasiswa.sigma.ui.theme.SIGMATheme
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.mahasiswa.sigma.ui.screens.*
-import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.data.auth.AuthManager
-import com.mahasiswa.sigma.data.repository.ReportRepository
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
+import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.data.repository.ReportRepository
+import com.mahasiswa.sigma.ui.screens.*
+import com.mahasiswa.sigma.ui.theme.SIGMATheme
 
 class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        val roleString = intent.getStringExtra("USER_ROLE")
-        val userRole = UserRole.fromString(roleString)
-        val userEmail = intent.getStringExtra("USER_EMAIL") ?: ""
+        // Ambil data awal dari intent
+        val intentRole = intent.getStringExtra("USER_ROLE")
+        val intentEmail = intent.getStringExtra("USER_EMAIL") ?: ""
 
         setContent {
             SIGMATheme {
                 val context = LocalContext.current
                 val authManager = remember { AuthManager(context) }
-                val userName = authManager.getUserName(userEmail)
+
+                // Gunakan rememberSaveable agar data TIDAK hilang saat rotasi
+                var userRoleState by rememberSaveable {
+                    mutableStateOf(UserRole.fromString(intentRole))
+                }
+                var userEmailState by rememberSaveable {
+                    mutableStateOf(intentEmail)
+                }
+                var userNameState by rememberSaveable {
+                    mutableStateOf(authManager.getUserName(userEmailState))
+                }
                 
-                DashboardNavigation(userRole = userRole, userName = userName, userEmail = userEmail)
+                DashboardNavigation(
+                    userRole = userRoleState, 
+                    userName = userNameState, 
+                    userEmail = userEmailState
+                )
             }
         }
     }
 
     @Composable
     fun DashboardNavigation(userRole: UserRole, userName: String, userEmail: String) {
+        // NavController sudah otomatis menangani statusnya sendiri saat rotasi
         val navController = rememberNavController()
 
         NavHost(navController = navController, startDestination = "dashboard") {
@@ -72,6 +87,8 @@ class DashboardActivity : ComponentActivity() {
                     onBack = { navController.popBackStack() },
                     onLogout = {
                         val intent = Intent(this@DashboardActivity, MainActivity::class.java)
+                        // Gunakan flag ini agar kembali ke layar login dengan bersih
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         startActivity(intent)
                         finish()
                     }
@@ -89,7 +106,7 @@ class DashboardActivity : ComponentActivity() {
             composable("disaster_report") {
                 DisasterReportScreen(
                     onBack = { navController.popBackStack() },
-                    onNavigateToDetail = { report: LocalDisasterReport ->
+                    onNavigateToDetail = { report ->
                         navController.navigate("report_detail/${report.id}")
                     }
                 )

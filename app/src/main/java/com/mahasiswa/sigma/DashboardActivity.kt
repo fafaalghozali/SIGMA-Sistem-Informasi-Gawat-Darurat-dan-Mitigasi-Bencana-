@@ -89,7 +89,7 @@ class DashboardActivity : ComponentActivity() {
             composable("disaster_report") {
                 DisasterReportScreen(
                     onBack = { navController.popBackStack() },
-                    onNavigateToDetail = { report ->
+                    onNavigateToDetail = { report: LocalDisasterReport ->
                         navController.navigate("report_detail/${report.id}")
                     }
                 )

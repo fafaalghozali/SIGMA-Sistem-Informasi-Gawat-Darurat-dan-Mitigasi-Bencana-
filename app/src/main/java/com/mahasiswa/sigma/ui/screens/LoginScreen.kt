@@ -248,7 +248,7 @@ fun LoginScreen(
                     .clickable(enabled = false) {}
             )
             AlertDialog(
-                onDismissRequest = { /* Prevent dismiss */ },
+                onDismissRequest = { },
                 icon = {
                     Box(
                         modifier = Modifier

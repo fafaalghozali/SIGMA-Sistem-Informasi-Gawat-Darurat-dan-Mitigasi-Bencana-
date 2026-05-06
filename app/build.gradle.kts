@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation("com.google.code.gson:gson:2.13.2")
     implementation(libs.play.services.location)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

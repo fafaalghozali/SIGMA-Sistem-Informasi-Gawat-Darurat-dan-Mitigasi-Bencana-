@@ -11,3 +11,11 @@ data class LocalDisasterReport(
     val status: String = "Pending",
     val timestamp: Long = System.currentTimeMillis()
 ) : Serializable
+
+data class PendingReport(
+    val id: String,
+    val title: String,
+    val reporter: String,
+    val description: String,
+    val time: String
+)

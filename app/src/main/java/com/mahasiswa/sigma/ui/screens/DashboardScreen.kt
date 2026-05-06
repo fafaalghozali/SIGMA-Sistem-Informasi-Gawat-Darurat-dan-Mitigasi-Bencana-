@@ -11,47 +11,57 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mahasiswa.sigma.data.model.DashboardMenuModel
+import com.mahasiswa.sigma.data.model.NewsItem
 import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.ui.viewmodel.DashboardViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     userRole: UserRole,
     userName: String,
     onFeatureClick: (Int) -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    viewModel: DashboardViewModel = viewModel()
 ) {
-    var showNotification by rememberSaveable { mutableStateOf(true) }
+    val uiState by viewModel.uiState.collectAsState()
     val isDark = isSystemInDarkTheme()
 
-    val menuItems = remember(userRole) {
-        val baseMenu = mutableListOf(
-            DashboardMenuModel(1, "Peta Bencana", "Zona bahaya", Icons.Default.Map),
-            DashboardMenuModel(2, "Lapor Bencana", "Kirim laporan", Icons.Default.Report),
-            DashboardMenuModel(3, "Info Posko", "Titik pengungsian", Icons.Default.HomeWork),
-            DashboardMenuModel(10, "Panduan Bencana", "Tips mitigasi PDF", Icons.AutoMirrored.Filled.MenuBook),
-            DashboardMenuModel(5, "Registrasi Relawan", "Daftar relawan", Icons.Default.PersonAdd),
-            DashboardMenuModel(7, "Cari Bencana", "Search & Filter", Icons.Default.Search)
-        )
-
-        if (userRole == UserRole.BNPB) {
-            baseMenu.add(DashboardMenuModel(6, "Verifikasi Laporan", "Validasi data", Icons.Default.VerifiedUser))
-        }
-        baseMenu
+    // Load data when the screen is first composed or dependencies change
+    LaunchedEffect(userRole, isDark) {
+        viewModel.loadDashboardData(userRole, isDark)
     }
 
+    DashboardContent(
+        userName = userName,
+        uiState = uiState,
+        isDark = isDark,
+        onFeatureClick = onFeatureClick,
+        onNavigateToProfile = onNavigateToProfile,
+        onDismissNotification = { viewModel.dismissNotification() }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DashboardContent(
+    userName: String,
+    uiState: com.mahasiswa.sigma.ui.viewmodel.DashboardUiState,
+    isDark: Boolean,
+    onFeatureClick: (Int) -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onDismissNotification: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -116,7 +126,7 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item(span = { GridItemSpan(2) }) {
-                AnimatedVisibility(visible = showNotification) {
+                AnimatedVisibility(visible = uiState.showNotification) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -136,7 +146,7 @@ fun DashboardScreen(
                                 Text("PERINGATAN DARURAT", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                                 Text("Intensitas Hujan tinggi berpotensi menyebabkan banjir di wilayah Surakarta", fontSize = 14.sp)
                             }
-                            IconButton(onClick = { showNotification = false }) {
+                            IconButton(onClick = onDismissNotification) {
                                 Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(18.dp))
                             }
                         }
@@ -146,7 +156,7 @@ fun DashboardScreen(
 
 
             item(span = { GridItemSpan(2) }) {
-                NewsSection()
+                NewsSection(uiState.newsItems)
             }
 
             item(span = { GridItemSpan(2) }) {
@@ -159,7 +169,7 @@ fun DashboardScreen(
                 )
             }
 
-            items(menuItems) { item ->
+            items(uiState.menuItems) { item ->
                 MenuCard(item) { onFeatureClick(item.id) }
             }
 
@@ -171,17 +181,7 @@ fun DashboardScreen(
 }
 
 @Composable
-fun NewsSection() {
-    val isDark = isSystemInDarkTheme()
-    val newsItems = remember(isDark) {
-        listOf(
-            NewsItem(1, "Banjir bandang melanda wilayah Sukoharjo", "10 min ago", "INFO", if (isDark) Color(0xFF1B2C42) else Color(0xFFE3F2FD)),
-            NewsItem(2, "Gempa bumi M 5,0 SR di Daerah Ternate, Maluku Utara hingga Rektorat UNS", "3 hours ago", "DARURAT", if (isDark) Color(0xFF422222) else Color(0xFFFFEBEE)),
-            NewsItem(3, "Prakiraan cuaca: Hujan lebat esok hari di Soloraya", "1 hour ago", "WASPADA", if (isDark) Color(0xFF423422) else Color(0xFFFFF3E0)),
-            NewsItem(4, "Penyaluran bantuan logistik di posko pengungsian terkenda jembatan terputus", "2 hours ago", "INFO", if (isDark) Color(0xFF1B2C42) else Color(0xFFE3F2FD))
-        )
-    }
-
+fun NewsSection(newsItems: List<NewsItem>) {
     Column(modifier = Modifier.padding(vertical = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -302,18 +302,3 @@ fun MenuCard(item: DashboardMenuModel, onClick: () -> Unit) {
         }
     }
 }
-
-data class DashboardMenuModel(
-    val id: Int,
-    val title: String,
-    val description: String,
-    val icon: ImageVector
-)
-
-data class NewsItem(
-    val id: Int,
-    val title: String,
-    val time: String,
-    val category: String,
-    val backgroundColor: Color
-)

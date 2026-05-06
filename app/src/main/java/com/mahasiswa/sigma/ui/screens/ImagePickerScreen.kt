@@ -3,10 +3,7 @@ package com.mahasiswa.sigma.ui.screens
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -20,7 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import com.mahasiswa.sigma.data.repository.ImageRepository
+import com.mahasiswa.sigma.ui.viewmodel.ImagePickerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,35 +40,31 @@ fun ImagePickerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    // Ideally use a proper ViewModel Factory or Hilt, but for this step we instantiate here
+    val viewModel: ImagePickerViewModel = remember {
+        ImagePickerViewModel(ImageRepository(context.contentResolver))
+    }
     
-    fun uriToBitmap(uri: Uri): Bitmap? {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val source = ImageDecoder.createSource(context.contentResolver, uri)
-                ImageDecoder.decodeBitmap(source)
-            } else {
-                @Suppress("DEPRECATION")
-                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-            }
-        } catch (e: Exception) { null }
+    val selectedBitmap by viewModel.selectedBitmap.collectAsState()
+
+    // Handle navigation when image is selected
+    LaunchedEffect(selectedBitmap) {
+        selectedBitmap?.let {
+            navController.previousBackStackEntry?.savedStateHandle?.set("image_bitmap", it)
+            navController.popBackStack()
+        }
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let {
-            navController.previousBackStackEntry?.savedStateHandle?.set("image_uri", it)
-            navController.popBackStack()
-        }
+        uri?.let { viewModel.handleImageUri(it) }
     }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
-        bitmap?.let {
-            navController.previousBackStackEntry?.savedStateHandle?.set("image_bitmap", it)
-            navController.popBackStack()
-        }
+        bitmap?.let { viewModel.handleImageBitmap(it) }
     }
 
     Scaffold(
@@ -84,29 +79,41 @@ fun ImagePickerScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        ImagePickerContent(
+            modifier = Modifier.padding(padding),
+            onCameraClick = { cameraLauncher.launch(null) },
+            onGalleryClick = { galleryLauncher.launch("image/*") }
+        )
+    }
+}
+
+@Composable
+fun ImagePickerContent(
+    modifier: Modifier = Modifier,
+    onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Button(
+            onClick = onCameraClick,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Button(
-                onClick = { cameraLauncher.launch(null) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Ambil dari Kamera")
-            }
+            Text("Ambil dari Kamera")
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
-                onClick = { galleryLauncher.launch("image/*") },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Pilih dari Galeri")
-            }
+        Button(
+            onClick = onGalleryClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Pilih dari Galeri")
         }
     }
 }
@@ -119,38 +126,34 @@ fun ImagePickerBottomSheet(
     onImageSelected: (Bitmap) -> Unit
 ) {
     val context = LocalContext.current
+    val viewModel: ImagePickerViewModel = remember {
+        ImagePickerViewModel(ImageRepository(context.contentResolver))
+    }
+    val selectedBitmap by viewModel.selectedBitmap.collectAsState()
 
-    fun uriToBitmap(uri: Uri): Bitmap? {
-        return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val source = ImageDecoder.createSource(context.contentResolver, uri)
-                ImageDecoder.decodeBitmap(source)
-            } else {
-                @Suppress("DEPRECATION")
-                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
-            }
-        } catch (e: Exception) { null }
+    LaunchedEffect(selectedBitmap) {
+        selectedBitmap?.let {
+            onImageSelected(it)
+            onDismiss()
+        }
     }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
-        bitmap?.let { onImageSelected(it) }
-        onDismiss()
+        bitmap?.let { viewModel.handleImageBitmap(it) }
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { uriToBitmap(it)?.let { bitmap -> onImageSelected(bitmap) } }
-        onDismiss()
+        uri?.let { viewModel.handleImageUri(it) }
     }
 
     val fileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
-        uri?.let { uriToBitmap(it)?.let { bitmap -> onImageSelected(bitmap) } }
-        onDismiss()
+        uri?.let { viewModel.handleImageUri(it) }
     }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(

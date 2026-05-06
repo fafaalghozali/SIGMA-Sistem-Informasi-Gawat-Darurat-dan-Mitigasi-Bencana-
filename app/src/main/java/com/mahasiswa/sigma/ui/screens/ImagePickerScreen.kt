@@ -190,7 +190,7 @@ fun ImagePickerBottomSheet(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "Pilih salah satu metode untuk mengambil foto kejadian",
+                text = "Pilih salah satu metode untuk mengambil gambar",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

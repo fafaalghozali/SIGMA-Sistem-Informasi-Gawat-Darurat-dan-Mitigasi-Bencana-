@@ -1,36 +1,34 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.mahasiswa.sigma.data.model.PendingReport
+import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.data.repository.AdminRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class AdminVerificationViewModel(
-    private val repository: AdminRepository = AdminRepository()
-) : ViewModel() {
+class AdminVerificationViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = AdminRepository(application)
 
-    private val _pendingReports = MutableStateFlow<List<PendingReport>>(emptyList())
-    val pendingReports: StateFlow<List<PendingReport>> = _pendingReports.asStateFlow()
+    private val _pendingReports = MutableStateFlow<List<LocalDisasterReport>>(emptyList())
+    val pendingReports: StateFlow<List<LocalDisasterReport>> = _pendingReports.asStateFlow()
 
     init {
         loadPendingReports()
     }
 
-    private fun loadPendingReports() {
+    fun loadPendingReports() {
         viewModelScope.launch {
-            val data = repository.getPendingReports()
-            _pendingReports.value = data
+            _pendingReports.value = repository.getPendingReports()
         }
     }
 
     fun verifyReport(reportId: String) {
         viewModelScope.launch {
             repository.verifyReport(reportId)
-
             loadPendingReports()
         }
     }
@@ -38,7 +36,6 @@ class AdminVerificationViewModel(
     fun rejectReport(reportId: String) {
         viewModelScope.launch {
             repository.rejectReport(reportId)
-
             loadPendingReports()
         }
     }

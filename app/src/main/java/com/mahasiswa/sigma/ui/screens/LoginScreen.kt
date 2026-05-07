@@ -12,47 +12,63 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mahasiswa.sigma.data.model.UserRole
-import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.ui.viewmodel.LoginUiState
+import com.mahasiswa.sigma.ui.viewmodel.LoginViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onNavigateToDashboard: (UserRole, String) -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    viewModel: LoginViewModel = viewModel()
 ) {
-    val context = LocalContext.current
-    val authManager = remember { AuthManager(context) }
-    
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    val roles = remember {
-        UserRole.entries.filter { it == UserRole.MASYARAKAT || it == UserRole.RELAWAN }
-    }
+    val uiState by viewModel.uiState.collectAsState()
 
-    var selectedRole by rememberSaveable { mutableStateOf(roles[0]) }
-    
-    var showErrorDialog by rememberSaveable { mutableStateOf(false) }
-    var showSuccessDialog by rememberSaveable { mutableStateOf(false) }
-    var errorMessage by rememberSaveable { mutableStateOf("") }
-    var loggedInName by rememberSaveable { mutableStateOf("") }
+    LoginContent(
+        uiState = uiState,
+        availableRoles = viewModel.availableRoles,
+        onEmailChange = viewModel::onEmailChange,
+        onPasswordChange = viewModel::onPasswordChange,
+        onPasswordVisibilityToggle = viewModel::onPasswordVisibilityToggle,
+        onRoleExpandedChange = viewModel::onRoleExpandedChange,
+        onRoleSelected = viewModel::onRoleSelected,
+        onLoginClick = viewModel::login,
+        onNavigateToRegister = onNavigateToRegister,
+        onDismissError = viewModel::onDismissErrorDialog,
+        onConfirmSuccess = {
+            onNavigateToDashboard(uiState.selectedRole, uiState.email)
+        }
+    )
+}
 
-    val isBlurEnabled = showErrorDialog || showSuccessDialog
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoginContent(
+    uiState: LoginUiState,
+    availableRoles: List<UserRole>,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onPasswordVisibilityToggle: () -> Unit,
+    onRoleExpandedChange: (Boolean) -> Unit,
+    onRoleSelected: (UserRole) -> Unit,
+    onLoginClick: () -> Unit,
+    onNavigateToRegister: () -> Unit,
+    onDismissError: () -> Unit,
+    onConfirmSuccess: () -> Unit
+) {
+    val isBlurEnabled = uiState.showErrorDialog || uiState.showSuccessDialog
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -79,8 +95,8 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = uiState.email,
+                onValueChange = onEmailChange,
                 label = { Text("Email / Username") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
@@ -89,23 +105,19 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
-                value = password,
-                onValueChange = { 
-                    if (!it.contains("\n")) password = it 
-                },
+                value = uiState.password,
+                onValueChange = onPasswordChange,
                 label = { Text("Password") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation = if (uiState.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
-                    val image = if (passwordVisible)
+                    val image = if (uiState.isPasswordVisible)
                         Icons.Filled.Visibility
                     else Icons.Filled.VisibilityOff
 
-                    val description = if (passwordVisible) "Hide password" else "Show password"
-
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = description)
+                    IconButton(onClick = onPasswordVisibilityToggle) {
+                        Icon(imageVector = image, contentDescription = null)
                     }
                 }
             )
@@ -113,32 +125,29 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
+                expanded = uiState.isRoleExpanded,
+                onExpandedChange = onRoleExpandedChange,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 OutlinedTextField(
-                    value = selectedRole.displayName,
+                    value = uiState.selectedRole.displayName,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Masuk Sebagai") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.isRoleExpanded) },
                     modifier = Modifier
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                         .fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
                 ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    expanded = uiState.isRoleExpanded,
+                    onDismissRequest = { onRoleExpandedChange(false) }
                 ) {
-                    roles.forEach { role ->
+                    availableRoles.forEach { role ->
                         DropdownMenuItem(
                             text = { Text(role.displayName) },
-                            onClick = {
-                                selectedRole = role
-                                expanded = false
-                            }
+                            onClick = { onRoleSelected(role) }
                         )
                     }
                 }
@@ -147,26 +156,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = {
-                    if (email.isNotEmpty() && password.isNotEmpty()) {
-                        val userRole = authManager.loginUser(email, password)
-                        if (userRole != null) {
-                            if (userRole == selectedRole) {
-                                loggedInName = authManager.getUserName(email)
-                                showSuccessDialog = true
-                            } else {
-                                errorMessage = "Role yang Anda pilih tidak sesuai dengan akun ini."
-                                showErrorDialog = true
-                            }
-                        } else {
-                            errorMessage = "Email atau Password salah. Silakan periksa kembali."
-                            showErrorDialog = true
-                        }
-                    } else {
-                        errorMessage = "Mohon isi Email dan Password Anda."
-                        showErrorDialog = true
-                    }
-                },
+                onClick = onLoginClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
@@ -188,7 +178,7 @@ fun LoginScreen(
             }
         }
 
-        if (showErrorDialog) {
+        if (uiState.showErrorDialog) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -196,7 +186,7 @@ fun LoginScreen(
                     .clickable(enabled = false) {}
             )
             AlertDialog(
-                onDismissRequest = { showErrorDialog = false },
+                onDismissRequest = onDismissError,
                 icon = {
                     Box(
                         modifier = Modifier
@@ -223,14 +213,14 @@ fun LoginScreen(
                 },
                 text = {
                     Text(
-                        text = errorMessage,
+                        text = uiState.errorMessage,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
                 },
                 confirmButton = {
                     TextButton(
-                        onClick = { showErrorDialog = false },
+                        onClick = onDismissError,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Coba Lagi", fontWeight = FontWeight.Bold)
@@ -240,7 +230,7 @@ fun LoginScreen(
             )
         }
 
-        if (showSuccessDialog) {
+        if (uiState.showSuccessDialog) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -276,7 +266,7 @@ fun LoginScreen(
                 },
                 text = {
                     Text(
-                        text = "Selamat Datang Kembali,\n$loggedInName!",
+                        text = "Selamat Datang Kembali,\n${uiState.loggedInName}!",
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.fillMaxWidth()
@@ -284,10 +274,7 @@ fun LoginScreen(
                 },
                 confirmButton = {
                     Button(
-                        onClick = {
-                            showSuccessDialog = false
-                            onNavigateToDashboard(selectedRole, email)
-                        },
+                        onClick = onConfirmSuccess,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     ) {

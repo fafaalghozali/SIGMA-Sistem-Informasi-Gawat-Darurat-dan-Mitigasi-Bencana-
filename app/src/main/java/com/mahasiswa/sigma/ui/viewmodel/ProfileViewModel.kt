@@ -25,10 +25,6 @@ class ProfileViewModel : ViewModel() {
         showImageSheet = false
     }
 
-    fun setShowImageSheet(show: Boolean) {
-        showImageSheet = show
-    }
-
     fun initData(initialName: String, initialEmail: String) {
         if (name.isEmpty() && email.isEmpty()) {
             name = initialName

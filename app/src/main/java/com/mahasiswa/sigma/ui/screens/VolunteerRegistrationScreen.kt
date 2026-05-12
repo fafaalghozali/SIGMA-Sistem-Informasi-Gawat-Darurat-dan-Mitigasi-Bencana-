@@ -126,7 +126,7 @@ fun VolunteerRegistrationScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Button(
-                    onClick = { viewModel.setShowConfirmDialog(true) },
+                    onClick = { viewModel.showConfirmDialog = true },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -155,7 +155,7 @@ fun VolunteerRegistrationScreen(
                     .clickable(enabled = false) {}
             )
             AlertDialog(
-                onDismissRequest = { viewModel.setShowConfirmDialog(false) },
+                onDismissRequest = { viewModel.showConfirmDialog = false },
                 icon = {
                     Box(
                         modifier = Modifier
@@ -220,7 +220,7 @@ fun VolunteerRegistrationScreen(
                 },
                 dismissButton = {
                     TextButton(
-                        onClick = { viewModel.setShowConfirmDialog(false) },
+                        onClick = { viewModel.showConfirmDialog = false },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(

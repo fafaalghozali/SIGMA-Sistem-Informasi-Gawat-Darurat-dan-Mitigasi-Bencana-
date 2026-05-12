@@ -37,10 +37,6 @@ class VolunteerRegistrationViewModel : ViewModel() {
         skillExpanded = !skillExpanded
     }
 
-    fun setShowConfirmDialog(show: Boolean) {
-        showConfirmDialog = show
-    }
-
     fun submitRegistration(onSuccess: () -> Unit) {
         // Logic to save registration can be added here
         showConfirmDialog = false

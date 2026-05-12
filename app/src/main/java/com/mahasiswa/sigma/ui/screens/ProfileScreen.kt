@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +20,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import com.mahasiswa.sigma.data.model.UserRole
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -162,4 +162,16 @@ fun ProfileScreen(
             }
         }
     }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun ProfileScreenPreview() {
+    ProfileScreen(
+        userRole = UserRole.MASYARAKAT,
+        userName = "Budi Santoso",
+        userEmail = "budi@sigma.com",
+        onBack = {},
+        onLogout = {}
+    )
 }

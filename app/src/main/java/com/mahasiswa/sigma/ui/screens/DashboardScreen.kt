@@ -20,11 +20,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mahasiswa.sigma.data.model.DashboardMenuModel
 import com.mahasiswa.sigma.data.model.NewsItem
 import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.data.repository.DashboardRepository
 import com.mahasiswa.sigma.ui.viewmodel.DashboardViewModel
+import com.mahasiswa.sigma.ui.viewmodel.DashboardUiState
 
 @Composable
 fun DashboardScreen(
@@ -37,7 +40,6 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isDark = isSystemInDarkTheme()
 
-    // Load data when the screen is first composed or dependencies change
     LaunchedEffect(userRole, isDark) {
         viewModel.loadDashboardData(userRole, isDark)
     }
@@ -56,7 +58,7 @@ fun DashboardScreen(
 @Composable
 fun DashboardContent(
     userName: String,
-    uiState: com.mahasiswa.sigma.ui.viewmodel.DashboardUiState,
+    uiState: DashboardUiState,
     isDark: Boolean,
     onFeatureClick: (Int) -> Unit,
     onNavigateToProfile: () -> Unit,
@@ -153,7 +155,6 @@ fun DashboardContent(
                     }
                 }
             }
-
 
             item(span = { GridItemSpan(2) }) {
                 NewsSection(uiState.newsItems)
@@ -301,4 +302,25 @@ fun MenuCard(item: DashboardMenuModel, onClick: () -> Unit) {
             )
         }
     }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun DashboardPreview() {
+    val repository = DashboardRepository()
+    val isDark = isSystemInDarkTheme()
+    val userRole = UserRole.MASYARAKAT
+
+    DashboardContent(
+        userName = "Supriyanto",
+        uiState = DashboardUiState(
+            menuItems = repository.getMenuItems(userRole),
+            newsItems = repository.getNewsItems(isDark),
+            showNotification = true
+        ),
+        isDark = isDark,
+        onFeatureClick = {},
+        onNavigateToProfile = {},
+        onDismissNotification = {}
+    )
 }

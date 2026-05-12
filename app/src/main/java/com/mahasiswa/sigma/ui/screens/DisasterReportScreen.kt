@@ -45,6 +45,7 @@ import com.mahasiswa.sigma.data.repository.ReportRepository
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -447,4 +448,10 @@ fun ReportItemCard(
             }
         }
     }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun DisasterReportScreenPreview() {
+    DisasterReportScreen(onBack = {}, onNavigateToDetail = {})
 }

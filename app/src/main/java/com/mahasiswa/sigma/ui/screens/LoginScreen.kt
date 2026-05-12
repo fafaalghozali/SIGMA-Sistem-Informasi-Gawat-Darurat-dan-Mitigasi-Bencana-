@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.ui.viewmodel.LoginUiState
@@ -287,4 +288,22 @@ fun LoginContent(
             )
         }
     }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun LoginScreenPreview() {
+    LoginContent(
+        uiState = LoginUiState(),
+        availableRoles = listOf(UserRole.MASYARAKAT, UserRole.RELAWAN, UserRole.BNPB),
+        onEmailChange = {},
+        onPasswordChange = {},
+        onPasswordVisibilityToggle = {},
+        onRoleExpandedChange = {},
+        onRoleSelected = {},
+        onLoginClick = {},
+        onNavigateToRegister = {},
+        onDismissError = {},
+        onConfirmSuccess = {}
+    )
 }

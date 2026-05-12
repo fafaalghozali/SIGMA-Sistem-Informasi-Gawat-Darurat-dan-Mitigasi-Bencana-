@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import java.text.SimpleDateFormat
 import java.util.*
@@ -124,4 +125,18 @@ fun ReportDetailScreen(
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun ReportDetailScreenPreview() {
+    ReportDetailScreen(
+        report = LocalDisasterReport(
+            title = "Angin Topan",
+            description = "angin besar",
+            location = "Lat: -7.34645342, Long: 110.74283153",
+            status = "Accepted"
+        ),
+        onBack = {}
+    )
 }

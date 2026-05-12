@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -236,4 +237,10 @@ fun VolunteerRegistrationScreen(onBack: () -> Unit) {
             )
         }
     }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun VolunteerRegistrationScreenPreview() {
+    VolunteerRegistrationScreen(onBack = {})
 }

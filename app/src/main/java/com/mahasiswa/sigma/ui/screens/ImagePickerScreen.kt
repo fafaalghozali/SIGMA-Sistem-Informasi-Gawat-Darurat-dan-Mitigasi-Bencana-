@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
+import androidx.compose.ui.tooling.preview.Preview
 import com.mahasiswa.sigma.data.repository.ImageRepository
 import com.mahasiswa.sigma.ui.viewmodel.ImagePickerViewModel
 
@@ -40,14 +41,12 @@ fun ImagePickerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    // Ideally use a proper ViewModel Factory or Hilt, but for this step we instantiate here
     val viewModel: ImagePickerViewModel = remember {
         ImagePickerViewModel(ImageRepository(context.contentResolver))
     }
     
     val selectedBitmap by viewModel.selectedBitmap.collectAsState()
 
-    // Handle navigation when image is selected
     LaunchedEffect(selectedBitmap) {
         selectedBitmap?.let {
             navController.previousBackStackEntry?.savedStateHandle?.set("image_bitmap", it)
@@ -67,6 +66,12 @@ fun ImagePickerScreen(
         bitmap?.let { viewModel.handleImageBitmap(it) }
     }
 
+    val fileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { viewModel.handleImageUri(it) }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -79,41 +84,17 @@ fun ImagePickerScreen(
             )
         }
     ) { padding ->
-        ImagePickerContent(
-            modifier = Modifier.padding(padding),
-            onCameraClick = { cameraLauncher.launch(null) },
-            onGalleryClick = { galleryLauncher.launch("image/*") }
-        )
-    }
-}
-
-@Composable
-fun ImagePickerContent(
-    modifier: Modifier = Modifier,
-    onCameraClick: () -> Unit,
-    onGalleryClick: () -> Unit
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Button(
-            onClick = onCameraClick,
-            modifier = Modifier.fillMaxWidth()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center
         ) {
-            Text("Ambil dari Kamera")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onGalleryClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Pilih dari Galeri")
+            ImagePickerBottomSheetContent(
+                onCameraClick = { cameraLauncher.launch(null) },
+                onGalleryClick = { galleryLauncher.launch("image/*") },
+                onFileClick = { fileLauncher.launch(arrayOf("image/*")) }
+            )
         }
     }
 }
@@ -179,59 +160,72 @@ fun ImagePickerBottomSheet(
             )
         }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Lampirkan Gambar",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Pilih salah satu metode untuk mengambil gambar",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
-            )
+        ImagePickerBottomSheetContent(
+            onCameraClick = {
+                if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    cameraLauncher.launch(null)
+                } else {
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }
+            },
+            onGalleryClick = { galleryLauncher.launch("image/*") },
+            onFileClick = { fileLauncher.launch(arrayOf("image/*")) }
+        )
+    }
+}
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                PhotoOptionItem(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.CameraAlt,
-                    label = "Kamera",
-                    accentColor = Color(0xFF4285F4),
-                    onClick = {
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                            cameraLauncher.launch(null)
-                        } else {
-                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
-                    }
-                )
-                PhotoOptionItem(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.Default.PhotoLibrary,
-                    label = "Galeri",
-                    accentColor = Color(0xFF34A853),
-                    onClick = { galleryLauncher.launch("image/*") }
-                )
-                PhotoOptionItem(
-                    modifier = Modifier.weight(1f),
-                    icon = Icons.AutoMirrored.Filled.InsertDriveFile,
-                    label = "File",
-                    accentColor = Color(0xFFFBBC05),
-                    onClick = { fileLauncher.launch(arrayOf("image/*")) }
-                )
-            }
+@Composable
+fun ImagePickerBottomSheetContent(
+    onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
+    onFileClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Lampirkan Gambar",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "Pilih salah satu metode untuk mengambil gambar",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            PhotoOptionItem(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.CameraAlt,
+                label = "Kamera",
+                accentColor = Color(0xFF4285F4),
+                onClick = onCameraClick
+            )
+            PhotoOptionItem(
+                modifier = Modifier.weight(1f),
+                icon = Icons.Default.PhotoLibrary,
+                label = "Galeri",
+                accentColor = Color(0xFF34A853),
+                onClick = onGalleryClick
+            )
+            PhotoOptionItem(
+                modifier = Modifier.weight(1f),
+                icon = Icons.AutoMirrored.Filled.InsertDriveFile,
+                label = "File",
+                accentColor = Color(0xFFFBBC05),
+                onClick = onFileClick
+            )
         }
     }
 }
@@ -272,6 +266,18 @@ fun PhotoOptionItem(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ImagePickerBottomSheetPreview() {
+    Surface {
+        ImagePickerBottomSheetContent(
+            onCameraClick = {},
+            onGalleryClick = {},
+            onFileClick = {}
         )
     }
 }

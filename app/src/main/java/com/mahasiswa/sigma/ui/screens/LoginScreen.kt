@@ -37,6 +37,10 @@ fun LoginScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.resetLoginState()
+    }
+
     LoginContent(
         uiState = uiState,
         availableRoles = viewModel.availableRoles,
@@ -49,6 +53,7 @@ fun LoginScreen(
         onNavigateToRegister = onNavigateToRegister,
         onDismissError = viewModel::onDismissErrorDialog,
         onConfirmSuccess = {
+            viewModel.resetLoginState()
             onNavigateToDashboard(uiState.selectedRole, uiState.email)
         }
     )

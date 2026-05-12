@@ -57,6 +57,10 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(showErrorDialog = false) }
     }
 
+    fun resetLoginState() {
+        _uiState.update { LoginUiState() }
+    }
+
     fun login() {
         val currentState = _uiState.value
         if (currentState.email.isEmpty() || currentState.password.isEmpty()) {

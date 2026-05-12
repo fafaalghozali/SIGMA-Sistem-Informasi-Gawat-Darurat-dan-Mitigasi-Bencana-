@@ -1,6 +1,5 @@
 package com.mahasiswa.sigma.ui.screens
 
-import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,17 +10,17 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.ui.viewmodel.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,22 +29,27 @@ fun ProfileScreen(
     userName: String,
     userEmail: String,
     onBack: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    viewModel: ProfileViewModel = viewModel()
 ) {
-    var name by rememberSaveable { mutableStateOf(userName) }
-    var email by rememberSaveable { mutableStateOf(userEmail) }
+    // Initialize viewModel with current user data once
+    LaunchedEffect(userName, userEmail) {
+        if (viewModel.name.isEmpty()) viewModel.name = userName
+        if (viewModel.email.isEmpty()) viewModel.email = userEmail
+    }
 
-    var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var showImageSheet by rememberSaveable { mutableStateOf(false) }
+    val name = viewModel.name
+    val email = viewModel.email
+    val imageBitmap = viewModel.imageBitmap
+    var showImageSheet = viewModel.showImageSheet
     val sheetState = rememberModalBottomSheetState()
 
     if (showImageSheet) {
         ImagePickerBottomSheet(
             sheetState = sheetState,
-            onDismiss = { showImageSheet = false },
+            onDismiss = { viewModel.showImageSheet = false },
             onImageSelected = { bitmap ->
-                imageBitmap = bitmap
-                showImageSheet = false
+                viewModel.onImageSelected(bitmap)
             }
         )
     }
@@ -74,12 +78,12 @@ fun ProfileScreen(
                     .size(120.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { showImageSheet = true },
+                    .clickable { viewModel.showImageSheet = true },
                 contentAlignment = Alignment.Center
             ) {
                 if (imageBitmap != null) {
                     Image(
-                        bitmap = imageBitmap!!.asImageBitmap(),
+                        bitmap = imageBitmap.asImageBitmap(),
                         contentDescription = "Profile Picture",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -100,14 +104,14 @@ fun ProfileScreen(
                 text = "Ubah Foto Profil", 
                 style = MaterialTheme.typography.labelLarge, 
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { showImageSheet = true }
+                modifier = Modifier.clickable { viewModel.showImageSheet = true }
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = { viewModel.name = it },
                 label = { Text("Nama Lengkap") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -116,7 +120,7 @@ fun ProfileScreen(
 
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { viewModel.email = it },
                 label = { Text("Email") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -141,7 +145,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { /* TODO: Simpan Perubahan */ },
+                onClick = { viewModel.updateProfile() },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Simpan Perubahan")

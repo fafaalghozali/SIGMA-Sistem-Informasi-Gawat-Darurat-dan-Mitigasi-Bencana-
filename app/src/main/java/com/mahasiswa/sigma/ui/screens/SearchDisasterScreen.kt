@@ -8,38 +8,24 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mahasiswa.sigma.data.model.ReportStatus
-
-data class DisasterInfo(
-    val type: String,
-    val location: String,
-    val status: ReportStatus,
-    val date: String
-)
+import com.mahasiswa.sigma.ui.viewmodel.SearchDisasterViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchDisasterScreen(onBack: () -> Unit) {
-    var searchQuery by rememberSaveable { mutableStateOf("") }
-    
-    val allDisasters = listOf(
-        DisasterInfo("Banjir", "Sukoharjo", ReportStatus.SIAGA_1, "14 April 2026"),
-    )
-
-    var filteredDisasters by remember { mutableStateOf(allDisasters) }
-
-    LaunchedEffect(searchQuery) {
-        filteredDisasters = allDisasters.filter { d ->
-            d.location.contains(searchQuery, ignoreCase = true) || d.type.contains(searchQuery, ignoreCase = true)
-        }
-    }
+fun SearchDisasterScreen(
+    onBack: () -> Unit,
+    viewModel: SearchDisasterViewModel = viewModel()
+) {
+    val searchQuery = viewModel.searchQuery
+    val filteredDisasters = viewModel.filteredDisasters
 
     Scaffold(
         topBar = {
@@ -61,12 +47,7 @@ fun SearchDisasterScreen(onBack: () -> Unit) {
         ) {
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { 
-                    searchQuery = it
-                    filteredDisasters = allDisasters.filter { d -> 
-                        d.location.contains(it, ignoreCase = true) || d.type.contains(it, ignoreCase = true)
-                    }
-                },
+                onValueChange = { viewModel.onSearchQueryChange(it) },
                 placeholder = { Text("Cari lokasi atau jenis bencana...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth(),

@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -26,8 +25,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.ui.viewmodel.RegisterViewModel
+import com.mahasiswa.sigma.ui.viewmodel.RegisterViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,22 +39,18 @@ fun RegisterScreen(
 ) {
     val context = LocalContext.current
     val authManager = remember { AuthManager(context) }
-    var name by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var passwordVisible by rememberSaveable { mutableStateOf(false) }
-    val selectedRole = UserRole.MASYARAKAT
-    var showDialog by rememberSaveable { mutableStateOf(false) }
-    var registrationSuccess by rememberSaveable { mutableStateOf(false) }
-    var dialogMessage by rememberSaveable { mutableStateOf("") }
+    val viewModel: RegisterViewModel = viewModel(
+        factory = RegisterViewModelFactory(authManager)
+    )
 
-    fun isEmailValid(email: String): Boolean {
-        val emailParts = email.split("@")
-        if (emailParts.size != 2) return false
-        val localPart = emailParts[0]
-        val domainPart = emailParts[1]
-        return localPart.length >= 5 && domainPart.contains(".")
-    }
+    val name = viewModel.name
+    val email = viewModel.email
+    val password = viewModel.password
+    val passwordVisible = viewModel.passwordVisible
+    val selectedRole = viewModel.selectedRole
+    val showDialog = viewModel.showDialog
+    val registrationSuccess = viewModel.registrationSuccess
+    val dialogMessage = viewModel.dialogMessage
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -74,7 +72,7 @@ fun RegisterScreen(
 
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = { viewModel.name = it },
                 label = { Text("Nama Lengkap") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
@@ -84,7 +82,7 @@ fun RegisterScreen(
 
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { viewModel.email = it },
                 label = { Text("Email") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -95,8 +93,8 @@ fun RegisterScreen(
 
             OutlinedTextField(
                 value = password,
-                onValueChange = { 
-                    if (!it.contains("\n")) password = it 
+                onValueChange = {
+                    if (!it.contains("\n")) viewModel.password = it
                 },
                 label = { Text("Password") },
                 modifier = Modifier.fillMaxWidth(),
@@ -109,7 +107,7 @@ fun RegisterScreen(
 
                     val description = if (passwordVisible) "Sembunyikan password" else "Tampilkan password"
 
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    IconButton(onClick = { viewModel.passwordVisible = !viewModel.passwordVisible }) {
                         Icon(imageVector = image, contentDescription = description)
                     }
                 }
@@ -137,28 +135,7 @@ fun RegisterScreen(
 
             Button(
                 onClick = {
-                    if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
-                        if (isEmailValid(email)) {
-                            val isSaved = authManager.registerUser(email, password, selectedRole, name)
-                            if (isSaved) {
-                                registrationSuccess = true
-                                dialogMessage = "Akun Anda telah berhasil didaftarkan ke sistem SIGMA. Silakan masuk untuk melanjutkan."
-                                showDialog = true
-                            } else {
-                                registrationSuccess = false
-                                dialogMessage = "Terjadi kesalahan saat menyimpan data. Silakan coba lagi."
-                                showDialog = true
-                            }
-                        } else {
-                            registrationSuccess = false
-                            dialogMessage = "Email tidak valid. Pastikan ada '@', '.', dan minimal 5 karakter sebelum '@'."
-                            showDialog = true
-                        }
-                    } else {
-                        registrationSuccess = false
-                        dialogMessage = "Mohon lengkapi semua data sebelum mendaftar."
-                        showDialog = true
-                    }
+                    viewModel.register(onNavigateToLogin)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -189,14 +166,14 @@ fun RegisterScreen(
                     .clickable(enabled = false) {}
             )
             AlertDialog(
-                onDismissRequest = { if (!registrationSuccess) showDialog = false },
+                onDismissRequest = { if (!registrationSuccess) viewModel.showDialog = false },
                 icon = {
                     Box(
                         modifier = Modifier
                             .size(72.dp)
                             .clip(CircleShape)
                             .background(
-                                if (registrationSuccess) 
+                                if (registrationSuccess)
                                     MaterialTheme.colorScheme.primaryContainer 
                                 else 
                                     MaterialTheme.colorScheme.errorContainer
@@ -207,7 +184,7 @@ fun RegisterScreen(
                             imageVector = if (registrationSuccess) Icons.Default.CheckCircle
                             else Icons.Default.Warning,
                             contentDescription = null,
-                            tint = if (registrationSuccess) 
+                            tint = if (registrationSuccess)
                                 MaterialTheme.colorScheme.primary 
                             else 
                                 MaterialTheme.colorScheme.error,
@@ -235,14 +212,11 @@ fun RegisterScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            showDialog = false
-                            if (registrationSuccess) {
-                                onNavigateToLogin()
-                            }
+                            viewModel.onDialogConfirm(onNavigateToLogin)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (registrationSuccess) 
+                            containerColor = if (registrationSuccess)
                                 MaterialTheme.colorScheme.primary 
                             else 
                                 MaterialTheme.colorScheme.secondary

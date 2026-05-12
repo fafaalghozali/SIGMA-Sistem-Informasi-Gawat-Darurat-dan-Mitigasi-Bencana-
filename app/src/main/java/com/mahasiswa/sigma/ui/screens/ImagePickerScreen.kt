@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mahasiswa.sigma.data.repository.ImageRepository
 import com.mahasiswa.sigma.ui.viewmodel.ImagePickerViewModel
 
@@ -41,35 +42,34 @@ fun ImagePickerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val viewModel: ImagePickerViewModel = remember {
-        ImagePickerViewModel(ImageRepository(context.contentResolver))
-    }
+    val viewModel: ImagePickerViewModel = viewModel(
+        factory = ImagePickerViewModel.provideFactory(ImageRepository(context.contentResolver))
+    )
     
     val selectedBitmap by viewModel.selectedBitmap.collectAsState()
 
     LaunchedEffect(selectedBitmap) {
         selectedBitmap?.let {
             navController.previousBackStackEntry?.savedStateHandle?.set("image_bitmap", it)
+            viewModel.resetState()
             navController.popBackStack()
         }
     }
 
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.handleImageUri(it) }
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
         bitmap?.let { viewModel.handleImageBitmap(it) }
     }
 
-    val fileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
+    val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { viewModel.handleImageUri(it) }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) cameraLauncher.launch(null)
     }
 
     Scaffold(
@@ -85,13 +85,17 @@ fun ImagePickerScreen(
         }
     ) { padding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding),
             contentAlignment = Alignment.Center
         ) {
-            ImagePickerBottomSheetContent(
-                onCameraClick = { cameraLauncher.launch(null) },
+            ImagePickerContent(
+                onCameraClick = {
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                        cameraLauncher.launch(null)
+                    } else {
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                },
                 onGalleryClick = { galleryLauncher.launch("image/*") },
                 onFileClick = { fileLauncher.launch(arrayOf("image/*")) }
             )
@@ -107,39 +111,32 @@ fun ImagePickerBottomSheet(
     onImageSelected: (Bitmap) -> Unit
 ) {
     val context = LocalContext.current
-    val viewModel: ImagePickerViewModel = remember {
-        ImagePickerViewModel(ImageRepository(context.contentResolver))
-    }
+    val viewModel: ImagePickerViewModel = viewModel(
+        factory = ImagePickerViewModel.provideFactory(ImageRepository(context.contentResolver))
+    )
     val selectedBitmap by viewModel.selectedBitmap.collectAsState()
 
     LaunchedEffect(selectedBitmap) {
         selectedBitmap?.let {
             onImageSelected(it)
+            viewModel.resetState()
             onDismiss()
         }
     }
 
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
         bitmap?.let { viewModel.handleImageBitmap(it) }
     }
 
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { viewModel.handleImageUri(it) }
     }
 
-    val fileLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
+    val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { viewModel.handleImageUri(it) }
     }
 
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) cameraLauncher.launch(null)
     }
 
@@ -160,7 +157,7 @@ fun ImagePickerBottomSheet(
             )
         }
     ) {
-        ImagePickerBottomSheetContent(
+        ImagePickerContent(
             onCameraClick = {
                 if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                     cameraLauncher.launch(null)
@@ -175,7 +172,7 @@ fun ImagePickerBottomSheet(
 }
 
 @Composable
-fun ImagePickerBottomSheetContent(
+fun ImagePickerContent(
     onCameraClick: () -> Unit,
     onGalleryClick: () -> Unit,
     onFileClick: () -> Unit
@@ -272,9 +269,9 @@ fun PhotoOptionItem(
 
 @Preview(showBackground = true)
 @Composable
-fun ImagePickerBottomSheetPreview() {
+fun ImagePickerContentPreview() {
     Surface {
-        ImagePickerBottomSheetContent(
+        ImagePickerContent(
             onCameraClick = {},
             onGalleryClick = {},
             onFileClick = {}

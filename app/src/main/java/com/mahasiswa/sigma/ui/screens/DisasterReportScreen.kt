@@ -4,7 +4,6 @@ import android.Manifest
 import android.app.Activity
 import android.content.IntentSender
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,7 +23,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -38,45 +36,36 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
-import com.mahasiswa.sigma.data.repository.ReportRepository
+import com.mahasiswa.sigma.ui.viewmodel.DisasterReportViewModel
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DisasterReportScreen(
     onBack: () -> Unit,
-    onNavigateToDetail: (LocalDisasterReport) -> Unit
+    onNavigateToDetail: (LocalDisasterReport) -> Unit,
+    viewModel: DisasterReportViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val repository = remember { ReportRepository(context) }
-
-    var title by rememberSaveable { mutableStateOf("") }
-    var description by rememberSaveable { mutableStateOf("") }
-    var locationAddress by rememberSaveable { mutableStateOf("Mendeteksi lokasi...") }
-    var imageBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var showIncompleteDialog by rememberSaveable { mutableStateOf(false) }
-    var showPhotoSourceSheet by rememberSaveable { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
-
-    var reportsList by remember { mutableStateOf(repository.getAllReports()) }
-
+    val reportsList by viewModel.reports.collectAsState()
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    val sheetState = rememberModalBottomSheetState()
 
     val settingResultRequest = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             getCurrentLocation(fusedLocationClient) { lat, long ->
-                locationAddress = "Lat: $lat, Long: $long"
+                viewModel.onLocationReceived("Lat: $lat, Long: $long")
             }
         } else {
-            locationAddress = "Lokasi tidak diaktifkan"
+            viewModel.onLocationReceived("Lokasi tidak diaktifkan")
         }
     }
 
@@ -88,7 +77,7 @@ fun DisasterReportScreen(
 
         task.addOnSuccessListener {
             getCurrentLocation(fusedLocationClient) { lat, long ->
-                locationAddress = "Lat: $lat, Long: $long"
+                viewModel.onLocationReceived("Lat: $lat, Long: $long")
             }
         }
 
@@ -98,10 +87,10 @@ fun DisasterReportScreen(
                     val intentSenderRequest = IntentSenderRequest.Builder(exception.resolution.intentSender).build()
                     settingResultRequest.launch(intentSenderRequest)
                 } catch (sendEx: IntentSender.SendIntentException) {
-                    locationAddress = "Gagal mengaktifkan lokasi"
+                    viewModel.onLocationReceived("Gagal mengaktifkan lokasi")
                 }
             } else {
-                locationAddress = "Pengaturan lokasi tidak memadai"
+                viewModel.onLocationReceived("Pengaturan lokasi tidak memadai")
             }
         }
     }
@@ -112,7 +101,7 @@ fun DisasterReportScreen(
         if (isGranted) {
             checkLocationSettings()
         } else {
-            locationAddress = "Izin lokasi ditolak"
+            viewModel.onLocationReceived("Izin lokasi ditolak")
         }
     }
 
@@ -126,6 +115,52 @@ fun DisasterReportScreen(
         }
     }
 
+    DisasterReportContent(
+        title = viewModel.title,
+        description = viewModel.description,
+        locationAddress = viewModel.locationAddress,
+        imageBitmap = viewModel.imageBitmap,
+        reportsList = reportsList,
+        showIncompleteDialog = viewModel.showIncompleteDialog,
+        showPhotoSourceSheet = viewModel.showPhotoSourceSheet,
+        isLoading = viewModel.isLoading,
+        sheetState = sheetState,
+        onTitleChange = viewModel::onTitleChange,
+        onDescriptionChange = viewModel::onDescriptionChange,
+        onImageClick = { viewModel.showPhotoSourceSheet = true },
+        onSendClick = viewModel::sendReport,
+        onBack = onBack,
+        onNavigateToDetail = onNavigateToDetail,
+        onDismissIncompleteDialog = { viewModel.showIncompleteDialog = false },
+        onDismissPhotoSheet = { viewModel.showPhotoSourceSheet = false },
+        onImageSelected = viewModel::onImageSelected,
+        onStatusUpdate = viewModel::updateReport
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DisasterReportContent(
+    title: String,
+    description: String,
+    locationAddress: String,
+    imageBitmap: android.graphics.Bitmap?,
+    reportsList: List<LocalDisasterReport>,
+    showIncompleteDialog: Boolean,
+    showPhotoSourceSheet: Boolean,
+    isLoading: Boolean,
+    sheetState: SheetState,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onImageClick: () -> Unit,
+    onSendClick: () -> Unit,
+    onBack: () -> Unit,
+    onNavigateToDetail: (LocalDisasterReport) -> Unit,
+    onDismissIncompleteDialog: () -> Unit,
+    onDismissPhotoSheet: () -> Unit,
+    onImageSelected: (android.graphics.Bitmap?) -> Unit,
+    onStatusUpdate: (LocalDisasterReport) -> Unit
+) {
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier.blur(if (showIncompleteDialog || showPhotoSourceSheet) 10.dp else 0.dp),
@@ -170,7 +205,7 @@ fun DisasterReportScreen(
                 item {
                     OutlinedTextField(
                         value = title,
-                        onValueChange = { title = it },
+                        onValueChange = onTitleChange,
                         label = { Text("Jenis Bencana / Judul") },
                         placeholder = { Text("Contoh: Banjir Bandang") },
                         modifier = Modifier.fillMaxWidth(),
@@ -179,7 +214,7 @@ fun DisasterReportScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = description,
-                        onValueChange = { description = it },
+                        onValueChange = onDescriptionChange,
                         label = { Text("Deskripsi Kejadian") },
                         placeholder = { Text("Ceritakan detail kejadian...") },
                         modifier = Modifier.fillMaxWidth(),
@@ -196,12 +231,12 @@ fun DisasterReportScreen(
                             .height(150.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { showPhotoSourceSheet = true },
+                            .clickable { onImageClick() },
                         contentAlignment = Alignment.Center
                     ) {
                         if (imageBitmap != null) {
                             Image(
-                                bitmap = imageBitmap!!.asImageBitmap(),
+                                bitmap = imageBitmap.asImageBitmap(),
                                 contentDescription = null,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -218,32 +253,20 @@ fun DisasterReportScreen(
 
                 item {
                     Button(
-                        onClick = {
-                            if (title.isNotEmpty() && description.isNotEmpty() && imageBitmap != null) {
-                                val newReport = LocalDisasterReport(
-                                    title = title,
-                                    description = description,
-                                    location = locationAddress
-                                )
-                                repository.saveReport(newReport)
-                                reportsList = repository.getAllReports()
-
-                                title = ""
-                                description = ""
-                                imageBitmap = null
-                            } else {
-                                showIncompleteDialog = true
-                            }
-                        },
+                        onClick = onSendClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = RoundedCornerShape(12.dp),
-                        enabled = true
+                        enabled = !isLoading
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Kirim Laporan", fontWeight = FontWeight.Bold)
+                        if (isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                        } else {
+                            Icon(Icons.AutoMirrored.Filled.Send, null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Kirim Laporan", fontWeight = FontWeight.Bold)
+                        }
                     }
                     Spacer(modifier = Modifier.height(40.dp))
                 }
@@ -272,10 +295,7 @@ fun DisasterReportScreen(
                     items(reportsList, key = { it.id }) { report ->
                         ReportItemCard(
                             report = report,
-                            onStatusUpdate = { updatedReport ->
-                                repository.updateReport(updatedReport)
-                                reportsList = repository.getAllReports()
-                            },
+                            onStatusUpdate = onStatusUpdate,
                             onClick = { onNavigateToDetail(report) }
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -294,7 +314,7 @@ fun DisasterReportScreen(
                     .clickable(enabled = false) {}
             )
             AlertDialog(
-                onDismissRequest = { showIncompleteDialog = false },
+                onDismissRequest = onDismissIncompleteDialog,
                 icon = {
                     Box(
                         modifier = Modifier
@@ -328,7 +348,7 @@ fun DisasterReportScreen(
                 },
                 confirmButton = {
                     Button(
-                        onClick = { showIncompleteDialog = false },
+                        onClick = onDismissIncompleteDialog,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary
@@ -347,10 +367,8 @@ fun DisasterReportScreen(
         if (showPhotoSourceSheet) {
             ImagePickerBottomSheet(
                 sheetState = sheetState,
-                onDismiss = { showPhotoSourceSheet = false },
-                onImageSelected = { bitmap ->
-                    imageBitmap = bitmap
-                }
+                onDismiss = onDismissPhotoSheet,
+                onImageSelected = onImageSelected
             )
         }
     }
@@ -448,10 +466,4 @@ fun ReportItemCard(
             }
         }
     }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun DisasterReportScreenPreview() {
-    DisasterReportScreen(onBack = {}, onNavigateToDetail = {})
 }

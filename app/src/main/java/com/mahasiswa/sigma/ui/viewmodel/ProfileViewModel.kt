@@ -1,23 +1,33 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
+import android.app.Application
 import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import com.mahasiswa.sigma.data.auth.AuthManager
 
-class ProfileViewModel : ViewModel() {
+class ProfileViewModel(application: Application) : AndroidViewModel(application) {
+    private val authManager = AuthManager(application)
+    
+    private var originalEmail: String = ""
+    
     var name by mutableStateOf("")
     var email by mutableStateOf("")
     var imageBitmap by mutableStateOf<Bitmap?>(null)
     var showImageSheet by mutableStateOf(false)
+    
+    var isUpdateSuccess by mutableStateOf(false)
+    var isUpdateError by mutableStateOf(false)
+    var errorMessage by mutableStateOf("")
 
-    fun updateName(newName: String) {
-        name = newName
-    }
-
-    fun updateEmail(newEmail: String) {
-        email = newEmail
+    fun initData(initialName: String, initialEmail: String) {
+        if (originalEmail.isEmpty()) {
+            originalEmail = initialEmail
+            name = initialName
+            email = initialEmail
+        }
     }
 
     fun onImageSelected(bitmap: Bitmap) {
@@ -25,14 +35,25 @@ class ProfileViewModel : ViewModel() {
         showImageSheet = false
     }
 
-    fun initData(initialName: String, initialEmail: String) {
-        if (name.isEmpty() && email.isEmpty()) {
-            name = initialName
-            email = initialEmail
+    fun updateProfile() {
+        if (name.isBlank() || email.isBlank()) {
+            errorMessage = "Nama dan Email tidak boleh kosong"
+            isUpdateError = true
+            return
+        }
+
+        val success = authManager.updateProfile(originalEmail, name, email)
+        if (success) {
+            originalEmail = email
+            isUpdateSuccess = true
+        } else {
+            errorMessage = "Gagal memperbarui profil"
+            isUpdateError = true
         }
     }
-
-    fun updateProfile() {
-        // TODO: Implement save logic to repository/AuthManage
+    
+    fun dismissDialogs() {
+        isUpdateSuccess = false
+        isUpdateError = false
     }
 }

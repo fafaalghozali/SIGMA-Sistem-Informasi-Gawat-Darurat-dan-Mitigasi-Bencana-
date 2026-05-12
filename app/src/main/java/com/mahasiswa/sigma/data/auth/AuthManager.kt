@@ -32,4 +32,27 @@ class AuthManager(context: Context) {
     fun getUserName(username: String): String {
         return sharedPrefs.getString("NAME_$username", "User") ?: "User"
     }
+
+    fun updateProfile(oldEmail: String, newName: String, newEmail: String): Boolean {
+        if (newName.isBlank() || newEmail.isBlank()) return false
+        
+        val password = sharedPrefs.getString("USER_$oldEmail", "") ?: ""
+        val role = sharedPrefs.getString("ROLE_$oldEmail", UserRole.MASYARAKAT.name) ?: UserRole.MASYARAKAT.name
+        
+        sharedPrefs.edit().apply {
+            if (oldEmail != newEmail) {
+                remove("USER_$oldEmail")
+                remove("ROLE_$oldEmail")
+                remove("NAME_$oldEmail")
+                
+                putString("USER_$newEmail", password)
+                putString("ROLE_$newEmail", role)
+                putString("NAME_$newEmail", newName)
+            } else {
+                putString("NAME_$newEmail", newName)
+            }
+            apply()
+        }
+        return true
+    }
 }

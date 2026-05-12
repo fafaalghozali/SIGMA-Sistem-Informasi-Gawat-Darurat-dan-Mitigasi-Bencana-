@@ -9,8 +9,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AssignmentInd
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,9 +33,14 @@ import com.mahasiswa.sigma.ui.viewmodel.VolunteerRegistrationViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VolunteerRegistrationScreen(
+    userEmail: String,
     onBack: () -> Unit,
     viewModel: VolunteerRegistrationViewModel = viewModel()
 ) {
+    LaunchedEffect(userEmail) {
+        viewModel.loadRegistrationData(userEmail)
+    }
+
     val name = viewModel.name
     val address = viewModel.address
     val phoneNumber = viewModel.phoneNumber
@@ -68,7 +75,10 @@ fun VolunteerRegistrationScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 if (isRegistered && registeredData != null) {
-                    RegistrationStatusBox(registeredData)
+                    RegistrationStatusBox(
+                        data = registeredData,
+                        onReRegister = { viewModel.resetRegistration() }
+                    )
                 } else {
                     Text("Lengkapi Data Relawan", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
@@ -310,26 +320,49 @@ fun VolunteerRegistrationScreen(
 }
 
 @Composable
-fun RegistrationStatusBox(data: VolunteerRegistrationData) {
+fun RegistrationStatusBox(
+    data: VolunteerRegistrationData,
+    onReRegister: () -> Unit
+) {
+    val statusColor = when (data.status) {
+        "Accepted" -> Color(0xFF2E7D32)
+        "Declined" -> Color(0xFFD32F2F)
+        else -> Color(0xFFE65100)
+    }
+    
+    val statusBgColor = when (data.status) {
+        "Accepted" -> Color(0xFFE8F5E9)
+        "Declined" -> Color(0xFFFFEBEE)
+        else -> Color(0xFFFFF3E0)
+    }
+
+    val statusIcon = when (data.status) {
+        "Accepted" -> Icons.Default.CheckCircle
+        "Declined" -> Icons.Default.Cancel
+        else -> Icons.Default.Info
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.CheckCircle,
+                    imageVector = statusIcon,
                     contentDescription = null,
-                    tint = Color(0xFF4CAF50),
+                    tint = statusColor,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Pendaftaran Terkirim",
+                    text = if (data.status == "Accepted") "Pendaftaran Diterima" 
+                           else if (data.status == "Declined") "Pendaftaran Ditolak"
+                           else "Pendaftaran Terkirim",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -339,20 +372,20 @@ fun RegistrationStatusBox(data: VolunteerRegistrationData) {
             Spacer(modifier = Modifier.height(16.dp))
             
             Surface(
-                color = Color(0xFFFFF3E0),
+                color = statusBgColor,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Info, null, modifier = Modifier.size(14.dp), tint = Color(0xFFE65100))
+                    Icon(statusIcon, null, modifier = Modifier.size(14.dp), tint = statusColor)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = data.status,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFFE65100)
+                        color = statusColor
                     )
                 }
             }
@@ -372,12 +405,32 @@ fun RegistrationStatusBox(data: VolunteerRegistrationData) {
             
             Spacer(modifier = Modifier.height(24.dp))
             
+            val footerText = when (data.status) {
+                "Accepted" -> "Selamat! Anda telah resmi terdaftar sebagai relawan SIGMA. Silakan cek menu penugasan secara berkala."
+                "Declined" -> "Mohon maaf, pendaftaran Anda belum dapat kami setujui saat ini karena kualifikasi yang belum terpenuhi."
+                else -> "Tim BNPB akan segera meninjau kualifikasi Anda. Mohon tunggu notifikasi selanjutnya melalui aplikasi atau kontak yang terdaftar."
+            }
+            
             Text(
-                "Tim BNPB akan segera meninjau kualifikasi Anda. Mohon tunggu notifikasi selanjutnya melalui aplikasi atau kontak yang terdaftar.",
+                text = footerText,
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 18.sp
             )
+
+            if (data.status == "Declined") {
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onReRegister,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Daftar Kembali", fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }
@@ -398,5 +451,5 @@ fun InfoRow(label: String, value: String) {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun VolunteerRegistrationScreenPreview() {
-    VolunteerRegistrationScreen(onBack = {})
+    VolunteerRegistrationScreen(userEmail = "test@gmail.com", onBack = {})
 }

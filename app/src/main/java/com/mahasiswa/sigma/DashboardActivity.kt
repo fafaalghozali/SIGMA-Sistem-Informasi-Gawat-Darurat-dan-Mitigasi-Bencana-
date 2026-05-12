@@ -129,7 +129,10 @@ class DashboardActivity : ComponentActivity() {
                 ShelterInfoScreen(onBack = { navController.popBackStack() })
             }
             composable("volunteer_registration") {
-                VolunteerRegistrationScreen(onBack = { navController.popBackStack() })
+                VolunteerRegistrationScreen(
+                    userEmail = userEmail,
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable("admin_verification") {
                 AdminVerificationScreen(onBack = { navController.popBackStack() })

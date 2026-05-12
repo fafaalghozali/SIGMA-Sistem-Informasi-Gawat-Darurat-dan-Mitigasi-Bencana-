@@ -1,9 +1,11 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import com.mahasiswa.sigma.data.repository.VolunteerRepository
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
 
 data class VolunteerRegistrationData(
@@ -11,10 +13,13 @@ data class VolunteerRegistrationData(
     val skill: SkillsVolunteer,
     val address: String,
     val phoneNumber: String,
-    val status: String = "Pending Verifikasi"
+    val status: String = "Pending"
 )
 
-class VolunteerRegistrationViewModel : ViewModel() {
+class VolunteerRegistrationViewModel(application: Application) : AndroidViewModel(application) {
+    private val volunteerRepository = VolunteerRepository(application)
+    private var currentUserEmail: String = ""
+
     var name by mutableStateOf("")
     var address by mutableStateOf("")
     var phoneNumber by mutableStateOf("")
@@ -25,9 +30,17 @@ class VolunteerRegistrationViewModel : ViewModel() {
     var selectedSkill by mutableStateOf(skillOptions[0])
     var skillExpanded by mutableStateOf(false)
 
-    // State to track if user is registered and store their data
     var registeredData by mutableStateOf<VolunteerRegistrationData?>(null)
     var isRegistered by mutableStateOf(false)
+
+    fun loadRegistrationData(email: String) {
+        currentUserEmail = email
+        val savedData = volunteerRepository.getRegistration(email)
+        if (savedData != null) {
+            registeredData = savedData
+            isRegistered = true
+        }
+    }
 
     fun onNameChange(newValue: String) {
         name = newValue
@@ -67,19 +80,27 @@ class VolunteerRegistrationViewModel : ViewModel() {
     }
 
     fun submitRegistration() {
-        // Logic to save registration
-        registeredData = VolunteerRegistrationData(
+        val data = VolunteerRegistrationData(
             name = name,
             skill = selectedSkill,
             address = address,
-            phoneNumber = phoneNumber
+            phoneNumber = phoneNumber,
+            status = "Pending"
         )
+        
+        volunteerRepository.saveRegistration(currentUserEmail, data)
+        registeredData = data
         isRegistered = true
         
-        // Clear form
         name = ""
         address = ""
         phoneNumber = ""
         showConfirmDialog = false
+    }
+
+    fun resetRegistration() {
+        volunteerRepository.clearRegistration(currentUserEmail)
+        isRegistered = false
+        registeredData = null
     }
 }

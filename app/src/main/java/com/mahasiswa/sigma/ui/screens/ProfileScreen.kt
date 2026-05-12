@@ -32,7 +32,6 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
-    // Initialize viewModel with current user data once
     LaunchedEffect(userName, userEmail) {
         if (viewModel.name.isEmpty()) viewModel.name = userName
         if (viewModel.email.isEmpty()) viewModel.email = userEmail

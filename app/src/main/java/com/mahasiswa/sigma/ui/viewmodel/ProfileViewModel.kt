@@ -33,6 +33,6 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun updateProfile() {
-        // TODO: Implement save logic to repository/AuthManager
+        // TODO: Implement save logic to repository/AuthManage
     }
 }

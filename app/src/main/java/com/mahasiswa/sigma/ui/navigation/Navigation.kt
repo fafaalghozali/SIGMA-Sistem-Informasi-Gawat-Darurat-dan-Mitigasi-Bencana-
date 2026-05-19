@@ -103,6 +103,8 @@ fun SigmaNavigation() {
                                 10 -> PdfUtils.openPdfFromAssets(context)
                                 5 -> backStack.add(Route.VolunteerRegistration(currentRoute.email))
                                 6 -> backStack.add(Route.AdminVerification)
+                                11 -> backStack.add(Route.ManageShelter)
+                                12 -> backStack.add(Route.ManageVolunteer)
                                 99 -> {
                                     val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))
                                     context.startActivity(intent)
@@ -207,6 +209,8 @@ fun SigmaNavigation() {
                     onBack = { backStack.removeLastOrNull() }
                 )
                 is Route.AdminVerification -> AdminVerificationScreen(onBack = { backStack.removeLastOrNull() })
+                is Route.ManageShelter -> ManageShelterScreen(onBack = { backStack.removeLastOrNull() })
+                is Route.ManageVolunteer -> ManageVolunteerScreen(onBack = { backStack.removeLastOrNull() })
             }
         }
     }

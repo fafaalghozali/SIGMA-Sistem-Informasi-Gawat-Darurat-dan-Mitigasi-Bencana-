@@ -30,9 +30,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-    val availableRoles = UserRole.entries.filter { 
-        it == UserRole.MASYARAKAT || it == UserRole.RELAWAN 
-    }
+    val availableRoles = UserRole.entries
 
     fun onEmailChange(newValue: String) {
         _uiState.update { it.copy(email = newValue) }

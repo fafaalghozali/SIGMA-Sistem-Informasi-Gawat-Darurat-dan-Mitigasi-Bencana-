@@ -10,7 +10,18 @@ import com.mahasiswa.sigma.data.model.UserRole
 
 class DashboardRepository {
     fun getMenuItems(userRole: UserRole): List<DashboardMenuModel> {
-        val baseMenu = mutableListOf(
+        if (userRole == UserRole.BNPB) {
+            return listOf(
+                DashboardMenuModel(6, "Verifikasi Bencana", "Validasi & Update Status", Icons.Default.VerifiedUser),
+                DashboardMenuModel(11, "Kelola Posko", "Manajemen pengungsian", Icons.Default.HomeWork),
+                DashboardMenuModel(12, "Kelola Relawan", "Verifikasi & Manajemen", Icons.Default.People),
+                DashboardMenuModel(1, "Peta Bencana", "Monitoring wilayah", Icons.Default.Map),
+                DashboardMenuModel(7, "Cari Bencana", "Riwayat & Filter", Icons.Default.Search),
+                DashboardMenuModel(10, "Panduan Bencana", "Mitigasi BNPB", Icons.AutoMirrored.Filled.MenuBook)
+            )
+        }
+
+        return listOf(
             DashboardMenuModel(1, "Peta Bencana", "Zona bahaya", Icons.Default.Map),
             DashboardMenuModel(2, "Lapor Bencana", "Kirim laporan", Icons.Default.Report),
             DashboardMenuModel(3, "Info Posko", "Titik pengungsian", Icons.Default.HomeWork),
@@ -18,11 +29,6 @@ class DashboardRepository {
             DashboardMenuModel(5, "Registrasi Relawan", "Daftar relawan", Icons.Default.PersonAdd),
             DashboardMenuModel(7, "Cari Bencana", "Search & Filter", Icons.Default.Search)
         )
-
-        if (userRole == UserRole.BNPB) {
-            baseMenu.add(DashboardMenuModel(6, "Verifikasi Laporan", "Validasi data", Icons.Default.VerifiedUser))
-        }
-        return baseMenu
     }
 
     fun getNewsItems(isDark: Boolean): List<NewsItem> {

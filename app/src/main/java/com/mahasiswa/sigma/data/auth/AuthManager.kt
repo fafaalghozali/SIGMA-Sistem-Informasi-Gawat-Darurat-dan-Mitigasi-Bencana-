@@ -33,6 +33,11 @@ class AuthManager(private val authDataStore: DataStore<AuthData>) {
     }
 
     suspend fun loginUser(username: String, pass: String): UserRole? {
+        // Hardcoded admin for temporary use
+        if (username == "admin" && pass == "admin") {
+            return UserRole.BNPB
+        }
+
         val data = authDataStore.data.first()
         val user = data.usersList.find { it.username == username }
         return if (user != null && user.password == pass) {
@@ -43,6 +48,7 @@ class AuthManager(private val authDataStore: DataStore<AuthData>) {
     }
 
     suspend fun getUserName(username: String): String {
+        if (username == "admin") return "Administrator BNPB"
         val data = authDataStore.data.first()
         val user = data.usersList.find { it.username == username }
         return user?.name ?: "User"

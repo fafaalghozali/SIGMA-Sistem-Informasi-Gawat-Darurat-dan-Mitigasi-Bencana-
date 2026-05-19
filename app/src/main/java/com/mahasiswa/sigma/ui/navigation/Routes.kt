@@ -17,4 +17,6 @@ sealed class Route : Serializable {
     object SearchDisaster : Route()
     data class VolunteerRegistration(val email: String) : Route()
     object AdminVerification : Route()
+    object ManageShelter : Route()
+    object ManageVolunteer : Route()
 }

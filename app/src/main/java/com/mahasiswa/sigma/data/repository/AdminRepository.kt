@@ -1,40 +1,52 @@
 package com.mahasiswa.sigma.data.repository
 
-import android.content.Context
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import androidx.datastore.core.DataStore
+import com.mahasiswa.sigma.DisasterReportEntry
+import com.mahasiswa.sigma.DisasterReportsData
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
-import java.text.SimpleDateFormat
-import java.util.*
+import kotlinx.coroutines.flow.first
 
-class AdminRepository(context: Context) {
-    private val sharedPrefs = context.getSharedPreferences("disaster_reports_prefs", Context.MODE_PRIVATE)
-    private val gson = Gson()
+class AdminRepository(private val dataStore: DataStore<DisasterReportsData>) {
 
-    fun getPendingReports(): List<LocalDisasterReport> {
-        val json = sharedPrefs.getString("reports_list", null) ?: return emptyList()
-        val type = object : TypeToken<List<LocalDisasterReport>>() {}.type
-        val allReports: List<LocalDisasterReport> = gson.fromJson(json, type)
-        return allReports.filter { it.status == "Pending" }
+    suspend fun getPendingReports(): List<LocalDisasterReport> {
+        val data = dataStore.data.first()
+        return data.reportsList
+            .filter { it.status == "Pending" }
+            .map { it.toDomainModel() }
     }
 
-    fun verifyReport(reportId: String) {
+    suspend fun verifyReport(reportId: String) {
         updateReportStatus(reportId, "Verified")
     }
 
-    fun rejectReport(reportId: String) {
+    suspend fun rejectReport(reportId: String) {
         updateReportStatus(reportId, "Rejected")
     }
 
-    private fun updateReportStatus(reportId: String, newStatus: String) {
-        val json = sharedPrefs.getString("reports_list", null) ?: return
-        val type = object : TypeToken<List<LocalDisasterReport>>() {}.type
-        val reports: MutableList<LocalDisasterReport> = gson.fromJson(json, type)
-        
-        val index = reports.indexOfFirst { it.id == reportId }
-        if (index != -1) {
-            reports[index] = reports[index].copy(status = newStatus)
-            sharedPrefs.edit().putString("reports_list", gson.toJson(reports)).apply()
+    private suspend fun updateReportStatus(reportId: String, newStatus: String) {
+        dataStore.updateData { currentData ->
+            val index = currentData.reportsList.indexOfFirst { it.id == reportId }
+            if (index == -1) return@updateData currentData
+
+            val updatedEntry = currentData.reportsList[index].toBuilder()
+                .setStatus(newStatus)
+                .build()
+
+            currentData.toBuilder()
+                .setReports(index, updatedEntry)
+                .build()
         }
+    }
+
+    private fun DisasterReportEntry.toDomainModel(): LocalDisasterReport {
+        return LocalDisasterReport(
+            id = id,
+            title = title,
+            description = description,
+            location = location,
+            reporter = reporter,
+            status = status,
+            timestamp = timestamp
+        )
     }
 }

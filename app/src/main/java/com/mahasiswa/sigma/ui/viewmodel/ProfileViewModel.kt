@@ -6,10 +6,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.data.datastore.authDataStore
+import kotlinx.coroutines.launch
 
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
-    private val authManager = AuthManager(application)
+    private val authManager = AuthManager(application.authDataStore)
     
     private var originalEmail: String = ""
     
@@ -42,13 +45,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             return
         }
 
-        val success = authManager.updateProfile(originalEmail, name, email)
-        if (success) {
-            originalEmail = email
-            isUpdateSuccess = true
-        } else {
-            errorMessage = "Gagal memperbarui profil"
-            isUpdateError = true
+        viewModelScope.launch {
+            val success = authManager.updateProfile(originalEmail, name, email)
+            if (success) {
+                originalEmail = email
+                isUpdateSuccess = true
+            } else {
+                errorMessage = "Gagal memperbarui profil"
+                isUpdateError = true
+            }
         }
     }
     

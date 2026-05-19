@@ -12,11 +12,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.data.datastore.authDataStore
+import com.mahasiswa.sigma.data.datastore.disasterReportsDataStore
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.data.repository.ReportRepository
 import com.mahasiswa.sigma.ui.screens.*
 import com.mahasiswa.sigma.ui.theme.SIGMATheme
+import kotlinx.coroutines.launch
 
 class DashboardActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,7 +31,8 @@ class DashboardActivity : ComponentActivity() {
         setContent {
             SIGMATheme {
                 val context = LocalContext.current
-                val authManager = remember { AuthManager(context) }
+                val authManager = remember { AuthManager(context.authDataStore) }
+                val coroutineScope = rememberCoroutineScope()
 
                 var userRoleState by rememberSaveable {
                     mutableStateOf(UserRole.fromString(intentRole))
@@ -37,7 +41,11 @@ class DashboardActivity : ComponentActivity() {
                     mutableStateOf(intentEmail)
                 }
                 var userNameState by rememberSaveable {
-                    mutableStateOf(authManager.getUserName(userEmailState))
+                    mutableStateOf("")
+                }
+
+                LaunchedEffect(userEmailState) {
+                    userNameState = authManager.getUserName(userEmailState)
                 }
                 
                 DashboardNavigation(
@@ -52,6 +60,7 @@ class DashboardActivity : ComponentActivity() {
     @Composable
     fun DashboardNavigation(userRole: UserRole, userName: String, userEmail: String) {
         val navController = rememberNavController()
+        val context = LocalContext.current
 
         NavHost(navController = navController, startDestination = "dashboard") {
             composable("dashboard") {
@@ -109,10 +118,11 @@ class DashboardActivity : ComponentActivity() {
             }
             composable("report_detail/{reportId}") { backStackEntry ->
                 val reportId = backStackEntry.arguments?.getString("reportId")
-                val context = LocalContext.current
-                val repository = remember { ReportRepository(context) }
-                val report = remember(reportId) { 
-                    repository.getAllReports().find { it.id == reportId } 
+                val repository = remember { ReportRepository(context.disasterReportsDataStore) }
+                var report by remember { mutableStateOf<LocalDisasterReport?>(null) }
+
+                LaunchedEffect(reportId) {
+                    report = repository.getAllReports().find { it.id == reportId }
                 }
                 
                 report?.let {

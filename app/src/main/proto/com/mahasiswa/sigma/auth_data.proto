@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option java_package = "com.mahasiswa.sigma";
+option java_multiple_files = true;
+
+message UserEntry {
+  string username = 1;
+  string password = 2;
+  string role = 3;
+  string name = 4;
+}
+
+message AuthData {
+  repeated UserEntry users = 1;
+}

@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.data.datastore.authDataStore
 import com.mahasiswa.sigma.ui.viewmodel.RegisterViewModel
 import com.mahasiswa.sigma.ui.viewmodel.RegisterViewModelFactory
 
@@ -38,7 +39,7 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit
 ) {
     val context = LocalContext.current
-    val authManager = remember { AuthManager(context) }
+    val authManager = remember { AuthManager(context.authDataStore) }
     val viewModel: RegisterViewModel = viewModel(
         factory = RegisterViewModelFactory(authManager)
     )

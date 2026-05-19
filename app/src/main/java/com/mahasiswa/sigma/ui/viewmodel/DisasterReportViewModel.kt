@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.mahasiswa.sigma.data.datastore.disasterReportsDataStore
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.data.repository.ReportRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class DisasterReportViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = ReportRepository(application)
+    private val repository = ReportRepository(application.disasterReportsDataStore)
 
     private val _reports = MutableStateFlow<List<LocalDisasterReport>>(emptyList())
     val reports: StateFlow<List<LocalDisasterReport>> = _reports.asStateFlow()

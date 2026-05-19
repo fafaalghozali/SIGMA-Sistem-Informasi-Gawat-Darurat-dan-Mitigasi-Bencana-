@@ -1,57 +1,70 @@
 package com.mahasiswa.sigma.data.auth
 
-import android.content.Context
-import android.content.SharedPreferences
+import androidx.datastore.core.DataStore
+import com.mahasiswa.sigma.AuthData
+import com.mahasiswa.sigma.UserEntry
 import com.mahasiswa.sigma.data.model.UserRole
+import kotlinx.coroutines.flow.first
 
-class AuthManager(context: Context) {
-    private val sharedPrefs: SharedPreferences =
-        context.getSharedPreferences("sigma_prefs", Context.MODE_PRIVATE)
+class AuthManager(private val authDataStore: DataStore<AuthData>) {
 
-    fun registerUser(username: String, pass: String, role: UserRole, name: String): Boolean {
+    suspend fun registerUser(username: String, pass: String, role: UserRole, name: String): Boolean {
         if (username.isEmpty() || pass.isEmpty()) return false
-        sharedPrefs.edit().apply {
-            putString("USER_$username", pass)
-            putString("ROLE_$username", role.name)
-            putString("NAME_$username", name)
-            apply()
+        authDataStore.updateData { currentData ->
+            val existingIndex = currentData.usersList.indexOfFirst { it.username == username }
+            val newEntry = UserEntry.newBuilder()
+                .setUsername(username)
+                .setPassword(pass)
+                .setRole(role.name)
+                .setName(name)
+                .build()
+
+            if (existingIndex != -1) {
+                currentData.toBuilder()
+                    .setUsers(existingIndex, newEntry)
+                    .build()
+            } else {
+                currentData.toBuilder()
+                    .addUsers(newEntry)
+                    .build()
+            }
         }
         return true
     }
 
-    fun loginUser(username: String, pass: String): UserRole? {
-        val savedPass = sharedPrefs.getString("USER_$username", null)
-        return if (savedPass != null && savedPass == pass) {
-            val roleName = sharedPrefs.getString("ROLE_$username", UserRole.MASYARAKAT.name)
-            UserRole.fromString(roleName)
+    suspend fun loginUser(username: String, pass: String): UserRole? {
+        val data = authDataStore.data.first()
+        val user = data.usersList.find { it.username == username }
+        return if (user != null && user.password == pass) {
+            UserRole.fromString(user.role)
         } else {
-            null 
+            null
         }
     }
 
-    fun getUserName(username: String): String {
-        return sharedPrefs.getString("NAME_$username", "User") ?: "User"
+    suspend fun getUserName(username: String): String {
+        val data = authDataStore.data.first()
+        val user = data.usersList.find { it.username == username }
+        return user?.name ?: "User"
     }
 
-    fun updateProfile(oldEmail: String, newName: String, newEmail: String): Boolean {
+    suspend fun updateProfile(oldEmail: String, newName: String, newEmail: String): Boolean {
         if (newName.isBlank() || newEmail.isBlank()) return false
-        
-        val password = sharedPrefs.getString("USER_$oldEmail", "") ?: ""
-        val role = sharedPrefs.getString("ROLE_$oldEmail", UserRole.MASYARAKAT.name) ?: UserRole.MASYARAKAT.name
-        
-        sharedPrefs.edit().apply {
-            if (oldEmail != newEmail) {
-                remove("USER_$oldEmail")
-                remove("ROLE_$oldEmail")
-                remove("NAME_$oldEmail")
-                
-                putString("USER_$newEmail", password)
-                putString("ROLE_$newEmail", role)
-                putString("NAME_$newEmail", newName)
-            } else {
-                putString("NAME_$newEmail", newName)
-            }
-            apply()
+        authDataStore.updateData { currentData ->
+            val index = currentData.usersList.indexOfFirst { it.username == oldEmail }
+            if (index == -1) return@updateData currentData
+
+            val existingEntry = currentData.usersList[index]
+            val updatedEntry = UserEntry.newBuilder()
+                .setUsername(newEmail)
+                .setPassword(existingEntry.password)
+                .setRole(existingEntry.role)
+                .setName(newName)
+                .build()
+
+            currentData.toBuilder()
+                .setUsers(index, updatedEntry)
+                .build()
         }
         return true
     }

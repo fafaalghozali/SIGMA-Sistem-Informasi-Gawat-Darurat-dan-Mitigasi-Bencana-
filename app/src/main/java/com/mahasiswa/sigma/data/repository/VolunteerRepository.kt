@@ -1,30 +1,61 @@
 package com.mahasiswa.sigma.data.repository
 
-import android.content.Context
-import android.content.SharedPreferences
-import com.google.gson.Gson
+import androidx.datastore.core.DataStore
+import com.mahasiswa.sigma.VolunteerData
+import com.mahasiswa.sigma.VolunteerEntry
+import com.mahasiswa.sigma.data.model.SkillsVolunteer
 import com.mahasiswa.sigma.ui.viewmodel.VolunteerRegistrationData
+import kotlinx.coroutines.flow.first
 
-class VolunteerRepository(context: Context) {
-    private val sharedPrefs: SharedPreferences =
-        context.getSharedPreferences("volunteer_prefs", Context.MODE_PRIVATE)
-    private val gson = Gson()
+class VolunteerRepository(private val dataStore: DataStore<VolunteerData>) {
 
-    fun saveRegistration(username: String, data: VolunteerRegistrationData) {
-        val json = gson.toJson(data)
-        sharedPrefs.edit().putString("VOLUNTEER_REG_$username", json).apply()
+    suspend fun saveRegistration(username: String, data: VolunteerRegistrationData) {
+        dataStore.updateData { currentData ->
+            val newEntry = VolunteerEntry.newBuilder()
+                .setUsername(username)
+                .setName(data.name)
+                .setSkill(data.skill.name)
+                .setAddress(data.address)
+                .setPhoneNumber(data.phoneNumber)
+                .setStatus(data.status)
+                .build()
+
+            val existingIndex = currentData.registrationsList.indexOfFirst { it.username == username }
+            if (existingIndex != -1) {
+                currentData.toBuilder()
+                    .setRegistrations(existingIndex, newEntry)
+                    .build()
+            } else {
+                currentData.toBuilder()
+                    .addRegistrations(newEntry)
+                    .build()
+            }
+        }
     }
 
-    fun getRegistration(username: String): VolunteerRegistrationData? {
-        val json = sharedPrefs.getString("VOLUNTEER_REG_$username", null) ?: return null
+    suspend fun getRegistration(username: String): VolunteerRegistrationData? {
+        val data = dataStore.data.first()
+        val entry = data.registrationsList.find { it.username == username } ?: return null
         return try {
-            gson.fromJson(json, VolunteerRegistrationData::class.java)
+            VolunteerRegistrationData(
+                name = entry.name,
+                skill = SkillsVolunteer.valueOf(entry.skill),
+                address = entry.address,
+                phoneNumber = entry.phoneNumber,
+                status = entry.status
+            )
         } catch (e: Exception) {
             null
         }
     }
 
-    fun clearRegistration(username: String) {
-        sharedPrefs.edit().remove("VOLUNTEER_REG_$username").apply()
+    suspend fun clearRegistration(username: String) {
+        dataStore.updateData { currentData ->
+            val index = currentData.registrationsList.indexOfFirst { it.username == username }
+            if (index == -1) return@updateData currentData
+            currentData.toBuilder()
+                .removeRegistrations(index)
+                .build()
+        }
     }
 }

@@ -2,12 +2,15 @@ package com.mahasiswa.sigma.ui.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.data.datastore.authDataStore
 import com.mahasiswa.sigma.data.model.UserRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class LoginUiState(
     val email: String = "",
@@ -22,7 +25,7 @@ data class LoginUiState(
 )
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
-    private val authManager = AuthManager(application)
+    private val authManager = AuthManager(application.authDataStore)
     
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -73,30 +76,32 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        val userRole = authManager.loginUser(currentState.email, currentState.password)
-        if (userRole != null) {
-            if (userRole == currentState.selectedRole) {
-                val name = authManager.getUserName(currentState.email)
-                _uiState.update { 
-                    it.copy(
-                        showSuccessDialog = true, 
-                        loggedInName = name 
-                    ) 
+        viewModelScope.launch {
+            val userRole = authManager.loginUser(currentState.email, currentState.password)
+            if (userRole != null) {
+                if (userRole == currentState.selectedRole) {
+                    val name = authManager.getUserName(currentState.email)
+                    _uiState.update { 
+                        it.copy(
+                            showSuccessDialog = true, 
+                            loggedInName = name 
+                        ) 
+                    }
+                } else {
+                    _uiState.update { 
+                        it.copy(
+                            showErrorDialog = true, 
+                            errorMessage = "Role yang Anda pilih tidak sesuai dengan akun ini."
+                        ) 
+                    }
                 }
             } else {
                 _uiState.update { 
                     it.copy(
                         showErrorDialog = true, 
-                        errorMessage = "Role yang Anda pilih tidak sesuai dengan akun ini."
+                        errorMessage = "Email atau Password salah. Silakan periksa kembali."
                     ) 
                 }
-            }
-        } else {
-            _uiState.update { 
-                it.copy(
-                    showErrorDialog = true, 
-                    errorMessage = "Email atau Password salah. Silakan periksa kembali."
-                ) 
             }
         }
     }

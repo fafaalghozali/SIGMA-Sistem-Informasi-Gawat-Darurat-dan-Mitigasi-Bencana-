@@ -4,8 +4,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.model.UserRole
+import kotlinx.coroutines.launch
 
 class RegisterViewModel(private val authManager: AuthManager) : ViewModel() {
     var name by mutableStateOf("")
@@ -29,15 +31,17 @@ class RegisterViewModel(private val authManager: AuthManager) : ViewModel() {
     fun register(onNavigateToLogin: () -> Unit) {
         if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
             if (isEmailValid(email)) {
-                val isSaved = authManager.registerUser(email, password, selectedRole, name)
-                if (isSaved) {
-                    registrationSuccess = true
-                    dialogMessage = "Akun Anda telah berhasil didaftarkan ke sistem SIGMA. Silakan masuk untuk melanjutkan."
-                    showDialog = true
-                } else {
-                    registrationSuccess = false
-                    dialogMessage = "Terjadi kesalahan saat menyimpan data. Silakan coba lagi."
-                    showDialog = true
+                viewModelScope.launch {
+                    val isSaved = authManager.registerUser(email, password, selectedRole, name)
+                    if (isSaved) {
+                        registrationSuccess = true
+                        dialogMessage = "Akun Anda telah berhasil didaftarkan ke sistem SIGMA. Silakan masuk untuk melanjutkan."
+                        showDialog = true
+                    } else {
+                        registrationSuccess = false
+                        dialogMessage = "Terjadi kesalahan saat menyimpan data. Silakan coba lagi."
+                        showDialog = true
+                    }
                 }
             } else {
                 registrationSuccess = false

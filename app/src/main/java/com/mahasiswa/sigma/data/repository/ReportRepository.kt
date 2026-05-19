@@ -1,36 +1,59 @@
 package com.mahasiswa.sigma.data.repository
 
-import android.content.Context
-import android.content.SharedPreferences
+import androidx.datastore.core.DataStore
+import com.mahasiswa.sigma.DisasterReportEntry
+import com.mahasiswa.sigma.DisasterReportsData
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.first
 
-class ReportRepository(context: Context) {
-    private val sharedPrefs: SharedPreferences =
-        context.getSharedPreferences("disaster_reports_prefs", Context.MODE_PRIVATE)
-    private val gson = Gson()
+class ReportRepository(private val dataStore: DataStore<DisasterReportsData>) {
 
-    fun saveReport(report: LocalDisasterReport) {
-        val currentReports = getAllReports().toMutableList()
-        currentReports.add(0, report)
-        val json = gson.toJson(currentReports)
-        sharedPrefs.edit().putString("reports_list", json).apply()
-    }
-
-    fun getAllReports(): List<LocalDisasterReport> {
-        val json = sharedPrefs.getString("reports_list", null) ?: return emptyList()
-        val type = object : TypeToken<List<LocalDisasterReport>>() {}.type
-        return gson.fromJson(json, type)
-    }
-
-    fun updateReport(updatedReport: LocalDisasterReport) {
-        val currentReports = getAllReports().toMutableList()
-        val index = currentReports.indexOfFirst { it.id == updatedReport.id }
-        if (index != -1) {
-            currentReports[index] = updatedReport
-            val json = gson.toJson(currentReports)
-            sharedPrefs.edit().putString("reports_list", json).apply()
+    suspend fun saveReport(report: LocalDisasterReport) {
+        dataStore.updateData { currentData ->
+            val newEntry = report.toProtoEntry()
+            currentData.toBuilder()
+                .addReports(0, newEntry)
+                .build()
         }
+    }
+
+    suspend fun getAllReports(): List<LocalDisasterReport> {
+        val data = dataStore.data.first()
+        return data.reportsList.map { it.toDomainModel() }
+    }
+
+    suspend fun updateReport(updatedReport: LocalDisasterReport) {
+        dataStore.updateData { currentData ->
+            val index = currentData.reportsList.indexOfFirst { it.id == updatedReport.id }
+            if (index == -1) return@updateData currentData
+
+            currentData.toBuilder()
+                .setReports(index, updatedReport.toProtoEntry())
+                .build()
+        }
+    }
+
+    private fun LocalDisasterReport.toProtoEntry(): DisasterReportEntry {
+        return DisasterReportEntry.newBuilder()
+            .setId(id)
+            .setTitle(title)
+            .setDescription(description)
+            .setLocation(location)
+            .setReporter(reporter)
+            .setStatus(status)
+            .setTimestamp(timestamp)
+            .build()
+    }
+
+    private fun DisasterReportEntry.toDomainModel(): LocalDisasterReport {
+        return LocalDisasterReport(
+            id = id,
+            title = title,
+            description = description,
+            location = location,
+            reporter = reporter,
+            status = status,
+            timestamp = timestamp
+        )
     }
 }

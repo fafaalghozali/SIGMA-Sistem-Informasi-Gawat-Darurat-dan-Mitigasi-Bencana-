@@ -5,8 +5,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.mahasiswa.sigma.data.datastore.volunteerDataStore
 import com.mahasiswa.sigma.data.repository.VolunteerRepository
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
+import kotlinx.coroutines.launch
 
 data class VolunteerRegistrationData(
     val name: String,
@@ -17,7 +20,7 @@ data class VolunteerRegistrationData(
 )
 
 class VolunteerRegistrationViewModel(application: Application) : AndroidViewModel(application) {
-    private val volunteerRepository = VolunteerRepository(application)
+    private val volunteerRepository = VolunteerRepository(application.volunteerDataStore)
     private var currentUserEmail: String = ""
 
     var name by mutableStateOf("")
@@ -35,10 +38,12 @@ class VolunteerRegistrationViewModel(application: Application) : AndroidViewMode
 
     fun loadRegistrationData(email: String) {
         currentUserEmail = email
-        val savedData = volunteerRepository.getRegistration(email)
-        if (savedData != null) {
-            registeredData = savedData
-            isRegistered = true
+        viewModelScope.launch {
+            val savedData = volunteerRepository.getRegistration(email)
+            if (savedData != null) {
+                registeredData = savedData
+                isRegistered = true
+            }
         }
     }
 
@@ -88,19 +93,23 @@ class VolunteerRegistrationViewModel(application: Application) : AndroidViewMode
             status = "Pending"
         )
         
-        volunteerRepository.saveRegistration(currentUserEmail, data)
-        registeredData = data
-        isRegistered = true
-        
-        name = ""
-        address = ""
-        phoneNumber = ""
-        showConfirmDialog = false
+        viewModelScope.launch {
+            volunteerRepository.saveRegistration(currentUserEmail, data)
+            registeredData = data
+            isRegistered = true
+            
+            name = ""
+            address = ""
+            phoneNumber = ""
+            showConfirmDialog = false
+        }
     }
 
     fun resetRegistration() {
-        volunteerRepository.clearRegistration(currentUserEmail)
-        isRegistered = false
-        registeredData = null
+        viewModelScope.launch {
+            volunteerRepository.clearRegistration(currentUserEmail)
+            isRegistered = false
+            registeredData = null
+        }
     }
 }

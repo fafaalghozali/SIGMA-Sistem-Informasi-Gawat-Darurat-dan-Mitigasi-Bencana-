@@ -25,8 +25,10 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import com.mahasiswa.sigma.PdfUtils
 import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.data.datastore.authDataStore
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.ui.screens.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun NavDisplay(
@@ -55,7 +57,8 @@ fun SigmaNavigation() {
     ) { mutableStateListOf<Route>(Route.Splash) }
 
     val context = LocalContext.current
-    val authManager = remember { AuthManager(context) }
+    val authManager = remember { AuthManager(context.authDataStore) }
+    val coroutineScope = rememberCoroutineScope()
 
     CompositionLocalProvider(LocalBackStack provides backStack) {
         NavDisplay(backStack = backStack) { currentRoute ->
@@ -69,8 +72,10 @@ fun SigmaNavigation() {
                 is Route.Login -> {
                     LoginScreen(
                         onNavigateToDashboard = { role, email ->
-                            val name = authManager.getUserName(email)
-                            backStack.add(Route.Dashboard(role, email, name))
+                            coroutineScope.launch {
+                                val name = authManager.getUserName(email)
+                                backStack.add(Route.Dashboard(role, email, name))
+                            }
                         },
                         onNavigateToRegister = {
                             backStack.add(Route.Register)

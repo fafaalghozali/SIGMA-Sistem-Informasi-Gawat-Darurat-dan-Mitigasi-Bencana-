@@ -167,7 +167,7 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Logout Button - Restored and made clearly visible
+            
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),
@@ -183,7 +183,7 @@ fun ProfileScreen(
                 Text("Keluar (Logout)", fontWeight = FontWeight.Bold)
             }
             
-            // Extra spacing to ensure content is not covered by floating navigation bar
+            
             Spacer(modifier = Modifier.height(100.dp))
         }
     }

@@ -15,12 +15,12 @@ import java.io.StringReader
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Fetches and parses RSS feeds from multiple disaster-related news sources.
- *
- * Uses Android's built-in XmlPullParser — no external XML library needed.
- * Fetches all sources concurrently; individual feed failures are silent (logged only).
- */
+
+
+
+
+
+
 object RssNewsSource {
 
     private const val TAG = "RssNewsSource"
@@ -28,10 +28,10 @@ object RssNewsSource {
     private const val READ_TIMEOUT_MS = 10_000
     private const val PER_SOURCE_TIMEOUT_MS = 15_000L
 
-    /**
-     * Registered disaster RSS sources.
-     * All Indonesian national / regional / official disaster-related feeds.
-     */
+    
+
+
+
     val SOURCES = listOf(
         RssSource(
             name = "Antara News",
@@ -58,13 +58,13 @@ object RssNewsSource {
             url = "https://news.detik.com/rss",
             isOfficial = false
         ),
-        // BMKG official feeds are handled by BmkgNewsSource — not RSS-based.
+        
     )
 
-    /**
-     * Fetches all RSS sources concurrently and returns a flat list of raw items.
-     * Any individual source that times out or returns an error is silently skipped.
-     */
+    
+
+
+
     suspend fun fetchAll(): List<RawRssItem> = coroutineScope {
         SOURCES.map { source ->
             async {
@@ -80,7 +80,7 @@ object RssNewsSource {
         }.awaitAll().flatten()
     }
 
-    // ── Per-source fetch & parse ──────────────────────────────────────────────
+    
 
     private suspend fun fetchSource(source: RssSource): List<RawRssItem> =
         withContext(Dispatchers.IO) {
@@ -107,7 +107,7 @@ object RssNewsSource {
         }
     }
 
-    // ── RSS XML Parser (XmlPullParser — no external dep) ─────────────────────
+    
 
     private fun parseRss(xml: String, source: RssSource): List<RawRssItem> {
         val items = mutableListOf<RawRssItem>()
@@ -140,14 +140,14 @@ object RssNewsSource {
                         "link"        -> if (inItem) link = readText(parser)
                         "guid"        -> if (inItem) guid = readText(parser)
                         "pubdate"     -> if (inItem) pubDate = readText(parser)
-                        // media:content or media:thumbnail for images
+                        
                         "media:content", "media:thumbnail" -> {
                             if (inItem && imageUrl == null) {
                                 val url = parser.getAttributeValue(null, "url")
                                 if (!url.isNullOrBlank()) imageUrl = url
                             }
                         }
-                        // enclosure tag (some feeds use this for images)
+                        
                         "enclosure" -> {
                             if (inItem && imageUrl == null) {
                                 val type = parser.getAttributeValue(null, "type") ?: ""
@@ -165,7 +165,7 @@ object RssNewsSource {
                             "${source.name}-${title.hashCode()}"
                         }
                         if (title.isNotBlank()) {
-                            // Also try to extract image from description HTML
+                            
                             val extractedImage = imageUrl
                                 ?: extractImageFromHtml(description)
 
@@ -190,7 +190,7 @@ object RssNewsSource {
         return items
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    
 
     private fun readText(parser: XmlPullParser): String {
         var result = ""
@@ -201,7 +201,7 @@ object RssNewsSource {
         return result.trim()
     }
 
-    /** Strips basic HTML tags from RSS title/description fields. */
+    
     private fun String.cleanHtml(): String =
         this.replace(Regex("<[^>]*>"), "")
             .replace("&amp;", "&")
@@ -213,7 +213,7 @@ object RssNewsSource {
             .replace("&nbsp;", " ")
             .trim()
 
-    /** Tries to extract the first <img src="..."> URL from an HTML description. */
+    
     private fun extractImageFromHtml(html: String): String? {
         val regex = Regex("""<img[^>]+src=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
         return regex.find(html)?.groupValues?.getOrNull(1)

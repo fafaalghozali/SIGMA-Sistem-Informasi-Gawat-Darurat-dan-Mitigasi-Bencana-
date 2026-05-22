@@ -22,9 +22,8 @@ fun ManageShelterScreen(@Suppress("UNUSED_PARAMETER") onBack: () -> Unit) {
             )
         },
         floatingActionButton = {
-            // Adjusting FAB position slightly up to not conflict with bottom bar
             FloatingActionButton(
-                onClick = { /* TODO: Add Shelter */ },
+                onClick = {  },
                 modifier = Modifier.padding(bottom = 80.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Tambah Posko")
@@ -56,14 +55,12 @@ fun ManageShelterScreen(@Suppress("UNUSED_PARAMETER") onBack: () -> Unit) {
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 color = MaterialTheme.colorScheme.secondary
             )
-            
-            // Placeholder for list
+
             Spacer(modifier = Modifier.height(32.dp))
-            OutlinedButton(onClick = { /* TODO */ }) {
+            OutlinedButton(onClick = {  }) {
                 Text("Lihat Daftar Posko (Soon)")
             }
 
-            // Spacing for bottom navbar
             Spacer(modifier = Modifier.height(100.dp))
         }
     }

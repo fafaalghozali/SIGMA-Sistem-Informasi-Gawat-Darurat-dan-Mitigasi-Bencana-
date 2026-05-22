@@ -38,9 +38,9 @@ data class DashboardUiState(
     val newsError: String? = null,
     val lastUpdated: Long? = null,
     val newsLastUpdated: Long? = null,
-    /** The reverse-geocoded city name for location prioritization. */
+    
     val userCityName: String = "",
-    /** True while waiting for the user to respond to the permission dialog. */
+    
     val isAwaitingPermission: Boolean = false
 )
 
@@ -57,22 +57,22 @@ class DashboardViewModel(
 
     private var autoRefreshJob: Job? = null
 
-    /**
-     * Loads menu items immediately (no network) and starts the news pipeline.
-     * Weather is loaded only after location permission is confirmed.
-     */
+    
+
+
+
     fun loadDashboardData(userRole: UserRole, @Suppress("UNUSED_PARAMETER") isDark: Boolean) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, isNewsLoading = true)
 
-            // Menu is static — load instantly
+            
             val menu = dashboardRepo.getMenuItems(userRole)
             _uiState.value = _uiState.value.copy(
                 menuItems = menu,
                 isLoading = false
             )
 
-            // Load cached news for instant display
+            
             val cached = newsRepo.getCachedNews(_uiState.value.userCityName)
             if (cached.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
@@ -81,19 +81,19 @@ class DashboardViewModel(
                 )
             }
 
-            // BMKG earthquake + warnings (no location permission needed)
+            
             loadEarthquake()
             loadBmkgWarnings()
 
-            // Fetch fresh news in the background
+            
             loadFreshNews()
         }
     }
 
-    /**
-     * Called BEFORE the permission dialog is shown.
-     * Sets the weather card into a "waiting" state.
-     */
+    
+
+
+
     fun onPermissionRequested() {
         _uiState.value = _uiState.value.copy(
             isWeatherLoading = true,
@@ -103,10 +103,10 @@ class DashboardViewModel(
         )
     }
 
-    /**
-     * Called after permission is granted.
-     * Triggers real-location weather + re-sorts news by user location.
-     */
+    
+
+
+
     fun onLocationPermissionGranted() {
         _uiState.value = _uiState.value.copy(
             locationPermissionDenied = false,
@@ -116,7 +116,7 @@ class DashboardViewModel(
         startAutoRefresh()
     }
 
-    /** Called when the user denies location permission. */
+    
     fun onLocationPermissionDenied() {
         _uiState.value = _uiState.value.copy(
             locationPermissionDenied = true,
@@ -125,10 +125,10 @@ class DashboardViewModel(
         )
     }
 
-    /**
-     * Fetches weather using real GPS, then re-prioritizes news using the
-     * resolved city name for location-aware sorting.
-     */
+    
+
+
+
     private fun loadWeatherFromRealLocation() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -142,7 +142,7 @@ class DashboardViewModel(
                     .removePrefix("(Default)")
                     .trim()
 
-                // Re-sort cached news now that we have a city name
+                
                 val resorted = newsRepo.getCachedNews(cityName)
 
                 _uiState.value = _uiState.value.copy(
@@ -151,11 +151,11 @@ class DashboardViewModel(
                     weatherError = null,
                     lastUpdated = System.currentTimeMillis(),
                     userCityName = cityName,
-                    // Only update newsItems from cache re-sort if we have data
+                    
                     newsItems = if (resorted.isNotEmpty()) resorted else _uiState.value.newsItems
                 )
                 
-                // Re-evaluate local alerts with new city name
+                
                 loadEarthquake()
                 loadBmkgWarnings()
             } catch (e: WeatherRepository.LocationUnavailableException) {
@@ -183,7 +183,7 @@ class DashboardViewModel(
         }
     }
 
-    /** Loads fresh news from all sources through the full pipeline. */
+    
     private fun loadFreshNews() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isNewsLoading = true, newsError = null)
@@ -196,7 +196,7 @@ class DashboardViewModel(
                     newsLastUpdated = System.currentTimeMillis()
                 )
             } catch (e: Exception) {
-                // If we already have cached items, show them silently
+                
                 val hasCached = _uiState.value.newsItems.isNotEmpty()
                 _uiState.value = _uiState.value.copy(
                     isNewsLoading = false,
@@ -206,14 +206,14 @@ class DashboardViewModel(
         }
     }
 
-    /**
-     * User-initiated news refresh (e.g. tapping retry on error state).
-     */
+    
+
+
     fun retryNews() {
         loadFreshNews()
     }
 
-    /** Re-checks permission then loads weather. */
+    
     fun loadWeather() {
         val ctx = getApplication<Application>()
         val hasPermission =
@@ -235,7 +235,7 @@ class DashboardViewModel(
 
     fun retryWeather() { loadWeather() }
 
-    /** Fetches latest BMKG earthquake and filters to user's location. */
+    
     private fun loadEarthquake() {
         viewModelScope.launch {
             try {
@@ -243,7 +243,7 @@ class DashboardViewModel(
                 val userCity = _uiState.value.userCityName
                 
                 if (eq != null) {
-                    // Only show if it matches user's region or was felt
+                    
                     val isRelevant = isEventRelevant(eq.location, userCity) || 
                                      (eq.felt.isNotBlank() && eq.felt != "Tidak dirasakan")
                     if (isRelevant) {
@@ -258,7 +258,7 @@ class DashboardViewModel(
         }
     }
 
-    /** Fetches BMKG recent significant earthquake warnings and filters to user's location. */
+    
     private fun loadBmkgWarnings() {
         viewModelScope.launch {
             try {
@@ -273,9 +273,9 @@ class DashboardViewModel(
         }
     }
 
-    /**
-     * Auto-refresh: weather every 15 minutes, news every 10 minutes.
-     */
+    
+
+
     private fun startAutoRefresh() {
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
@@ -284,7 +284,7 @@ class DashboardViewModel(
                 delay(NEWS_REFRESH_INTERVAL_MS)
                 tick++
 
-                // News: every 10 minutes
+                
                 try {
                     val fresh = newsRepo.fetchFreshNews(_uiState.value.userCityName)
                     _uiState.value = _uiState.value.copy(
@@ -293,7 +293,7 @@ class DashboardViewModel(
                     )
                 } catch (_: Exception) {}
 
-                // Weather + earthquake: every 15 min (every 1.5 news cycles)
+                
                 if (tick % 2 != 0) {
                     try {
                         val weather = weatherRepo.getWeatherForCurrentLocation()
@@ -319,7 +319,7 @@ class DashboardViewModel(
     }
 
     companion object {
-        /** 10 minutes — news refresh interval */
+        
         private const val NEWS_REFRESH_INTERVAL_MS = 10 * 60 * 1_000L
     }
 

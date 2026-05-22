@@ -10,19 +10,19 @@ import com.mahasiswa.sigma.ui.theme.WarningOrange
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-/**
- * Disaster content filter and severity classifier.
- *
- * Uses a strict boolean filtering logic:
- * - Articles MUST contain at least one disaster keyword (or be an official source)
- * - Articles MUST NOT contain any false-positive exclusion keywords
- *
- * Severity is classified independently based on the
- * highest-severity trigger word found in the content.
- */
+
+
+
+
+
+
+
+
+
+
 object DisasterFilter {
 
-    // ── Disaster & Exclusion Keywords ─────────────────────────────────────────
+    
 
     private val DISASTER_KEYWORDS = setOf(
         "gempa bumi", "banjir bandang", "tanah longsor", "angin puting beliung", "evakuasi warga",
@@ -46,7 +46,7 @@ object DisasterFilter {
         "politik umum"
     )
 
-    // ── Severity trigger words ────────────────────────────────────────────────
+    
 
     private val DARURAT_TRIGGERS = setOf(
         "tsunami", "likuifaksi", "lahar", "erupsi", "letusan", "meletus",
@@ -62,7 +62,7 @@ object DisasterFilter {
         "evakuasi", "pengungsi"
     )
 
-    // ── Date parsers for pubDate → epoch ms ──────────────────────────────────
+    
 
     private val DATE_FORMATS = listOf(
         SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH),
@@ -70,22 +70,22 @@ object DisasterFilter {
         SimpleDateFormat("dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH),
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH),
         SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH),
-        // BMKG format: "21 Mei 2026" / "08:32:00 WIB"
+        
         SimpleDateFormat("dd MMM yyyy HH:mm:ss", Locale("id", "ID")),
         SimpleDateFormat("dd MMMM yyyy HH:mm:ss", Locale("id", "ID")),
     )
 
-    // ── Public API ────────────────────────────────────────────────────────────
+    
 
-    /**
-     * Filters a list of raw RSS items, returning only disaster-relevant [NewsItem]s.
-     *
-     * Items are displayed ONLY if:
-     * - A disaster keyword exists
-     * - AND an unrelated/exclusion keyword does NOT exist.
-     *
-     * Items are returned newest-first.
-     */
+    
+
+
+
+
+
+
+
+
     fun filter(rawItems: List<RawRssItem>): List<NewsItem> {
         val now = System.currentTimeMillis()
         val maxAgeMs = 7L * 24 * 60 * 60 * 1000
@@ -94,12 +94,12 @@ object DisasterFilter {
             val title = raw.title.lowercase()
             val fullText = "$title ${raw.description.lowercase()}"
 
-            // 1. Strict False-Positive Filtering: Exclude unrelated contexts from full text
+            
             if (EXCLUSION_KEYWORDS.any { fullText.contains(it) }) {
                 return@mapNotNull null
             }
 
-            // 2. Title-First Disaster Filtering: Include only if disaster keywords exist in TITLE (or if strictly official)
+            
             val hasDisasterInTitle = DISASTER_KEYWORDS.any { title.contains(it) }
             if (!hasDisasterInTitle && !raw.isOfficial) {
                 return@mapNotNull null
@@ -107,7 +107,7 @@ object DisasterFilter {
 
             val publishedAt = parsePubDate(raw.pubDate)
             
-            // 3. Time Filtering: Only show news from the last 7 days
+            
             if ((now - publishedAt) > maxAgeMs) {
                 return@mapNotNull null
             }
@@ -133,15 +133,15 @@ object DisasterFilter {
         }.sortedByDescending { it.publishedAt }
     }
 
-    // ── Severity classification ───────────────────────────────────────────────
+    
 
     private fun classifySeverity(text: String, isOfficial: Boolean): NewsSeverity {
-        // Check for DARURAT triggers first
+        
         for (kw in DARURAT_TRIGGERS) {
             if (text.contains(kw)) return NewsSeverity.DARURAT
         }
 
-        // Check magnitude in BMKG official text
+        
         if (isOfficial) {
             val magMatch = Regex("""m\s*([\d.]+)""").find(text)
             val mag = magMatch?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0
@@ -149,7 +149,7 @@ object DisasterFilter {
             if (mag >= 5.0) return NewsSeverity.WASPADA
         }
 
-        // Check for WASPADA triggers
+        
         for (kw in WASPADA_TRIGGERS) {
             if (text.contains(kw)) return NewsSeverity.WASPADA
         }
@@ -157,9 +157,9 @@ object DisasterFilter {
         return NewsSeverity.INFO
     }
 
-    // ── Region detection ─────────────────────────────────────────────────────
+    
 
-    /** Detect the first major Indonesian region mentioned in the text. */
+    
     private fun detectRegion(text: String): String? {
         val regionMap = mapOf(
             "jawa tengah" to "Jawa Tengah",
@@ -197,7 +197,7 @@ object DisasterFilter {
         return null
     }
 
-    // ── Date helpers ─────────────────────────────────────────────────────────
+    
 
     fun parsePubDate(pubDate: String): Long {
         if (pubDate.isBlank()) return System.currentTimeMillis()

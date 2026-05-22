@@ -8,17 +8,17 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Converts BMKG's official JSON earthquake endpoints into [RawRssItem] objects
- * so they flow through the same pipeline as RSS news.
- *
- * BMKG endpoints used:
- *   - autogempa.json  → latest single earthquake
- *   - gempaterkini.json → 15 most recent felt earthquakes
- *
- * Official BMKG items always receive isOfficial=true and bypass keyword scoring
- * (they are guaranteed disaster-relevant by definition).
- */
+
+
+
+
+
+
+
+
+
+
+
 object BmkgNewsSource {
 
     private const val AUTOGEMPA_URL =
@@ -29,21 +29,21 @@ object BmkgNewsSource {
     private const val CONNECT_TIMEOUT_MS = 8_000
     private const val READ_TIMEOUT_MS = 10_000
 
-    /**
-     * Fetches BMKG official earthquake data and returns as [RawRssItem] list.
-     * Returns empty list on any failure — earthquake card in the dashboard
-     * handles display separately.
-     */
+    
+
+
+
+
     suspend fun fetchBmkgNews(): List<RawRssItem> = withContext(Dispatchers.IO) {
         val results = mutableListOf<RawRssItem>()
 
-        // 1. Latest single earthquake (autogempa)
+        
         try {
             val json = fetchJson(AUTOGEMPA_URL)
             parseAutogempa(json)?.let { results.add(it) }
         } catch (_: Exception) {}
 
-        // 2. Recent significant earthquakes (gempaterkini)
+        
         try {
             val json = fetchJson(GEMPATERKINI_URL)
             results.addAll(parseGempaterkini(json))
@@ -52,14 +52,14 @@ object BmkgNewsSource {
         results
     }
 
-    // ── Parsers ───────────────────────────────────────────────────────────────
+    
 
-    /**
-     * BMKG autogempa.json → single latest earthquake as RawRssItem.
-     *
-     * Shape: { "Infogempa": { "gempa": { "Tanggal", "Jam", "Magnitude",
-     *           "Kedalaman", "Wilayah", "Dirasakan", "Shakemap" } } }
-     */
+    
+
+
+
+
+
     private fun parseAutogempa(json: String): RawRssItem? {
         return try {
             val gempa = JSONObject(json)
@@ -87,7 +87,7 @@ object BmkgNewsSource {
                 append("Waktu: $tanggal $jam WIB.")
             }
 
-            // BMKG shakemap image URL
+            
             val imageUrl = if (shakemap.isNotBlank()) {
                 "https://data.bmkg.go.id/DataMKG/TEWS/$shakemap"
             } else null
@@ -107,11 +107,11 @@ object BmkgNewsSource {
         }
     }
 
-    /**
-     * BMKG gempaterkini.json → up to 5 recent significant earthquakes (M≥5.0).
-     *
-     * Shape: { "Infogempa": { "gempa": [ {...}, {...} ] } }
-     */
+    
+
+
+
+
     private fun parseGempaterkini(json: String): List<RawRssItem> {
         return try {
             val arr = JSONObject(json)
@@ -119,11 +119,11 @@ object BmkgNewsSource {
                 .getJSONArray("gempa")
 
             val result = mutableListOf<RawRssItem>()
-            // Skip index 0 — same as autogempa (already added above)
+            
             for (i in 1 until minOf(arr.length(), 6)) {
                 val g = arr.getJSONObject(i)
                 val mag = g.optString("Magnitude", "0").toDoubleOrNull() ?: 0.0
-                if (mag < 5.0) continue   // Only include significant quakes
+                if (mag < 5.0) continue   
 
                 val wilayah = g.optString("Wilayah", "--")
                 val tanggal = g.optString("Tanggal", "")
@@ -160,7 +160,7 @@ object BmkgNewsSource {
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    
 
     private fun bmkgMagnitudeToSeverityLabel(mag: Double): String = when {
         mag >= 7.0 -> "DARURAT"

@@ -36,7 +36,7 @@ fun SigmaBottomBar(
     onNavigateToProfile: () -> Unit,
     onNavigateToManageVolunteer: () -> Unit
 ) {
-    // Determine visibility: Only show on core navigation screens
+    
     val isVisible = currentRoute != null && (
             currentRoute is Route.Dashboard ||
             currentRoute is Route.Map ||
@@ -48,7 +48,7 @@ fun SigmaBottomBar(
 
     if (!isVisible) return
 
-    // Floating Pill Container — overlaid directly on screen content, no background behind it
+    
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -77,7 +77,7 @@ fun SigmaBottomBar(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. Home
+                
                 BottomNavItem(
                     selected = currentRoute is Route.Dashboard,
                     onClick = onNavigateToHome,
@@ -85,7 +85,7 @@ fun SigmaBottomBar(
                     label = "Home"
                 )
 
-                // 2. Middle Left: Relawan (Admin) or Peta (Others)
+                
                 if (userRole == UserRole.BNPB) {
                     BottomNavItem(
                         selected = currentRoute is Route.ManageVolunteer,
@@ -102,7 +102,7 @@ fun SigmaBottomBar(
                     )
                 }
 
-                // 3. Middle Right: Posko
+                
                 val isPoskoSelected = currentRoute is Route.ShelterInfo || currentRoute is Route.ManageShelter
                 BottomNavItem(
                     selected = isPoskoSelected,
@@ -111,7 +111,7 @@ fun SigmaBottomBar(
                     label = "Posko"
                 )
 
-                // 4. Profil
+                
                 BottomNavItem(
                     selected = currentRoute is Route.Profile,
                     onClick = onNavigateToProfile,

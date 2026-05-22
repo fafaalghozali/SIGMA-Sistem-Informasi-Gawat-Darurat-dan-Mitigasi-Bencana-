@@ -16,18 +16,18 @@ enum class MenuCategory {
 }
 
 data class NewsItem(
-    val id: String,                // guid or link-based stable ID
+    val id: String,                
     val title: String,
-    val time: String,              // human-relative: "10 mnt lalu"
-    val publishedAt: Long = 0L,    // epoch ms for sorting/dedup
-    val category: String,          // "DARURAT" / "WASPADA" / "INFO"
+    val time: String,              
+    val publishedAt: Long = 0L,    
+    val category: String,          
     val categoryColor: Color = Color.Gray,
     val imageUrl: String? = null,
-    val source: String = "",       // "CNN Indonesia", "BMKG", etc.
-    val link: String = "",         // article URL
+    val source: String = "",       
+    val link: String = "",         
     val severity: NewsSeverity = NewsSeverity.INFO,
-    val isOfficial: Boolean = false,  // BMKG/BNPB = true
-    val region: String? = null     // detected Indonesian region
+    val isOfficial: Boolean = false,  
+    val region: String? = null     
 )
 
 enum class NewsSeverity { INFO, WASPADA, DARURAT }
@@ -38,9 +38,9 @@ data class WeatherInfo(
     val temperature: String,
     val riskStatus: String,
     val riskColor: Color,
-    val weatherCode: Int = 0,        // WMO weather code (Open-Meteo)
-    val humidity: String = "--",      // e.g. "78%"
-    val windSpeed: String = "--",     // e.g. "12 km/h"
+    val weatherCode: Int = 0,        
+    val humidity: String = "--",      
+    val windSpeed: String = "--",     
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
@@ -49,15 +49,15 @@ data class EarthquakeInfo(
     val location: String,
     val depth: String,
     val time: String,
-    val felt: String        // "Dirasakan" field from BMKG
+    val felt: String        
 )
 
-/**
- * Represents an active BMKG disaster warning
- * (recent significant earthquakes, tsunami, extreme weather).
- */
+
+
+
+
 data class BmkgWarning(
-    val type: String,               // "Gempa", "Tsunami", "Cuaca Ekstrem"
+    val type: String,               
     val message: String,
     val severity: WarningSeverity,
     val time: String

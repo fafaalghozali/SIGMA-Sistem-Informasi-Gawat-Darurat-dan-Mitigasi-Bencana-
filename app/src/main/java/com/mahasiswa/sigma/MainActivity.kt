@@ -11,7 +11,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. Enable Edge-to-Edge for modern layout and safe area handling
+        
         enableEdgeToEdge()
 
         setContent {

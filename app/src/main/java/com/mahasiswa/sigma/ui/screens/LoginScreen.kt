@@ -89,7 +89,6 @@ fun LoginContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // ── Branding ──────────────────────────────────────────────────
             Text(
                 text = "SIGMA",
                 style = MaterialTheme.typography.displaySmall.copy(
@@ -111,7 +110,6 @@ fun LoginContent(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // ── Input Group ───────────────────────────────────────────────
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -212,7 +210,6 @@ fun LoginContent(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Primary Button ────────────────────────────────────────────
             Button(
                 onClick = onLoginClick,
                 modifier = Modifier
@@ -228,7 +225,6 @@ fun LoginContent(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Footer Link ───────────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Belum punya akun? ",
@@ -244,7 +240,6 @@ fun LoginContent(
             }
         }
 
-        // ── Overlay Dialogs ───────────────────────────────────────────────
         if (uiState.showErrorDialog) {
             ErrorOverlay(message = uiState.errorMessage, onDismiss = onDismissError, isDark = isDark)
         }

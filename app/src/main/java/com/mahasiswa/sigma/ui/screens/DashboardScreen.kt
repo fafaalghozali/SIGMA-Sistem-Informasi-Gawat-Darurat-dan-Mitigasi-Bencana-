@@ -86,7 +86,6 @@ fun DashboardScreen(
     LaunchedEffect(Unit) {
         viewModel.loadDashboardData(userRole, isDark)
         viewModel.onPermissionRequested()
-        // Request location permission — weather loads only after grant callback fires
         permissionLauncher.launch(
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
@@ -102,7 +101,6 @@ fun DashboardScreen(
         onFeatureClick = onFeatureClick,
         onDismissNotification = { viewModel.dismissNotification() },
         onRetryLocation = {
-            // Show loading, then re-launch permission request
             viewModel.onPermissionRequested()
             permissionLauncher.launch(
                 arrayOf(
@@ -155,7 +153,7 @@ fun DashboardContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // 1. Status / Weather Card
+                
                 item(span = { GridItemSpan(2) }) {
                     StatusCard(
                         weather = uiState.weatherInfo,
@@ -169,7 +167,7 @@ fun DashboardContent(
                     )
                 }
 
-                // 2. Critical Alert Notification
+                
                 item(span = { GridItemSpan(2) }) {
                     AnimatedVisibility(
                         visible = uiState.showNotification,
@@ -180,7 +178,7 @@ fun DashboardContent(
                     }
                 }
 
-                // 3. BMKG Local Alerts or Safe State
+                
                 val hasAlerts = uiState.earthquakeInfo != null || uiState.bmkgWarnings.isNotEmpty()
 
                 if (hasAlerts) {
@@ -203,7 +201,7 @@ fun DashboardContent(
                     }
                 }
 
-                // 4. Services header
+                
                 item(span = { GridItemSpan(2) }) {
                     SectionHeader(
                         title = "Layanan Utama",
@@ -212,12 +210,12 @@ fun DashboardContent(
                     )
                 }
 
-                // 5. Service grid
+                
                 items(uiState.menuItems) { item ->
                     ServiceMenuCard(item, isDark) { onFeatureClick(item.id) }
                 }
 
-                // 6. News Carousel
+                
                 item(span = { GridItemSpan(2) }) {
                     Spacer(modifier = Modifier.height(8.dp))
                     NewsCarouselSection(
@@ -240,7 +238,7 @@ fun DashboardContent(
                 }
             }
 
-            // Emergency FAB
+            
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -310,8 +308,6 @@ fun DashboardHeader(userName: String, isDark: Boolean) {
     }
 }
 
-// ── Shimmer / Skeleton helpers ────────────────────────────────────────────────
-
 @Composable
 private fun shimmerBrush(isDark: Boolean): Brush {
     val shimmerColors = if (isDark) {
@@ -358,7 +354,6 @@ private fun ShimmerBox(
     )
 }
 
-// ── Status Wilayah Card ───────────────────────────────────────────────────────
 
 @Composable
 fun StatusCard(
@@ -391,11 +386,9 @@ fun StatusCard(
             contentAlignment = Alignment.Center
         ) {
             when {
-                // ── Loading: shimmer skeleton ─────────────────────────────
                 isLoading -> {
                     StatusCardShimmer(isDark = isDark)
                 }
-                // ── Permission denied ─────────────────────────────────────
                 permissionDenied -> {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -436,7 +429,6 @@ fun StatusCard(
                         }
                     }
                 }
-                // ── Error state ───────────────────────────────────────────
                 error != null -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
@@ -456,13 +448,12 @@ fun StatusCard(
                         }
                     }
                 }
-                // ── Success: weather data ─────────────────────────────────
                 weather != null -> {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // LEFT SIDE — location, risk status, real-time indicator
+                        
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -495,7 +486,6 @@ fun StatusCard(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            // Humidity & wind row
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -532,7 +522,7 @@ fun StatusCard(
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            // Real-time & Last updated indicator
+                            
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 PulseIndicator(color = weather.riskColor)
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -561,7 +551,6 @@ fun StatusCard(
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        // RIGHT SIDE — weather icon, temperature, condition text
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
@@ -580,7 +569,6 @@ fun StatusCard(
                                 ),
                                 color = if (isDark) Color.White else Color(0xFF1A1A1A)
                             )
-                            // Weather condition description text
                             Text(
                                 text = weather.condition,
                                 style = MaterialTheme.typography.labelSmall.copy(
@@ -597,8 +585,6 @@ fun StatusCard(
     }
 }
 
-// ── Shimmer loading skeleton for StatusCard ───────────────────────────────────
-
 @Composable
 private fun StatusCardShimmer(isDark: Boolean) {
     Row(
@@ -606,7 +592,6 @@ private fun StatusCardShimmer(isDark: Boolean) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            // Location placeholder
             ShimmerBox(
                 modifier = Modifier
                     .width(100.dp)
@@ -614,7 +599,6 @@ private fun StatusCardShimmer(isDark: Boolean) {
                 isDark = isDark
             )
             Spacer(modifier = Modifier.height(10.dp))
-            // "Status Wilayah" label placeholder
             ShimmerBox(
                 modifier = Modifier
                     .width(80.dp)
@@ -622,7 +606,6 @@ private fun StatusCardShimmer(isDark: Boolean) {
                 isDark = isDark
             )
             Spacer(modifier = Modifier.height(6.dp))
-            // Risk status placeholder
             ShimmerBox(
                 modifier = Modifier
                     .width(160.dp)
@@ -630,7 +613,6 @@ private fun StatusCardShimmer(isDark: Boolean) {
                 isDark = isDark
             )
             Spacer(modifier = Modifier.height(10.dp))
-            // Humidity/wind placeholder
             ShimmerBox(
                 modifier = Modifier
                     .width(120.dp)
@@ -638,7 +620,6 @@ private fun StatusCardShimmer(isDark: Boolean) {
                 isDark = isDark
             )
             Spacer(modifier = Modifier.height(8.dp))
-            // Real-time indicator placeholder
             ShimmerBox(
                 modifier = Modifier
                     .width(140.dp)
@@ -648,13 +629,12 @@ private fun StatusCardShimmer(isDark: Boolean) {
         }
         Spacer(modifier = Modifier.width(12.dp))
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // Icon placeholder
             ShimmerBox(
                 modifier = Modifier.size(48.dp),
                 isDark = isDark
             )
             Spacer(modifier = Modifier.height(6.dp))
-            // Temperature placeholder
+            
             ShimmerBox(
                 modifier = Modifier
                     .width(50.dp)
@@ -662,7 +642,7 @@ private fun StatusCardShimmer(isDark: Boolean) {
                 isDark = isDark
             )
             Spacer(modifier = Modifier.height(4.dp))
-            // Condition text placeholder
+            
             ShimmerBox(
                 modifier = Modifier
                     .width(60.dp)
@@ -673,30 +653,30 @@ private fun StatusCardShimmer(isDark: Boolean) {
     }
 }
 
-/** Maps WMO weather interpretation codes (Open-Meteo) to Material icons. */
+
 private fun weatherCodeToIcon(code: Int): ImageVector = when (code) {
-    0 -> Icons.Default.WbSunny                          // Clear sky
-    1, 2 -> Icons.Default.WbCloudy                      // Mainly clear / partly cloudy
-    3 -> Icons.Default.Cloud                             // Overcast
-    45, 48 -> Icons.Default.BlurOn                      // Fog
-    51, 53, 55, 56, 57 -> Icons.Default.Grain           // Drizzle
-    61, 63, 66, 80, 81 -> Icons.Default.Umbrella        // Rain / showers
-    65, 67, 82 -> Icons.Default.Umbrella                // Heavy rain
-    71, 73, 75, 77, 85, 86 -> Icons.Default.AcUnit      // Snow
-    95, 96, 99 -> Icons.Default.Thunderstorm            // Thunderstorm
+    0 -> Icons.Default.WbSunny                          
+    1, 2 -> Icons.Default.WbCloudy                      
+    3 -> Icons.Default.Cloud                             
+    45, 48 -> Icons.Default.BlurOn                      
+    51, 53, 55, 56, 57 -> Icons.Default.Grain           
+    61, 63, 66, 80, 81 -> Icons.Default.Umbrella        
+    65, 67, 82 -> Icons.Default.Umbrella                
+    71, 73, 75, 77, 85, 86 -> Icons.Default.AcUnit      
+    95, 96, 99 -> Icons.Default.Thunderstorm            
     else -> Icons.Default.Cloud
 }
 
-/** Returns an appropriate tint colour for the weather icon. */
+
 private fun weatherCodeToIconTint(code: Int, isDark: Boolean): Color = when (code) {
-    0 -> Color(0xFFFFC107)                               // Sunny yellow
-    1, 2 -> Color(0xFF90CAF9)                            // Light blue
+    0 -> Color(0xFFFFC107)                               
+    1, 2 -> Color(0xFF90CAF9)                            
     3 -> if (isDark) Color(0xFFB0BEC5) else Color(0xFF78909C)
-    45, 48 -> Color(0xFFB0BEC5)                          // Grey fog
-    51, 53, 55, 56, 57 -> Color(0xFF64B5F6)             // Drizzle blue
-    61, 63, 65, 66, 67, 80, 81, 82 -> Color(0xFF42A5F5) // Rain blue
-    71, 73, 75, 77, 85, 86 -> Color(0xFFE3F2FD)         // Snow white-blue
-    95, 96, 99 -> Color(0xFF7E57C2)                      // Storm purple
+    45, 48 -> Color(0xFFB0BEC5)                          
+    51, 53, 55, 56, 57 -> Color(0xFF64B5F6)             
+    61, 63, 65, 66, 67, 80, 81, 82 -> Color(0xFF42A5F5) 
+    71, 73, 75, 77, 85, 86 -> Color(0xFFE3F2FD)         
+    95, 96, 99 -> Color(0xFF7E57C2)                      
     else -> if (isDark) Color(0xFFB0BEC5) else Color(0xFF78909C)
 }
 
@@ -752,7 +732,7 @@ fun EmergencyAlertCard(onDismiss: () -> Unit, isDark: Boolean) {
     }
 }
 
-// ── BMKG Earthquake Intel Card ────────────────────────────────────────────────
+
 @Composable
 fun EarthquakeCard(earthquake: EarthquakeInfo, isDark: Boolean) {
     Card(
@@ -836,7 +816,7 @@ fun EarthquakeCard(earthquake: EarthquakeInfo, isDark: Boolean) {
     }
 }
 
-// ── BMKG Warning Banner ───────────────────────────────────────────────────────
+
 
 @Composable
 fun BmkgWarningBanner(warnings: List<BmkgWarning>, isDark: Boolean) {
@@ -928,22 +908,22 @@ fun NewsCarouselSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         when {
-            // ── Shimmer loading ───────────────────────────────────────────
+            
             isLoading && newsItems.isEmpty() -> {
                 NewsCarouselShimmer(isDark = isDark)
             }
 
-            // ── Error state ───────────────────────────────────────────────
+            
             error != null && newsItems.isEmpty() -> {
                 NewsErrorState(message = error, isDark = isDark, onRetry = onRetry)
             }
 
-            // ── Empty state ───────────────────────────────────────────────
+            
             newsItems.isEmpty() -> {
                 NewsEmptyState(isDark = isDark)
             }
 
-            // ── Success: dynamic carousel ─────────────────────────────────
+            
             else -> {
                 val pagerState = rememberPagerState(pageCount = { newsItems.size })
                 HorizontalPager(
@@ -975,7 +955,7 @@ fun NewsCarouselSection(
                     )
                 }
 
-                // Page indicator dots
+                
                 if (newsItems.size > 1) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
@@ -1004,7 +984,7 @@ fun NewsCarouselSection(
     }
 }
 
-// ── Shimmer skeleton for NewsCarousel ─────────────────────────────────────────
+
 
 @Composable
 private fun NewsCarouselShimmer(isDark: Boolean) {
@@ -1018,7 +998,7 @@ private fun NewsCarouselShimmer(isDark: Boolean) {
                 RoundedCornerShape(20.dp)
             )
     ) {
-        // Left content area
+        
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -1026,17 +1006,17 @@ private fun NewsCarouselShimmer(isDark: Boolean) {
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                // Severity badge placeholder
+                
                 ShimmerBox(modifier = Modifier.width(70.dp).height(18.dp), isDark = isDark)
                 Spacer(modifier = Modifier.height(10.dp))
-                // Title lines
+                
                 ShimmerBox(modifier = Modifier.fillMaxWidth().height(14.dp), isDark = isDark)
                 Spacer(modifier = Modifier.height(6.dp))
                 ShimmerBox(modifier = Modifier.fillMaxWidth(0.75f).height(14.dp), isDark = isDark)
                 Spacer(modifier = Modifier.height(6.dp))
                 ShimmerBox(modifier = Modifier.fillMaxWidth(0.5f).height(14.dp), isDark = isDark)
             }
-            // Source + time row
+            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -1048,7 +1028,7 @@ private fun NewsCarouselShimmer(isDark: Boolean) {
     }
 }
 
-// ── Error state ───────────────────────────────────────────────────────────────
+
 
 @Composable
 private fun NewsErrorState(message: String, isDark: Boolean, onRetry: () -> Unit) {
@@ -1095,7 +1075,7 @@ private fun NewsErrorState(message: String, isDark: Boolean, onRetry: () -> Unit
     }
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
+
 
 @Composable
 private fun NewsEmptyState(isDark: Boolean) {
@@ -1164,7 +1144,7 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
-            // ── Background image (Coil AsyncImage) ────────────────────────
+            
             if (!item.imageUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
@@ -1175,7 +1155,7 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                // Dark scrim over image
+                
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -1190,7 +1170,7 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                         )
                 )
             } else {
-                // Gradient accent background when no image
+                
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -1205,7 +1185,7 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                 )
             }
 
-            // ── Content overlay ───────────────────────────────────────────
+            
             val hasImage = !item.imageUrl.isNullOrBlank()
             val textColor = if (hasImage || isDark) Color.White else Color(0xFF1A1A1A)
             val subColor  = if (hasImage) Color.White.copy(alpha = 0.80f)
@@ -1217,12 +1197,12 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                     .padding(14.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // TOP ROW: Severity badge + Official indicator
+                
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Severity badge
+                    
                     Surface(
                         color = item.categoryColor.copy(alpha = if (hasImage) 0.85f else 0.15f),
                         shape = RoundedCornerShape(6.dp),
@@ -1238,7 +1218,7 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                         )
                     }
 
-                    // BMKG/BNPB official badge
+                    
                     if (item.isOfficial) {
                         Surface(
                             color = if (hasImage) Color.White.copy(alpha = 0.15f)
@@ -1268,7 +1248,7 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                         }
                     }
 
-                    // Region tag
+                    
                     if (!item.region.isNullOrBlank()) {
                         Text(
                             text = item.region,
@@ -1280,7 +1260,7 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                     }
                 }
 
-                // MIDDLE: Article title
+                
                 Text(
                     text = item.title,
                     style = MaterialTheme.typography.titleSmall.copy(
@@ -1292,12 +1272,12 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                     color = textColor
                 )
 
-                // BOTTOM ROW: Source + time + arrow
+                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Source label
+                    
                     if (item.source.isNotBlank()) {
                         Text(
                             text = item.source,
@@ -1337,7 +1317,7 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
-// ── Safe State Banner ─────────────────────────────────────────────────────────
+
 
 @Composable
 fun SafeStateCard(isDark: Boolean) {

@@ -80,7 +80,7 @@ dependencies {
     implementation(libs.play.services.location)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
 
-    // Room database for news caching
+    
     implementation(libs.aandroidx.room.runtime)
     implementation(libs.aandroidx.room.ktx)
     ksp(libs.aandroidx.room.compiler)

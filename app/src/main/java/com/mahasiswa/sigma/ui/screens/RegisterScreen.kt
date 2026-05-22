@@ -68,7 +68,6 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // ── Branding ──────────────────────────────────────────────────
             Text(
                 text = "SIGMA",
                 style = MaterialTheme.typography.displaySmall.copy(
@@ -90,7 +89,6 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // ── Input Group ───────────────────────────────────────────────
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -166,7 +164,6 @@ fun RegisterScreen(
                     )
                 )
 
-                // Role field — read-only, styled consistently
                 OutlinedTextField(
                     value = selectedRole.displayName,
                     onValueChange = {},
@@ -199,7 +196,6 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Primary Button ────────────────────────────────────────────
             Button(
                 onClick = { viewModel.register(onNavigateToLogin) },
                 modifier = Modifier
@@ -215,7 +211,6 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Footer Link ───────────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Sudah punya akun? ",
@@ -231,7 +226,6 @@ fun RegisterScreen(
             }
         }
 
-        // ── Result Dialog ─────────────────────────────────────────────────
         if (showDialog) {
             Box(
                 modifier = Modifier

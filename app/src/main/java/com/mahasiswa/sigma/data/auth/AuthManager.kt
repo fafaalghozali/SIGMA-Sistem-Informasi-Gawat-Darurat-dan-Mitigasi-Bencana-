@@ -33,7 +33,7 @@ class AuthManager(private val authDataStore: DataStore<AuthData>) {
     }
 
     suspend fun loginUser(username: String, pass: String): UserRole? {
-        // Hardcoded admin for temporary use
+        
         if (username == "admin" && pass == "admin") {
             return UserRole.BNPB
         }

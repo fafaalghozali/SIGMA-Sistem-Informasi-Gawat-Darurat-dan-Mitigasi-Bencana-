@@ -7,10 +7,10 @@ import com.mahasiswa.sigma.data.model.DashboardMenuModel
 import com.mahasiswa.sigma.data.model.MenuCategory
 import com.mahasiswa.sigma.data.model.UserRole
 
-/**
- * Provides static dashboard configuration data (menu items per user role).
- * News data is no longer managed here — see [NewsRepository] for dynamic news.
- */
+
+
+
+
 class DashboardRepository {
 
     fun getMenuItems(userRole: UserRole): List<DashboardMenuModel> {

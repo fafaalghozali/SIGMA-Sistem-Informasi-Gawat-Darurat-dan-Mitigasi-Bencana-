@@ -68,7 +68,7 @@ fun SigmaNavigation() {
     val userRole = dashboardRoute?.role ?: UserRole.MASYARAKAT
 
     CompositionLocalProvider(LocalBackStack provides backStack) {
-        // Use a plain Box so the navbar overlays content with no Scaffold background behind it
+        
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
                 modifier = Modifier.fillMaxSize(),
@@ -225,7 +225,7 @@ fun SigmaNavigation() {
                 }
             }
 
-            // Floating navbar overlaid on top — no Scaffold background behind it
+            
             Box(
                 modifier = Modifier.align(Alignment.BottomCenter)
             ) {

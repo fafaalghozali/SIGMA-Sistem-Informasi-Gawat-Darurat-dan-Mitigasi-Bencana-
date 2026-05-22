@@ -47,14 +47,14 @@ fun SigmaBottomBar(
 
     if (!isMainScreen) return
 
-    // Main Floating Surface
+    
     Surface(
         modifier = Modifier
             .padding(horizontal = 24.dp)
-            .padding(bottom = 24.dp) // Real floating margin
+            .padding(bottom = 24.dp) 
             .height(72.dp)
             .fillMaxWidth(),
-        shape = CircleShape, // Modern Pill Shape
+        shape = CircleShape, 
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
         tonalElevation = 4.dp,
         shadowElevation = 8.dp,
@@ -68,7 +68,7 @@ fun SigmaBottomBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Home
+            
             BottomNavItem(
                 selected = currentRoute is Route.Dashboard,
                 onClick = onNavigateToHome,
@@ -76,7 +76,7 @@ fun SigmaBottomBar(
                 label = "Home"
             )
 
-            // 2. Role-Based Center Item
+            
             if (userRole == UserRole.BNPB) {
                 BottomNavItem(
                     selected = currentRoute is Route.ManageVolunteer,
@@ -93,7 +93,7 @@ fun SigmaBottomBar(
                 )
             }
 
-            // 3. Posko
+            
             val isPosko = currentRoute is Route.ShelterInfo || currentRoute is Route.ManageShelter
             BottomNavItem(
                 selected = isPosko,
@@ -102,7 +102,7 @@ fun SigmaBottomBar(
                 label = "Posko"
             )
 
-            // 4. Profil
+            
             BottomNavItem(
                 selected = currentRoute is Route.Profile,
                 onClick = onNavigateToProfile,

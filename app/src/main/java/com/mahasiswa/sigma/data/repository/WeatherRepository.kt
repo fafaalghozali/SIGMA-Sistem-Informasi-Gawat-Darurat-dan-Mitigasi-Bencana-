@@ -26,27 +26,27 @@ import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/**
- * Hybrid weather + disaster repository.
- *
- * Weather  → Open-Meteo (https://api.open-meteo.com) — stable, free, no API key
- * Disaster → BMKG official data (https://data.bmkg.go.id) — earthquake & warnings
- *
- * Open-Meteo uses WMO weather interpretation codes:
- *   https://open-meteo.com/en/docs#weathervariables
- */
+
+
+
+
+
+
+
+
+
 class WeatherRepository(private val context: Context) {
 
-    /** Thrown when real GPS location cannot be determined. */
+    
     class LocationUnavailableException : Exception("Could not determine device location")
 
-    // ── Public API ────────────────────────────────────────────────────────────
+    
 
-    /**
-     * Fetches real GPS location then queries Open-Meteo for current weather.
-     * Throws [LocationUnavailableException] if no real location is available,
-     * so the caller (ViewModel) can decide whether to fallback.
-     */
+    
+
+
+
+
     @SuppressLint("MissingPermission")
     suspend fun getWeatherForCurrentLocation(): WeatherInfo {
         val (lat, lon) = getCurrentLocation()
@@ -54,16 +54,16 @@ class WeatherRepository(private val context: Context) {
         return fetchOpenMeteoWeather(lat, lon, cityName)
     }
 
-    /**
-     * Explicit fallback: uses Surakarta coordinates.
-     * Only called by the ViewModel when permission is denied or GPS truly fails.
-     */
+    
+
+
+
     suspend fun getWeatherForFallbackLocation(): WeatherInfo {
         val (lat, lon) = SURAKARTA_COORDS
         return fetchOpenMeteoWeather(lat, lon, "Surakarta (Default)")
     }
 
-    /** Fetches the latest earthquake from BMKG's official open-data endpoint. */
+    
     suspend fun getLatestEarthquake(): EarthquakeInfo? = withContext(Dispatchers.IO) {
         try {
             val json = fetchJsonWithRetry("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json")
@@ -73,11 +73,11 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Fetches recent significant earthquakes from BMKG and converts them
-     * into BmkgWarning items for dashboard display.
-     * Uses gempaterkini.json which returns the 15 most recent felt earthquakes.
-     */
+    
+
+
+
+
     suspend fun getRecentBmkgWarnings(): List<BmkgWarning> = withContext(Dispatchers.IO) {
         try {
             val json = fetchJsonWithRetry("https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json")
@@ -87,14 +87,14 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    // ── Location ──────────────────────────────────────────────────────────────
+    
 
-    /**
-     * Obtains real device GPS coordinates.
-     * Tries getCurrentLocation first, then lastLocation.
-     * Throws [LocationUnavailableException] if neither succeeds —
-     * does NOT silently fall back to Surakarta.
-     */
+    
+
+
+
+
+
     @SuppressLint("MissingPermission")
     private suspend fun getCurrentLocation(): Pair<Double, Double> =
         suspendCancellableCoroutine { cont ->
@@ -106,7 +106,7 @@ class WeatherRepository(private val context: Context) {
                     if (location != null) {
                         cont.resume(Pair(location.latitude, location.longitude))
                     } else {
-                        // Try last known location — but do NOT silently use Surakarta
+                        
                         client.lastLocation
                             .addOnSuccessListener { last ->
                                 if (last != null) {
@@ -125,7 +125,7 @@ class WeatherRepository(private val context: Context) {
             cont.invokeOnCancellation { cts.cancel() }
         }
 
-    // ── Reverse geocoding ─────────────────────────────────────────────────────
+    
 
     private suspend fun reverseGeocode(lat: Double, lon: Double): String =
         withContext(Dispatchers.IO) {
@@ -144,24 +144,24 @@ class WeatherRepository(private val context: Context) {
             }
         }
 
-    // ── Open-Meteo weather ────────────────────────────────────────────────────
+    
 
-    /**
-     * Open-Meteo v1 forecast endpoint.
-     * Returns current temperature_2m, weather_code, relative_humidity_2m,
-     * and wind_speed_10m (WMO standard).
-     *
-     * Example response:
-     * {
-     *   "current": {
-     *     "time": "2024-01-01T12:00",
-     *     "temperature_2m": 28.4,
-     *     "weather_code": 61,
-     *     "relative_humidity_2m": 78,
-     *     "wind_speed_10m": 12.3
-     *   }
-     * }
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     private suspend fun fetchOpenMeteoWeather(
         lat: Double,
         lon: Double,
@@ -210,19 +210,19 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    // ── BMKG earthquake ───────────────────────────────────────────────────────
+    
 
-    /**
-     * BMKG autogempa.json structure:
-     * {
-     *   "Infogempa": {
-     *     "gempa": {
-     *       "Tanggal": "...", "Jam": "...", "Magnitude": "...",
-     *       "Kedalaman": "...", "Wilayah": "...", "Dirasakan": "..."
-     *     }
-     *   }
-     * }
-     */
+    
+
+
+
+
+
+
+
+
+
+
     private fun parseEarthquake(json: String): EarthquakeInfo? {
         return try {
             val gempa = JSONObject(json)
@@ -241,18 +241,18 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    /**
-     * BMKG gempaterkini.json structure:
-     * {
-     *   "Infogempa": {
-     *     "gempa": [
-     *       { "Magnitude": "5.2", "Wilayah": "...", "Tanggal": "...", "Jam": "...", ... }
-     *     ]
-     *   }
-     * }
-     *
-     * Filters to only significant quakes (M >= 5.0) and returns as BmkgWarning list.
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
     private fun parseRecentQuakeWarnings(json: String): List<BmkgWarning> {
         return try {
             val gempaArray = JSONObject(json)
@@ -285,12 +285,12 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    // ── HTTP helper with retry ────────────────────────────────────────────────
+    
 
-    /**
-     * Fetches JSON with exponential backoff retry.
-     * 3 attempts: immediate → 1s delay → 2s delay.
-     */
+    
+
+
+
     private suspend fun fetchJsonWithRetry(
         urlString: String,
         maxRetries: Int = 3
@@ -302,7 +302,7 @@ class WeatherRepository(private val context: Context) {
             } catch (e: Exception) {
                 lastException = e
                 if (attempt < maxRetries - 1) {
-                    delay(1000L * (1 shl attempt)) // 1s, 2s
+                    delay(1000L * (1 shl attempt)) 
                 }
             }
         }
@@ -326,8 +326,8 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    // ── WMO weather code mappings ─────────────────────────────────────────────
-    // Reference: https://open-meteo.com/en/docs#weathervariables
+    
+    
 
     fun wmoCodeToCondition(code: Int): String = when (code) {
         0 -> "Cerah"
@@ -351,7 +351,7 @@ class WeatherRepository(private val context: Context) {
         else -> "Berawan"
     }
 
-    /** Maps WMO code to a weather emoji for compact display. */
+    
     fun wmoCodeToEmoji(code: Int): String = when (code) {
         0 -> "☀️"
         1 -> "🌤️"
@@ -366,30 +366,30 @@ class WeatherRepository(private val context: Context) {
         else -> "☁️"
     }
 
-    /**
-     * Maps WMO weather code + temperature to a realistic risk assessment.
-     *
-     * Tiers:
-     *   🟢 "Kondisi Normal"       — clear, partly cloudy, overcast, light fog
-     *   🔵 "Perlu Perhatian"      — drizzle, moderate fog, light snow
-     *   🟡 "Waspada Hujan"        — moderate rain, showers
-     *   🔴 "Risiko Tinggi"        — heavy rain, thunderstorms, extreme temp
-     *
-     * The default/else branch is SAFE (green), not warning.
-     */
+    
+
+
+
+
+
+
+
+
+
+
     private fun wmoCodeToRisk(code: Int, tempC: Int): Pair<String, Color> = when {
-        // ── DANGER (Red) — genuinely hazardous ──────────────────────────
+        
         code in listOf(95, 96, 99) -> Pair("Risiko Petir Tinggi", EmergencyRed)
         code == 65 || code == 82   -> Pair("Risiko Banjir Tinggi", EmergencyRed)
         tempC >= 40                -> Pair("Suhu Berbahaya", EmergencyRed)
 
-        // ── WARNING (Orange) — needs attention ──────────────────────────
+        
         code in listOf(61, 63, 80, 81) -> Pair("Waspada Hujan", WarningOrange)
         code in listOf(66, 67)         -> Pair("Waspada Hujan Beku", WarningOrange)
         code in listOf(75, 77, 86)     -> Pair("Waspada Salju Lebat", WarningOrange)
         tempC >= 36                    -> Pair("Suhu Panas Ekstrem", WarningOrange)
 
-        // ── ATTENTION (Blue) — mild caution ─────────────────────────────
+        
         code in listOf(51, 53)     -> Pair("Perlu Perhatian", MitigationBlue)
         code == 55                 -> Pair("Gerimis Lebat", MitigationBlue)
         code in listOf(56, 57)     -> Pair("Perlu Perhatian", MitigationBlue)
@@ -397,10 +397,10 @@ class WeatherRepository(private val context: Context) {
         code in listOf(71, 73)     -> Pair("Perlu Perhatian", MitigationBlue)
         code == 85                 -> Pair("Perlu Perhatian", MitigationBlue)
 
-        // ── NORMAL (Green) — safe conditions ────────────────────────────
+        
         code in listOf(0, 1, 2, 3) -> Pair("Kondisi Normal", VolunteerGreen)
 
-        // ── Default: assume normal — NOT "Waspada" ──────────────────────
+        
         else -> Pair("Kondisi Normal", VolunteerGreen)
     }
 

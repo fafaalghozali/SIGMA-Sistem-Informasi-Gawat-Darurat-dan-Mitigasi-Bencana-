@@ -71,13 +71,13 @@ fun ManageVolunteerScreen(@Suppress("UNUSED_PARAMETER") onBack: () -> Unit) {
                         Text("Ada 0 pendaftaran baru", fontSize = 12.sp)
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = { /* TODO */ }) {
+                    TextButton(onClick = {  }) {
                         Text("Buka")
                     }
                 }
             }
 
-            // Extra spacing for bottom navbar
+            
             Spacer(modifier = Modifier.height(100.dp))
         }
     }

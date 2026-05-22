@@ -1,10 +1,13 @@
 package com.mahasiswa.sigma.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
@@ -28,7 +31,7 @@ fun ProfileScreen(
     userRole: UserRole,
     userName: String,
     userEmail: String,
-    onBack: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") onBack: () -> Unit,
     onLogout: () -> Unit,
     viewModel: ProfileViewModel = viewModel()
 ) {
@@ -40,8 +43,9 @@ fun ProfileScreen(
     val name = viewModel.name
     val email = viewModel.email
     val imageBitmap = viewModel.imageBitmap
-    var showImageSheet = viewModel.showImageSheet
+    val showImageSheet = viewModel.showImageSheet
     val sheetState = rememberModalBottomSheetState()
+    val scrollState = rememberScrollState()
 
     if (showImageSheet) {
         ImagePickerBottomSheet(
@@ -56,12 +60,7 @@ fun ProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Profil Pengguna") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Kembali")
-                    }
-                }
+                title = { Text("Profil Pengguna", fontWeight = FontWeight.Bold) }
             )
         }
     ) { padding ->
@@ -69,6 +68,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(scrollState)
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -98,7 +98,7 @@ fun ProfileScreen(
 
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Ubah Foto Profil", 
                 style = MaterialTheme.typography.labelLarge, 
@@ -106,13 +106,14 @@ fun ProfileScreen(
                 modifier = Modifier.clickable { viewModel.showImageSheet = true }
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             OutlinedTextField(
                 value = name,
                 onValueChange = { viewModel.name = it },
                 label = { Text("Nama Lengkap") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -121,23 +122,35 @@ fun ProfileScreen(
                 value = email,
                 onValueChange = { viewModel.email = it },
                 label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+                ),
+                shape = MaterialTheme.shapes.medium
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Role: ", fontWeight = FontWeight.Bold)
-                    Text(userRole.displayName)
+                    Column {
+                        Text(
+                            "Status Akun", 
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            userRole.displayName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -145,24 +158,33 @@ fun ProfileScreen(
 
             Button(
                 onClick = { viewModel.updateProfile() },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                contentPadding = PaddingValues(16.dp)
             ) {
-                Text("Simpan Perubahan")
+                Text("Simpan Perubahan", fontWeight = FontWeight.Bold)
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Button(
+            // Logout Button - Restored and made clearly visible
+            OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                shape = MaterialTheme.shapes.medium,
+                contentPadding = PaddingValues(16.dp)
             ) {
                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Keluar (Logout)")
+                Text("Keluar (Logout)", fontWeight = FontWeight.Bold)
             }
+            
+            // Extra spacing to ensure content is not covered by floating navigation bar
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }

@@ -29,7 +29,7 @@ import com.mahasiswa.sigma.ui.viewmodel.ShelterInfoViewModel
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ShelterInfoScreen(
-    onBack: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") onBack: () -> Unit,
     viewModel: ShelterInfoViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -43,12 +43,7 @@ fun ShelterInfoScreen(
             modifier = Modifier.blur(if (showLogisticsDialog) 12.dp else 0.dp),
             topBar = {
                 TopAppBar(
-                    title = { Text("Informasi Posko & Pengungsian", fontWeight = FontWeight.Bold) },
-                    navigationIcon = {
-                        TextButton(onClick = onBack) {
-                            Text("Kembali")
-                        }
-                    }
+                    title = { Text("Informasi Posko & Pengungsian", fontWeight = FontWeight.Bold) }
                 )
             }
         ) { padding ->
@@ -56,8 +51,9 @@ fun ShelterInfoScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp)
             ) {
                 items(shelters) { shelter ->
                     Card(

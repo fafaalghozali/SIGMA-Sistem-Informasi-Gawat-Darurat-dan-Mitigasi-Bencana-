@@ -3,6 +3,8 @@ package com.mahasiswa.sigma.ui.navigation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,6 +29,7 @@ import com.mahasiswa.sigma.PdfUtils
 import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.datastore.authDataStore
 import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.ui.components.SigmaBottomBar
 import com.mahasiswa.sigma.ui.screens.*
 import kotlinx.coroutines.launch
 
@@ -43,7 +46,7 @@ fun NavDisplay(
         }
     }
     androidx.activity.compose.BackHandler(enabled = backStack.size > 1) {
-        backStack.removeLastOrNull()
+        backStack.removeAt(backStack.lastIndex)
     }
 }
 
@@ -60,157 +63,199 @@ fun SigmaNavigation() {
     val authManager = remember { AuthManager(context.authDataStore) }
     val coroutineScope = rememberCoroutineScope()
 
+    val currentRoute = backStack.lastOrNull()
+    val dashboardRoute = backStack.filterIsInstance<Route.Dashboard>().lastOrNull()
+    val userRole = dashboardRoute?.role ?: UserRole.MASYARAKAT
+
     CompositionLocalProvider(LocalBackStack provides backStack) {
-        NavDisplay(backStack = backStack) { currentRoute ->
-            when (currentRoute) {
-                is Route.Splash -> {
-                    SplashScreen {
-                        backStack.removeLastOrNull()
-                        backStack.add(Route.Login)
+        // Use a plain Box so the navbar overlays content with no Scaffold background behind it
+        Box(modifier = Modifier.fillMaxSize()) {
+            NavDisplay(
+                modifier = Modifier.fillMaxSize(),
+                backStack = backStack
+            ) { route ->
+                when (route) {
+                    is Route.Splash -> {
+                        SplashScreen {
+                            backStack.removeAt(backStack.lastIndex)
+                            backStack.add(Route.Login)
+                        }
                     }
-                }
-                is Route.Login -> {
-                    LoginScreen(
-                        onNavigateToDashboard = { role, email ->
-                            coroutineScope.launch {
-                                val name = authManager.getUserName(email)
-                                backStack.add(Route.Dashboard(role, email, name))
+                    is Route.Login -> {
+                        LoginScreen(
+                            onNavigateToDashboard = { role, email ->
+                                coroutineScope.launch {
+                                    val name = authManager.getUserName(email)
+                                    backStack.add(Route.Dashboard(role, email, name))
+                                }
+                            },
+                            onNavigateToRegister = {
+                                backStack.add(Route.Register)
                             }
-                        },
-                        onNavigateToRegister = {
-                            backStack.add(Route.Register)
-                        }
-                    )
-                }
-                is Route.Register -> {
-                    RegisterScreen(
-                        onNavigateToDashboard = { },
-                        onNavigateToLogin = {
-                            backStack.removeLastOrNull()
-                        }
-                    )
-                }
-                is Route.Dashboard -> {
-                    DashboardScreen(
-                        userRole = currentRoute.role,
-                        userName = currentRoute.name,
-                        onFeatureClick = { id ->
-                            when (id) {
-                                1 -> backStack.add(Route.Map)
-                                2 -> backStack.add(Route.DisasterReport)
-                                3 -> backStack.add(Route.ShelterInfo)
-                                7 -> backStack.add(Route.SearchDisaster)
-                                10 -> PdfUtils.openPdfFromAssets(context)
-                                5 -> backStack.add(Route.VolunteerRegistration(currentRoute.email))
-                                6 -> backStack.add(Route.AdminVerification)
-                                11 -> backStack.add(Route.ManageShelter)
-                                12 -> backStack.add(Route.ManageVolunteer)
-                                99 -> {
-                                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))
-                                    context.startActivity(intent)
-                                }
-                            }
-                        },
-                        onNavigateToProfile = {
-                            backStack.add(Route.Profile)
-                        }
-                    )
-                }
-                is Route.Map -> MapScreen(onBack = { backStack.removeLastOrNull() })
-                is Route.DisasterReport -> DisasterReportScreen(
-                    onBack = { backStack.removeLastOrNull() },
-                    onNavigateToDetail = { report ->
-                        backStack.add(Route.ReportDetail(report))
-                    }
-                )
-                is Route.ReportDetail -> ReportDetailScreen(
-                    report = currentRoute.report,
-                    onBack = { backStack.removeLastOrNull() }
-                )
-                is Route.ShelterInfo -> ShelterInfoScreen(onBack = { backStack.removeLastOrNull() })
-                is Route.Profile -> {
-                    val dashboardData = backStack.filterIsInstance<Route.Dashboard>().lastOrNull()
-                    var showLogoutDialog by remember { mutableStateOf(false) }
-                    if (showLogoutDialog) {
-                        AlertDialog(
-                            onDismissRequest = { showLogoutDialog = false },
-                            icon = {
-                                Box(
-                                    modifier = Modifier
-                                        .size(72.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.errorContainer),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Logout,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(40.dp)
-                                    )
-                                }
-                            },
-                            title = {
-                                Text(
-                                    text = "Keluar Aplikasi",
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            },
-                            text = {
-                                Text(
-                                    text = "Apakah Anda yakin ingin keluar dari akun ini?",
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            },
-                            confirmButton = {
-                                Button(
-                                    onClick = {
-                                        showLogoutDialog = false
-                                        backStack.clear()
-                                        backStack.add(Route.Login)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.error
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("Ya, Keluar", fontWeight = FontWeight.Bold)
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(
-                                    onClick = { showLogoutDialog = false },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Batal", textAlign = TextAlign.Center, fontWeight = FontWeight.Medium)
-                                }
-                            },
-                            shape = RoundedCornerShape(24.dp)
                         )
                     }
-
-                    ProfileScreen(
-                        userRole = dashboardData?.role ?: UserRole.MASYARAKAT,
-                        userName = dashboardData?.name ?: "User",
-                        userEmail = dashboardData?.email ?: "",
-                        onBack = { backStack.removeLastOrNull() },
-                        onLogout = {
-                            showLogoutDialog = true
+                    is Route.Register -> {
+                        RegisterScreen(
+                            onNavigateToDashboard = { },
+                            onNavigateToLogin = {
+                                backStack.removeAt(backStack.lastIndex)
+                            }
+                        )
+                    }
+                    is Route.Dashboard -> {
+                        DashboardScreen(
+                            userRole = route.role,
+                            userName = route.name,
+                            onFeatureClick = { id ->
+                                when (id) {
+                                    1 -> backStack.add(Route.Map)
+                                    2 -> backStack.add(Route.DisasterReport)
+                                    3 -> backStack.add(Route.ShelterInfo)
+                                    7 -> backStack.add(Route.SearchDisaster)
+                                    10 -> PdfUtils.openPdfFromAssets(context)
+                                    5 -> backStack.add(Route.VolunteerRegistration(route.email))
+                                    6 -> backStack.add(Route.AdminVerification)
+                                    11 -> backStack.add(Route.ManageShelter)
+                                    12 -> backStack.add(Route.ManageVolunteer)
+                                    99 -> {
+                                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))
+                                        context.startActivity(intent)
+                                    }
+                                }
+                            },
+                            onNavigateToProfile = {
+                                backStack.add(Route.Profile)
+                            }
+                        )
+                    }
+                    is Route.Map -> MapScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
+                    is Route.DisasterReport -> DisasterReportScreen(
+                        onBack = { backStack.removeAt(backStack.lastIndex) },
+                        onNavigateToDetail = { report ->
+                            backStack.add(Route.ReportDetail(report))
                         }
                     )
+                    is Route.ReportDetail -> ReportDetailScreen(
+                        report = route.report,
+                        onBack = { backStack.removeAt(backStack.lastIndex) }
+                    )
+                    is Route.ShelterInfo -> ShelterInfoScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
+                    is Route.Profile -> {
+                        var showLogoutDialog by remember { mutableStateOf(false) }
+                        if (showLogoutDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showLogoutDialog = false },
+                                icon = {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(72.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.errorContainer),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(40.dp)
+                                        )
+                                    }
+                                },
+                                title = {
+                                    Text(
+                                        text = "Keluar Aplikasi",
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                },
+                                text = {
+                                    Text(
+                                        text = "Apakah Anda yakin ingin keluar dari akun ini?",
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                },
+                                confirmButton = {
+                                    Button(
+                                        onClick = {
+                                            showLogoutDialog = false
+                                            backStack.clear()
+                                            backStack.add(Route.Login)
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.error
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Text("Ya, Keluar", fontWeight = FontWeight.Bold)
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(
+                                        onClick = { showLogoutDialog = false },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("Batal", textAlign = TextAlign.Center, fontWeight = FontWeight.Medium)
+                                    }
+                                },
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                        }
+
+                        ProfileScreen(
+                            userRole = dashboardRoute?.role ?: UserRole.MASYARAKAT,
+                            userName = dashboardRoute?.name ?: "User",
+                            userEmail = dashboardRoute?.email ?: "",
+                            onBack = { backStack.removeAt(backStack.lastIndex) },
+                            onLogout = {
+                                showLogoutDialog = true
+                            }
+                        )
+                    }
+                    is Route.SearchDisaster -> SearchDisasterScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
+                    is Route.VolunteerRegistration -> VolunteerRegistrationScreen(
+                        userEmail = route.email,
+                        onBack = { backStack.removeAt(backStack.lastIndex) }
+                    )
+                    is Route.AdminVerification -> AdminVerificationScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
+                    is Route.ManageShelter -> ManageShelterScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
+                    is Route.ManageVolunteer -> ManageVolunteerScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
                 }
-                is Route.SearchDisaster -> SearchDisasterScreen(onBack = { backStack.removeLastOrNull() })
-                is Route.VolunteerRegistration -> VolunteerRegistrationScreen(
-                    userEmail = currentRoute.email,
-                    onBack = { backStack.removeLastOrNull() }
+            }
+
+            // Floating navbar overlaid on top — no Scaffold background behind it
+            Box(
+                modifier = Modifier.align(Alignment.BottomCenter)
+            ) {
+                SigmaBottomBar(
+                    currentRoute = currentRoute,
+                    userRole = userRole,
+                    onNavigateToHome = {
+                        if (currentRoute !is Route.Dashboard && dashboardRoute != null) {
+                            while (backStack.isNotEmpty() && backStack.last() !is Route.Dashboard) {
+                                backStack.removeAt(backStack.lastIndex)
+                            }
+                        }
+                    },
+                    onNavigateToMap = {
+                        if (currentRoute !is Route.Map) backStack.add(Route.Map)
+                    },
+                    onNavigateToPosko = {
+                        if (userRole == UserRole.BNPB) {
+                            if (currentRoute !is Route.ManageShelter) backStack.add(Route.ManageShelter)
+                        } else {
+                            if (currentRoute !is Route.ShelterInfo) backStack.add(Route.ShelterInfo)
+                        }
+                    },
+                    onNavigateToProfile = {
+                        if (currentRoute !is Route.Profile) backStack.add(Route.Profile)
+                    },
+                    onNavigateToManageVolunteer = {
+                        if (currentRoute !is Route.ManageVolunteer) backStack.add(Route.ManageVolunteer)
+                    }
                 )
-                is Route.AdminVerification -> AdminVerificationScreen(onBack = { backStack.removeLastOrNull() })
-                is Route.ManageShelter -> ManageShelterScreen(onBack = { backStack.removeLastOrNull() })
-                is Route.ManageVolunteer -> ManageVolunteerScreen(onBack = { backStack.removeLastOrNull() })
             }
         }
     }

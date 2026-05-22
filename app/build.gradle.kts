@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.protobuf)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -78,6 +79,11 @@ dependencies {
     implementation("com.google.code.gson:gson:2.13.2")
     implementation(libs.play.services.location)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+
+    // Room database for news caching
+    implementation(libs.aandroidx.room.runtime)
+    implementation(libs.aandroidx.room.ktx)
+    ksp(libs.aandroidx.room.compiler)
 
     implementation(libs.androidx.datastore)
     implementation(libs.protobuf.javalite)

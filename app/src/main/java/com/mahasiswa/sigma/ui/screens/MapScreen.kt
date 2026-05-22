@@ -14,16 +14,11 @@ import androidx.compose.ui.tooling.preview.Preview
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(onBack: () -> Unit) {
+fun MapScreen(@Suppress("UNUSED_PARAMETER") onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Peta Bencana Interaktif") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("Kembali")
-                    }
-                }
+                title = { Text("Peta Bencana Interaktif", fontWeight = FontWeight.Bold) }
             )
         }
     ) { padding ->

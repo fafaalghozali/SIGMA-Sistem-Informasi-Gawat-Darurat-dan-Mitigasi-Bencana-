@@ -1,11 +1,8 @@
 package com.mahasiswa.sigma.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -17,20 +14,19 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageShelterScreen(onBack: () -> Unit) {
+fun ManageShelterScreen(@Suppress("UNUSED_PARAMETER") onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Kelola Posko Pengungsian") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
+                title = { Text("Kelola Posko Pengungsian", fontWeight = FontWeight.Bold) }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* TODO: Add Shelter */ }) {
+            // Adjusting FAB position slightly up to not conflict with bottom bar
+            FloatingActionButton(
+                onClick = { /* TODO: Add Shelter */ },
+                modifier = Modifier.padding(bottom = 80.dp)
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Tambah Posko")
             }
         }
@@ -66,6 +62,9 @@ fun ManageShelterScreen(onBack: () -> Unit) {
             OutlinedButton(onClick = { /* TODO */ }) {
                 Text("Lihat Daftar Posko (Soon)")
             }
+
+            // Spacing for bottom navbar
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }

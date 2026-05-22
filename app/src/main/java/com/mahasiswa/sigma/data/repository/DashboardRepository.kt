@@ -3,40 +3,31 @@ package com.mahasiswa.sigma.data.repository
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
-import androidx.compose.ui.graphics.Color
 import com.mahasiswa.sigma.data.model.DashboardMenuModel
-import com.mahasiswa.sigma.data.model.NewsItem
+import com.mahasiswa.sigma.data.model.MenuCategory
 import com.mahasiswa.sigma.data.model.UserRole
 
+/**
+ * Provides static dashboard configuration data (menu items per user role).
+ * News data is no longer managed here — see [NewsRepository] for dynamic news.
+ */
 class DashboardRepository {
+
     fun getMenuItems(userRole: UserRole): List<DashboardMenuModel> {
-        if (userRole == UserRole.BNPB) {
-            return listOf(
-                DashboardMenuModel(6, "Verifikasi Bencana", "Validasi & Update Status", Icons.Default.VerifiedUser),
-                DashboardMenuModel(11, "Kelola Posko", "Manajemen pengungsian", Icons.Default.HomeWork),
-                DashboardMenuModel(12, "Kelola Relawan", "Verifikasi & Manajemen", Icons.Default.People),
-                DashboardMenuModel(1, "Peta Bencana", "Monitoring wilayah", Icons.Default.Map),
-                DashboardMenuModel(7, "Cari Bencana", "Riwayat & Filter", Icons.Default.Search),
-                DashboardMenuModel(10, "Panduan Bencana", "Mitigasi BNPB", Icons.AutoMirrored.Filled.MenuBook)
+        return if (userRole == UserRole.BNPB) {
+            listOf(
+                DashboardMenuModel(6, "Verifikasi Laporan", "Validasi laporan dari publik", Icons.Default.VerifiedUser, MenuCategory.EMERGENCY),
+                DashboardMenuModel(1, "Monitoring Peta", "Pantau sebaran titik bencana", Icons.Default.Map, MenuCategory.MITIGATION),
+                DashboardMenuModel(7, "Arsip Bencana", "Riwayat kejadian bencana", Icons.Default.Search, MenuCategory.SEARCH),
+                DashboardMenuModel(10, "Panduan BNPB", "SOP & Regulasi kebencanaan", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION)
+            )
+        } else {
+            listOf(
+                DashboardMenuModel(2, "Lapor Bencana", "Kirim laporan kejadian cepat", Icons.Default.Report, MenuCategory.EMERGENCY),
+                DashboardMenuModel(5, "Registrasi Relawan", "Daftar sebagai personil bantuan", Icons.Default.PersonAdd, MenuCategory.VOLUNTEER),
+                DashboardMenuModel(10, "Panduan Mitigasi", "Tips & Prosedur keselamatan", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION),
+                DashboardMenuModel(7, "Cari Informasi", "Cari riwayat & info bencana", Icons.Default.Search, MenuCategory.SEARCH)
             )
         }
-
-        return listOf(
-            DashboardMenuModel(1, "Peta Bencana", "Zona bahaya", Icons.Default.Map),
-            DashboardMenuModel(2, "Lapor Bencana", "Kirim laporan", Icons.Default.Report),
-            DashboardMenuModel(3, "Info Posko", "Titik pengungsian", Icons.Default.HomeWork),
-            DashboardMenuModel(10, "Panduan Bencana", "Tips mitigasi PDF", Icons.AutoMirrored.Filled.MenuBook),
-            DashboardMenuModel(5, "Registrasi Relawan", "Daftar relawan", Icons.Default.PersonAdd),
-            DashboardMenuModel(7, "Cari Bencana", "Search & Filter", Icons.Default.Search)
-        )
-    }
-
-    fun getNewsItems(isDark: Boolean): List<NewsItem> {
-        return listOf(
-            NewsItem(1, "Banjir bandang melanda wilayah Sukoharjo", "10 min ago", "INFO", if (isDark) Color(0xFF1B2C42) else Color(0xFFE3F2FD)),
-            NewsItem(2, "Gempa bumi M 5,0 SR di Daerah Ternate, Maluku Utara hingga Rektorat UNS", "3 hours ago", "DARURAT", if (isDark) Color(0xFF422222) else Color(0xFFFFEBEE)),
-            NewsItem(3, "Prakiraan cuaca: Hujan lebat esok hari di Soloraya", "1 hour ago", "WASPADA", if (isDark) Color(0xFF423422) else Color(0xFFFFF3E0)),
-            NewsItem(4, "Penyaluran bantuan logistik di posko pengungsian terkenda jembatan terputus", "2 hours ago", "INFO", if (isDark) Color(0xFF1B2C42) else Color(0xFFE3F2FD))
-        )
     }
 }

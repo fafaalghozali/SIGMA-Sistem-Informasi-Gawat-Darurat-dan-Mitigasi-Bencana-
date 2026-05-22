@@ -2,7 +2,6 @@ package com.mahasiswa.sigma.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
@@ -16,16 +15,11 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManageVolunteerScreen(onBack: () -> Unit) {
+fun ManageVolunteerScreen(@Suppress("UNUSED_PARAMETER") onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Kelola Relawan") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
+                title = { Text("Kelola Relawan", fontWeight = FontWeight.Bold) }
             )
         }
     ) { padding ->
@@ -82,6 +76,9 @@ fun ManageVolunteerScreen(onBack: () -> Unit) {
                     }
                 }
             }
+
+            // Extra spacing for bottom navbar
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }

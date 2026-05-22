@@ -23,10 +23,10 @@ class DashboardRepository {
             )
         } else {
             listOf(
-                DashboardMenuModel(2, "Lapor Bencana", "Kirim laporan kejadian cepat", Icons.Default.Report, MenuCategory.EMERGENCY),
-                DashboardMenuModel(5, "Registrasi Relawan", "Daftar sebagai personil bantuan", Icons.Default.PersonAdd, MenuCategory.VOLUNTEER),
-                DashboardMenuModel(10, "Panduan Mitigasi", "Tips & Prosedur keselamatan", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION),
-                DashboardMenuModel(7, "Cari Informasi", "Cari riwayat & info bencana", Icons.Default.Search, MenuCategory.SEARCH)
+                DashboardMenuModel(2, "Lapor Bencana", "Laporkan bencana yang terjadi", Icons.Default.Report, MenuCategory.EMERGENCY),
+                DashboardMenuModel(5, "Registrasi Relawan", "Daftar sebagai relawan", Icons.Default.PersonAdd, MenuCategory.VOLUNTEER),
+                DashboardMenuModel(10, "Panduan Mitigasi", "Buku saku menghadapi bencana", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION),
+                DashboardMenuModel(7, "Cari Informasi Bencana", "Cari riwayat & info bencana", Icons.Default.Search, MenuCategory.SEARCH)
             )
         }
     }

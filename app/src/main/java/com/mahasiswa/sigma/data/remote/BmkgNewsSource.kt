@@ -77,7 +77,7 @@ object BmkgNewsSource {
             val magDouble = mag.toDoubleOrNull() ?: 0.0
             val severity = bmkgMagnitudeToSeverityLabel(magDouble)
 
-            val title = "[$severity] Gempa M $mag – $wilayah"
+            val title = "Gempa M $mag – $wilayah"
             val description = buildString {
                 append("Gempa bumi berkekuatan M $mag mengguncang $wilayah ")
                 append("pada kedalaman $kedalaman. ")
@@ -132,7 +132,7 @@ object BmkgNewsSource {
                 val dirasakan = g.optString("Dirasakan", "")
                 val severity = bmkgMagnitudeToSeverityLabel(mag)
 
-                val title = "[$severity] Gempa M ${"%.1f".format(mag)} – $wilayah"
+                val title = "Gempa M ${"%.1f".format(mag)} – $wilayah"
                 val description = buildString {
                     append("Gempa M ${"%.1f".format(mag)} mengguncang $wilayah ")
                     append("kedalaman $kedalaman. ")

@@ -43,7 +43,9 @@ object DisasterFilter {
         "saham", "investasi", "bursa", "kurs", "dolar", "pilkada", "pemilu",
         "kampanye", "esports", "gaming", "divonis", "jambret", "wisata", 
         "waisak", "kriminal", "pencurian", "sidak", "lapas", "ditjenpas",
-        "politik umum"
+        "politik umum", "apel", "polisi", "polda", "polres", "kapolres", 
+        "kapolda", "mabes", "gas", "tabung gas", "ledakan gas", "ledakan tabung",
+        "disekap", "penculikan", "pembunuhan", "narkoba", "penganiayaan"
     )
 
     
@@ -145,8 +147,8 @@ object DisasterFilter {
         if (isOfficial) {
             val magMatch = Regex("""m\s*([\d.]+)""").find(text)
             val mag = magMatch?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0
-            if (mag >= 6.0) return NewsSeverity.DARURAT
-            if (mag >= 5.0) return NewsSeverity.WASPADA
+            if (mag >= 7.0) return NewsSeverity.DARURAT
+            if (mag >= 5.5) return NewsSeverity.WASPADA
         }
 
         
@@ -221,9 +223,10 @@ object DisasterFilter {
         }
     }
 
-    private fun NewsSeverity.toColor(): Color = when (this) {
-        NewsSeverity.DARURAT -> EmergencyRed
-        NewsSeverity.WASPADA -> WarningOrange
-        NewsSeverity.INFO    -> MitigationBlue
-    }
+}
+
+fun NewsSeverity.toColor(): Color = when (this) {
+    NewsSeverity.DARURAT -> EmergencyRed
+    NewsSeverity.WASPADA -> WarningOrange
+    NewsSeverity.INFO    -> MitigationBlue
 }

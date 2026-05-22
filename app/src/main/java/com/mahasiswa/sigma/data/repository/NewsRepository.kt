@@ -11,6 +11,7 @@ import com.mahasiswa.sigma.data.model.NewsSeverity
 import com.mahasiswa.sigma.data.news.DisasterFilter
 import com.mahasiswa.sigma.data.news.LocationPrioritizer
 import com.mahasiswa.sigma.data.news.NewsDeduplicator
+import com.mahasiswa.sigma.data.news.toColor
 import com.mahasiswa.sigma.data.remote.BmkgNewsSource
 import com.mahasiswa.sigma.data.remote.RssNewsSource
 
@@ -123,20 +124,23 @@ class NewsRepository(context: Context) {
 
     
 
-    private fun NewsEntity.toNewsItem(): NewsItem = NewsItem(
-        id = id,
-        title = title,
-        time = DisasterFilter.relativeTimeString(publishedAt),
-        publishedAt = publishedAt,
-        category = category,
-        categoryColor = Color(categoryColorHex),
-        imageUrl = imageUrl,
-        source = source,
-        link = link,
-        severity = try { NewsSeverity.valueOf(severityName) } catch (_: Exception) { NewsSeverity.INFO },
-        isOfficial = isOfficial,
-        region = region
-    )
+    private fun NewsEntity.toNewsItem(): NewsItem {
+        val parsedSeverity = try { NewsSeverity.valueOf(severityName) } catch (_: Exception) { NewsSeverity.INFO }
+        return NewsItem(
+            id = id,
+            title = title,
+            time = DisasterFilter.relativeTimeString(publishedAt),
+            publishedAt = publishedAt,
+            category = category,
+            categoryColor = parsedSeverity.toColor(),
+            imageUrl = imageUrl,
+            source = source,
+            link = link,
+            severity = parsedSeverity,
+            isOfficial = isOfficial,
+            region = region
+        )
+    }
 
     private fun NewsItem.toEntity(): NewsEntity = NewsEntity(
         id = id,

@@ -80,7 +80,7 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Buat akun baru untuk mulai\nmenggunakan layanan SIGMA",
+                text = "Sistem Informasi Gawat Darurat\n dan Mitigasi Bencana",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = if (isDark) Color.Gray else Color.DarkGray.copy(alpha = 0.7f),

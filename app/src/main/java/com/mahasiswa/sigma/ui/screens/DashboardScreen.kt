@@ -153,7 +153,6 @@ fun DashboardContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                
                 item(span = { GridItemSpan(2) }) {
                     StatusCard(
                         weather = uiState.weatherInfo,
@@ -167,41 +166,43 @@ fun DashboardContent(
                     )
                 }
 
-                
                 item(span = { GridItemSpan(2) }) {
+                    val severeWeatherCodes = listOf(65, 67, 75, 77, 82, 86, 95, 96, 99)
+                    val activeBmkg = uiState.bmkgWarnings.firstOrNull()
+                    val isSevereWeather = uiState.weatherInfo?.weatherCode in severeWeatherCodes
+
                     AnimatedVisibility(
                         visible = uiState.showNotification,
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut()
                     ) {
-                        EmergencyAlertCard(onDismiss = onDismissNotification, isDark = isDark)
-                    }
-                }
-
-                
-                val hasAlerts = uiState.earthquakeInfo != null || uiState.bmkgWarnings.isNotEmpty()
-
-                if (hasAlerts) {
-                    uiState.earthquakeInfo?.let { eq ->
-                        item(span = { GridItemSpan(2) }) {
-                            EarthquakeCard(earthquake = eq, isDark = isDark)
-                        }
-                    }
-                    if (uiState.bmkgWarnings.isNotEmpty()) {
-                        item(span = { GridItemSpan(2) }) {
-                            BmkgWarningBanner(
-                                warnings = uiState.bmkgWarnings,
+                        if (activeBmkg != null) {
+                            val alertColor = when (activeBmkg.severity) {
+                                com.mahasiswa.sigma.data.model.WarningSeverity.DANGER -> EmergencyRed
+                                com.mahasiswa.sigma.data.model.WarningSeverity.WARNING -> WarningOrange
+                                else -> MitigationBlue
+                            }
+                            EmergencyAlertCard(
+                                title = "PERINGATAN BMKG",
+                                message = activeBmkg.message,
+                                alertColor = alertColor,
+                                onDismiss = onDismissNotification,
                                 isDark = isDark
                             )
+                        } else if (isSevereWeather) {
+                            EmergencyAlertCard(
+                                title = "CUACA EKSTREM",
+                                message = "Potensi cuaca buruk: ${uiState.weatherInfo?.condition} di wilayah Anda.",
+                                alertColor = WarningOrange,
+                                onDismiss = onDismissNotification,
+                                isDark = isDark
+                            )
+                        } else {
+                            SafeStateCard(onDismiss = onDismissNotification, isDark = isDark)
                         }
-                    }
-                } else {
-                    item(span = { GridItemSpan(2) }) {
-                        SafeStateCard(isDark = isDark)
                     }
                 }
 
-                
                 item(span = { GridItemSpan(2) }) {
                     SectionHeader(
                         title = "Layanan Utama",
@@ -210,12 +211,10 @@ fun DashboardContent(
                     )
                 }
 
-                
                 items(uiState.menuItems) { item ->
                     ServiceMenuCard(item, isDark) { onFeatureClick(item.id) }
                 }
 
-                
                 item(span = { GridItemSpan(2) }) {
                     Spacer(modifier = Modifier.height(8.dp))
                     NewsCarouselSection(
@@ -238,7 +237,6 @@ fun DashboardContent(
                 }
             }
 
-            
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -354,7 +352,6 @@ private fun ShimmerBox(
     )
 }
 
-
 @Composable
 fun StatusCard(
     weather: WeatherInfo?,
@@ -453,7 +450,6 @@ fun StatusCard(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -522,9 +518,12 @@ fun StatusCard(
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                PulseIndicator(color = weather.riskColor)
+                                Surface(
+                                    modifier = Modifier.size(6.dp),
+                                    shape = CircleShape,
+                                    color = weather.riskColor
+                                ) {}
                                 Spacer(modifier = Modifier.width(6.dp))
 
                                 val timeText = if (lastUpdated != null) {
@@ -653,78 +652,93 @@ private fun StatusCardShimmer(isDark: Boolean) {
     }
 }
 
-
 private fun weatherCodeToIcon(code: Int): ImageVector = when (code) {
-    0 -> Icons.Default.WbSunny                          
-    1, 2 -> Icons.Default.WbCloudy                      
-    3 -> Icons.Default.Cloud                             
-    45, 48 -> Icons.Default.BlurOn                      
-    51, 53, 55, 56, 57 -> Icons.Default.Grain           
-    61, 63, 66, 80, 81 -> Icons.Default.Umbrella        
-    65, 67, 82 -> Icons.Default.Umbrella                
-    71, 73, 75, 77, 85, 86 -> Icons.Default.AcUnit      
-    95, 96, 99 -> Icons.Default.Thunderstorm            
+    0 -> Icons.Default.WbSunny
+    1, 2 -> Icons.Default.WbCloudy
+    3 -> Icons.Default.Cloud
+    45, 48 -> Icons.Default.BlurOn
+    51, 53, 55, 56, 57 -> Icons.Default.Grain
+    61, 63, 66, 80, 81 -> Icons.Default.Umbrella
+    65, 67, 82 -> Icons.Default.Umbrella
+    71, 73, 75, 77, 85, 86 -> Icons.Default.AcUnit
+    95, 96, 99 -> Icons.Default.Thunderstorm
     else -> Icons.Default.Cloud
 }
 
-
 private fun weatherCodeToIconTint(code: Int, isDark: Boolean): Color = when (code) {
-    0 -> Color(0xFFFFC107)                               
-    1, 2 -> Color(0xFF90CAF9)                            
+    0 -> Color(0xFFFFC107)
+    1, 2 -> Color(0xFF90CAF9)
     3 -> if (isDark) Color(0xFFB0BEC5) else Color(0xFF78909C)
-    45, 48 -> Color(0xFFB0BEC5)                          
-    51, 53, 55, 56, 57 -> Color(0xFF64B5F6)             
-    61, 63, 65, 66, 67, 80, 81, 82 -> Color(0xFF42A5F5) 
-    71, 73, 75, 77, 85, 86 -> Color(0xFFE3F2FD)         
-    95, 96, 99 -> Color(0xFF7E57C2)                      
+    45, 48 -> Color(0xFFB0BEC5)
+    51, 53, 55, 56, 57 -> Color(0xFF64B5F6)
+    61, 63, 65, 66, 67, 80, 81, 82 -> Color(0xFF42A5F5)
+    71, 73, 75, 77, 85, 86 -> Color(0xFFE3F2FD)
+    95, 96, 99 -> Color(0xFF7E57C2)
     else -> if (isDark) Color(0xFFB0BEC5) else Color(0xFF78909C)
 }
 
 @Composable
-fun EmergencyAlertCard(onDismiss: () -> Unit, isDark: Boolean) {
+fun EmergencyAlertCard(
+    title: String,
+    message: String,
+    alertColor: Color,
+    onDismiss: () -> Unit,
+    isDark: Boolean
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isDark) Color(0xFF2C1515) else Color(0xFFFFF0F0)
+            containerColor = if (isDark) alertColor.copy(alpha = 0.15f) else alertColor.copy(alpha = 0.08f)
         ),
-        border = BorderStroke(1.dp, if (isDark) Color(0xFF4D2020) else Color(0xFFFFCDD2))
+        border = BorderStroke(1.dp, if (isDark) alertColor.copy(alpha = 0.3f) else alertColor.copy(alpha = 0.2f))
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
                 modifier = Modifier
-                    .size(36.dp)
-                    .background(EmergencyRed.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 32.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(alertColor.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        tint = alertColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
+                        color = alertColor
+                    )
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isDark) Color.White else Color.Black
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(28.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = EmergencyRed,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "PERINGATAN DARURAT",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
-                    color = EmergencyRed
-                )
-                Text(
-                    "Hujan lebat berpotensi banjir di Surakarta utara.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isDark) Color.White else Color.Black
-                )
-            }
-            IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                Icon(
                     Icons.Default.Close,
-                    contentDescription = "Tutup",
-                    modifier = Modifier.size(16.dp),
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
                     tint = if (isDark) Color.Gray else Color.DarkGray
                 )
             }
@@ -732,6 +746,7 @@ fun EmergencyAlertCard(onDismiss: () -> Unit, isDark: Boolean) {
     }
 }
 
+/** EarthquakeCard and BmkgWarningBanner are kept for future move to Map Screen */
 
 @Composable
 fun EarthquakeCard(earthquake: EarthquakeInfo, isDark: Boolean) {
@@ -816,8 +831,6 @@ fun EarthquakeCard(earthquake: EarthquakeInfo, isDark: Boolean) {
     }
 }
 
-
-
 @Composable
 fun BmkgWarningBanner(warnings: List<BmkgWarning>, isDark: Boolean) {
     Card(
@@ -861,8 +874,7 @@ fun BmkgWarningBanner(warnings: List<BmkgWarning>, isDark: Boolean) {
                 }
                 Row(
                     modifier = Modifier.padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                    verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         modifier = Modifier.size(6.dp),
                         shape = CircleShape,
@@ -908,22 +920,16 @@ fun NewsCarouselSection(
         Spacer(modifier = Modifier.height(8.dp))
 
         when {
-            
             isLoading && newsItems.isEmpty() -> {
                 NewsCarouselShimmer(isDark = isDark)
             }
-
-            
             error != null && newsItems.isEmpty() -> {
                 NewsErrorState(message = error, isDark = isDark, onRetry = onRetry)
             }
 
-            
             newsItems.isEmpty() -> {
                 NewsEmptyState(isDark = isDark)
             }
-
-            
             else -> {
                 val pagerState = rememberPagerState(pageCount = { newsItems.size })
                 HorizontalPager(
@@ -955,7 +961,6 @@ fun NewsCarouselSection(
                     )
                 }
 
-                
                 if (newsItems.size > 1) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
@@ -984,8 +989,6 @@ fun NewsCarouselSection(
     }
 }
 
-
-
 @Composable
 private fun NewsCarouselShimmer(isDark: Boolean) {
     Box(
@@ -998,7 +1001,6 @@ private fun NewsCarouselShimmer(isDark: Boolean) {
                 RoundedCornerShape(20.dp)
             )
     ) {
-        
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -1006,17 +1008,14 @@ private fun NewsCarouselShimmer(isDark: Boolean) {
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                
                 ShimmerBox(modifier = Modifier.width(70.dp).height(18.dp), isDark = isDark)
                 Spacer(modifier = Modifier.height(10.dp))
-                
                 ShimmerBox(modifier = Modifier.fillMaxWidth().height(14.dp), isDark = isDark)
                 Spacer(modifier = Modifier.height(6.dp))
                 ShimmerBox(modifier = Modifier.fillMaxWidth(0.75f).height(14.dp), isDark = isDark)
                 Spacer(modifier = Modifier.height(6.dp))
                 ShimmerBox(modifier = Modifier.fillMaxWidth(0.5f).height(14.dp), isDark = isDark)
             }
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -1027,8 +1026,6 @@ private fun NewsCarouselShimmer(isDark: Boolean) {
         }
     }
 }
-
-
 
 @Composable
 private fun NewsErrorState(message: String, isDark: Boolean, onRetry: () -> Unit) {
@@ -1074,8 +1071,6 @@ private fun NewsErrorState(message: String, isDark: Boolean, onRetry: () -> Unit
         }
     }
 }
-
-
 
 @Composable
 private fun NewsEmptyState(isDark: Boolean) {
@@ -1144,7 +1139,6 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
-            
             if (!item.imageUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = ImageRequest.Builder(context)
@@ -1155,7 +1149,6 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -1170,7 +1163,6 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                         )
                 )
             } else {
-                
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -1185,7 +1177,6 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                 )
             }
 
-            
             val hasImage = !item.imageUrl.isNullOrBlank()
             val textColor = if (hasImage || isDark) Color.White else Color(0xFF1A1A1A)
             val subColor  = if (hasImage) Color.White.copy(alpha = 0.80f)
@@ -1197,12 +1188,10 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                     .padding(14.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    
                     Surface(
                         color = item.categoryColor.copy(alpha = if (hasImage) 0.85f else 0.15f),
                         shape = RoundedCornerShape(6.dp),
@@ -1218,7 +1207,6 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                         )
                     }
 
-                    
                     if (item.isOfficial) {
                         Surface(
                             color = if (hasImage) Color.White.copy(alpha = 0.15f)
@@ -1248,7 +1236,6 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                         }
                     }
 
-                    
                     if (!item.region.isNullOrBlank()) {
                         Text(
                             text = item.region,
@@ -1260,7 +1247,6 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                     }
                 }
 
-                
                 Text(
                     text = item.title,
                     style = MaterialTheme.typography.titleSmall.copy(
@@ -1272,12 +1258,10 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
                     color = textColor
                 )
 
-                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    
                     if (item.source.isNotBlank()) {
                         Text(
                             text = item.source,
@@ -1317,10 +1301,8 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
     }
 }
 
-
-
 @Composable
-fun SafeStateCard(isDark: Boolean) {
+fun SafeStateCard(onDismiss: () -> Unit, isDark: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -1332,27 +1314,46 @@ fun SafeStateCard(isDark: Boolean) {
             if (isDark) Color(0xFF2E4C34) else Color(0xFFC8E6C9)
         )
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = null,
-                tint = Color(0xFF4CAF50),
-                modifier = Modifier.size(28.dp)
-            )
-            Column {
-                Text(
-                    text = "Tidak Ada Peringatan Darurat",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = if (isDark) Color.White else Color(0xFF1A1A1A)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 32.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(28.dp)
                 )
-                Text(
-                    text = "Kondisi wilayah relatif aman saat ini",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isDark) Color.LightGray else Color.DarkGray
+                Column {
+                    Text(
+                        text = "Tidak Ada Peringatan Darurat",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (isDark) Color.White else Color(0xFF1A1A1A)
+                    )
+                    Text(
+                        text = "Kondisi wilayah relatif aman saat ini",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isDark) Color.LightGray else Color.DarkGray
+                    )
+                }
+            }
+            
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(28.dp)
+            ) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = if (isDark) Color.Gray else Color.DarkGray
                 )
             }
         }
@@ -1460,40 +1461,6 @@ fun SectionHeader(
                 color = if (isDark) Color.Gray else Color(0xFF888888)
             )
         }
-    }
-}
-
-@Composable
-fun PulseIndicator(color: Color) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.8f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "scale"
-    )
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "alpha"
-    )
-
-    Box(contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.size(10.dp)) {
-            drawCircle(color = color, radius = size.minDimension / 2 * scale, alpha = alpha)
-        }
-        Surface(
-            modifier = Modifier.size(8.dp),
-            shape = CircleShape,
-            color = color
-        ) {}
     }
 }
 

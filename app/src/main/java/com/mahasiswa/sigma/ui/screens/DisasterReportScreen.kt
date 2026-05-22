@@ -2,8 +2,12 @@ package com.mahasiswa.sigma.ui.screens
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.content.IntentSender
 import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,9 +44,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.ui.viewmodel.DisasterReportViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -53,6 +61,7 @@ fun DisasterReportScreen(
     viewModel: DisasterReportViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val reportsList by viewModel.reports.collectAsState()
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val sheetState = rememberModalBottomSheetState()
@@ -61,23 +70,24 @@ fun DisasterReportScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            getCurrentLocation(fusedLocationClient) { lat, long ->
-                viewModel.onLocationReceived("Lat: $lat, Long: $long")
+            fetchFreshLocation(context, fusedLocationClient, scope) { address ->
+                viewModel.onLocationReceived(address)
             }
         } else {
-            viewModel.onLocationReceived("Lokasi tidak diaktifkan")
+            viewModel.onLocationReceived("Lokasi tidak aktif. Klik untuk aktifkan.")
         }
     }
 
     fun checkLocationSettings() {
+        viewModel.onLocationReceived("Mendeteksi lokasi...")
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000).build()
         val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
         val client = LocationServices.getSettingsClient(context)
         val task = client.checkLocationSettings(builder.build())
 
         task.addOnSuccessListener {
-            getCurrentLocation(fusedLocationClient) { lat, long ->
-                viewModel.onLocationReceived("Lat: $lat, Long: $long")
+            fetchFreshLocation(context, fusedLocationClient, scope) { address ->
+                viewModel.onLocationReceived(address)
             }
         }
 
@@ -90,9 +100,20 @@ fun DisasterReportScreen(
                     viewModel.onLocationReceived("Gagal mengaktifkan lokasi")
                 }
             } else {
-                viewModel.onLocationReceived("Pengaturan lokasi tidak memadai")
+                viewModel.onLocationReceived("GPS tidak tersedia")
             }
         }
+    }
+
+    val openSettingsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        checkLocationSettings()
+    }
+
+    fun openLocationSettings() {
+        val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+        openSettingsLauncher.launch(intent)
     }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -101,7 +122,7 @@ fun DisasterReportScreen(
         if (isGranted) {
             checkLocationSettings()
         } else {
-            viewModel.onLocationReceived("Izin lokasi ditolak")
+            viewModel.onLocationReceived("Izin lokasi ditolak. Klik untuk buka Pengaturan.")
         }
     }
 
@@ -134,7 +155,14 @@ fun DisasterReportScreen(
         onDismissIncompleteDialog = { viewModel.showIncompleteDialog = false },
         onDismissPhotoSheet = { viewModel.showPhotoSourceSheet = false },
         onImageSelected = viewModel::onImageSelected,
-        onStatusUpdate = viewModel::updateReport
+        onStatusUpdate = viewModel::updateReport,
+        onRetryLocation = {
+            if (viewModel.locationAddress.contains("ditolak") || viewModel.locationAddress.contains("Pengaturan")) {
+                openLocationSettings()
+            } else {
+                checkLocationSettings()
+            }
+        }
     )
 }
 
@@ -159,7 +187,8 @@ fun DisasterReportContent(
     onDismissIncompleteDialog: () -> Unit,
     onDismissPhotoSheet: () -> Unit,
     onImageSelected: (android.graphics.Bitmap?) -> Unit,
-    onStatusUpdate: (LocalDisasterReport) -> Unit
+    onStatusUpdate: (LocalDisasterReport) -> Unit,
+    onRetryLocation: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -184,7 +213,9 @@ fun DisasterReportContent(
                 item {
                     Spacer(modifier = Modifier.height(16.dp))
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onRetryLocation() },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
@@ -193,9 +224,25 @@ fun DisasterReportContent(
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(12.dp))
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text("Lokasi Terdeteksi", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
-                                Text(locationAddress, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                Text(
+                                    text = locationAddress,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 2,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
+                            if (locationAddress == "Mendeteksi lokasi...") {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Retry",
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                )
                             }
                         }
                     }
@@ -374,17 +421,60 @@ fun DisasterReportContent(
     }
 }
 
-private fun getCurrentLocation(
+/**
+ * Mendapatkan lokasi terbaru dengan tingkat akurasi tinggi dan mengubahnya
+ * menjadi alamat yang dapat dibaca menggunakan proses background untuk mencegah lag.
+ */
+private fun fetchFreshLocation(
+    context: Context,
     fusedLocationClient: FusedLocationProviderClient,
-    onLocationReceived: (Double, Double) -> Unit
+    scope: kotlinx.coroutines.CoroutineScope,
+    onResult: (String) -> Unit
 ) {
     try {
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+        val cts = CancellationTokenSource()
+        fusedLocationClient.getCurrentLocation(
+            Priority.PRIORITY_HIGH_ACCURACY,
+            cts.token
+        ).addOnSuccessListener { location ->
             if (location != null) {
-                onLocationReceived(location.latitude, location.longitude)
+                val geocoder = Geocoder(context, Locale.getDefault())
+
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                                val result = if (addresses.isNotEmpty()) {
+                                    addresses[0].getAddressLine(0)
+                                } else {
+                                    "${location.latitude}, ${location.longitude}"
+                                }
+                                scope.launch(Dispatchers.Main) { onResult(result) }
+                            }
+                        } else {
+                            @Suppress("DEPRECATION")
+                            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                            val result = if (!addresses.isNullOrEmpty()) {
+                                addresses[0].getAddressLine(0)
+                            } else {
+                                "${location.latitude}, ${location.longitude}"
+                            }
+                            scope.launch(Dispatchers.Main) { onResult(result) }
+                        }
+                    } catch (e: Exception) {
+                        scope.launch(Dispatchers.Main) { 
+                            onResult("${location.latitude}, ${location.longitude}") 
+                        }
+                    }
+                }
+            } else {
+                onResult("Gagal mendapatkan lokasi")
             }
+        }.addOnFailureListener {
+            onResult("Gagal mendeteksi lokasi")
         }
     } catch (e: SecurityException) {
+        onResult("Izin lokasi tidak diberikan")
     }
 }
 

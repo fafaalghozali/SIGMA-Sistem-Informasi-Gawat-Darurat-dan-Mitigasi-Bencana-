@@ -326,8 +326,8 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    
-    
+
+
 
     fun wmoCodeToCondition(code: Int): String = when (code) {
         0 -> "Cerah"
@@ -337,36 +337,31 @@ class WeatherRepository(private val context: Context) {
         45, 48 -> "Berkabut"
         51, 53 -> "Gerimis"
         55 -> "Gerimis Lebat"
-        56, 57 -> "Gerimis Beku"
         61, 63 -> "Hujan Ringan"
         65 -> "Hujan Lebat"
-        66, 67 -> "Hujan Beku"
-        71, 73 -> "Salju Ringan"
-        75, 77 -> "Salju Lebat"
         80, 81 -> "Hujan Lokal"
         82 -> "Hujan Deras"
-        85, 86 -> "Hujan Salju"
         95 -> "Badai Petir"
         96, 99 -> "Badai Petir Lebat"
-        else -> "Berawan"
+        56, 57, 66, 67, 71, 73, 75, 77, 85, 86 -> "Cuaca Ekstrem"
+        else -> "Kondisi Tidak Diketahui"
     }
 
-    
+
     fun wmoCodeToEmoji(code: Int): String = when (code) {
         0 -> "☀️"
         1 -> "🌤️"
         2 -> "⛅"
         3 -> "☁️"
         45, 48 -> "🌫️"
-        51, 53, 55, 56, 57 -> "🌦️"
-        61, 63, 80, 81 -> "🌧️"
-        65, 66, 67, 82 -> "🌧️"
-        71, 73, 75, 77, 85, 86 -> "❄️"
+        51, 53, 55 -> "🌦️"
+        61, 63, 65, 80, 81, 82 -> "🌧️"
         95, 96, 99 -> "⛈️"
+        56, 57, 66, 67, 71, 73, 75, 77, 85, 86 -> "🌩️"
         else -> "☁️"
     }
 
-    
+
 
 
 
@@ -378,30 +373,36 @@ class WeatherRepository(private val context: Context) {
 
 
     private fun wmoCodeToRisk(code: Int, tempC: Int): Pair<String, Color> = when {
-        
-        code in listOf(95, 96, 99) -> Pair("Risiko Petir Tinggi", EmergencyRed)
-        code == 65 || code == 82   -> Pair("Risiko Banjir Tinggi", EmergencyRed)
-        tempC >= 40                -> Pair("Suhu Berbahaya", EmergencyRed)
 
-        
-        code in listOf(61, 63, 80, 81) -> Pair("Waspada Hujan", WarningOrange)
-        code in listOf(66, 67)         -> Pair("Waspada Hujan Beku", WarningOrange)
-        code in listOf(75, 77, 86)     -> Pair("Waspada Salju Lebat", WarningOrange)
-        tempC >= 36                    -> Pair("Suhu Panas Ekstrem", WarningOrange)
+        code in listOf(95, 96, 99) ->
+            Pair("Risiko Petir Tinggi", EmergencyRed)
 
-        
-        code in listOf(51, 53)     -> Pair("Perlu Perhatian", MitigationBlue)
-        code == 55                 -> Pair("Gerimis Lebat", MitigationBlue)
-        code in listOf(56, 57)     -> Pair("Perlu Perhatian", MitigationBlue)
-        code in listOf(45, 48)     -> Pair("Jarak Pandang Terbatas", MitigationBlue)
-        code in listOf(71, 73)     -> Pair("Perlu Perhatian", MitigationBlue)
-        code == 85                 -> Pair("Perlu Perhatian", MitigationBlue)
+        code == 65 || code == 82 ->
+            Pair("Risiko Banjir Tinggi", EmergencyRed)
 
-        
-        code in listOf(0, 1, 2, 3) -> Pair("Kondisi Normal", VolunteerGreen)
+        tempC >= 38 ->
+            Pair("Suhu Ekstrem", EmergencyRed)
 
-        
-        else -> Pair("Kondisi Normal", VolunteerGreen)
+        code in listOf(61, 63, 80, 81) ->
+            Pair("Waspada Hujan", WarningOrange)
+
+        code in listOf(45, 48) ->
+            Pair("Kabut Tebal", WarningOrange)
+
+        tempC >= 35 ->
+            Pair("Cuaca Panas", WarningOrange)
+
+        code in listOf(51, 53, 55) ->
+            Pair("Gerimis", MitigationBlue)
+
+        code in listOf(56, 57, 66, 67, 71, 73, 75, 77, 85, 86) ->
+            Pair("Cuaca Ekstrem", MitigationBlue)
+
+        code in listOf(0, 1, 2, 3) ->
+            Pair("Kondisi Normal", VolunteerGreen)
+
+        else ->
+            Pair("Kondisi Stabil", VolunteerGreen)
     }
 
     private fun buildWeatherFallback(city: String) = WeatherInfo(

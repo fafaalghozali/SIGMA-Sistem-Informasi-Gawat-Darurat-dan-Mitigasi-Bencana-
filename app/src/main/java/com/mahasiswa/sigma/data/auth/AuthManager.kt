@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import com.mahasiswa.sigma.AuthData
 import com.mahasiswa.sigma.UserEntry
 import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.data.repository.VolunteerRepository
 import com.mahasiswa.sigma.di.AuthDataStore
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -11,7 +12,8 @@ import javax.inject.Singleton
 
 @Singleton
 class AuthManager @Inject constructor(
-    @AuthDataStore private val authDataStore: DataStore<AuthData>
+    @AuthDataStore private val authDataStore: DataStore<AuthData>,
+    private val volunteerRepository: VolunteerRepository
 ) {
 
     suspend fun registerUser(username: String, pass: String, role: UserRole, name: String): Boolean {
@@ -38,7 +40,7 @@ class AuthManager @Inject constructor(
         return true
     }
 
-    suspend fun loginUser(username: String, pass: String): UserRole? {
+    suspend fun loginUser(username: String, pass: String, selectedRole: UserRole = UserRole.MASYARAKAT): UserRole? {
         
         if (username == "admin" && pass == "admin") {
             return UserRole.BNPB
@@ -47,7 +49,22 @@ class AuthManager @Inject constructor(
         val data = authDataStore.data.first()
         val user = data.usersList.find { it.username == username }
         return if (user != null && user.password == pass) {
-            UserRole.fromString(user.role)
+            val baseRole = UserRole.fromString(user.role)
+            if (baseRole == UserRole.MASYARAKAT && selectedRole == UserRole.RELAWAN) {
+                val volunteerReg = volunteerRepository.getRegistration(username)
+                val isApprovedVolunteer = volunteerReg != null && (
+                    volunteerReg.status == "Accepted" || 
+                    volunteerReg.status == "Tersedia" || 
+                    volunteerReg.status == "Tidak Tersedia"
+                )
+                if (isApprovedVolunteer) {
+                    UserRole.RELAWAN
+                } else {
+                    baseRole
+                }
+            } else {
+                baseRole
+            }
         } else {
             null
         }

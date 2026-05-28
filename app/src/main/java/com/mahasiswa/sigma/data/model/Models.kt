@@ -13,7 +13,7 @@ enum class UserRole(val displayName: String) {
 }
 
 enum class SkillsVolunteer {
-    MEDIS, SAR, LOGISTIK, KONSUMSI, PSIKOSOSIAL
+    MEDIS, SAR, LOGISTIK, KONSUMSI, PSIKOSOSIAL, PENDIDIKAN
 }
 
 enum class ReportStatus(val displayName: String) {

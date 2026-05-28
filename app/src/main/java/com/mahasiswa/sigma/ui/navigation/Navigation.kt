@@ -62,6 +62,7 @@ fun SigmaNavigation() {
     val currentRoute = backStack.lastOrNull()
     val dashboardRoute = backStack.filterIsInstance<Route.Dashboard>().lastOrNull()
     val userRole = dashboardRoute?.role ?: UserRole.MASYARAKAT
+    val userEmail = dashboardRoute?.email ?: ""
 
     CompositionLocalProvider(LocalBackStack provides backStack) {
         
@@ -99,6 +100,7 @@ fun SigmaNavigation() {
                         DashboardScreen(
                             userRole = route.role,
                             userName = route.name,
+                            userEmail = route.email,
                             onFeatureClick = { id ->
                                 when (id) {
                                     1 -> backStack.add(Route.Map)
@@ -123,6 +125,8 @@ fun SigmaNavigation() {
                     }
                     is Route.Map -> MapScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
                     is Route.DisasterReport -> DisasterReportScreen(
+                        userRole = userRole,
+                        userEmail = userEmail,
                         onBack = { backStack.removeAt(backStack.lastIndex) },
                         onNavigateToDetail = { report ->
                             backStack.add(Route.ReportDetail(report))

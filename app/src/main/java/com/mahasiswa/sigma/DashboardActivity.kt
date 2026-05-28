@@ -71,6 +71,7 @@ class DashboardActivity : ComponentActivity() {
                 DashboardScreen(
                     userRole = userRole,
                     userName = userName,
+                    userEmail = userEmail,
                     onFeatureClick = { id ->
                         when (id) {
                             1 -> navController.navigate("map")
@@ -114,6 +115,8 @@ class DashboardActivity : ComponentActivity() {
             }
             composable("disaster_report") {
                 DisasterReportScreen(
+                    userRole = userRole,
+                    userEmail = userEmail,
                     onBack = { navController.popBackStack() },
                     onNavigateToDetail = { report: LocalDisasterReport ->
                         navController.navigate("report_detail/${report.id}")

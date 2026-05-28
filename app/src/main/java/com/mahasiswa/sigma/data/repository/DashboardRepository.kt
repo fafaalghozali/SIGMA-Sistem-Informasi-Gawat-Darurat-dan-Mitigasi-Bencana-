@@ -18,20 +18,31 @@ import javax.inject.Singleton
 class DashboardRepository @Inject constructor() {
 
     fun getMenuItems(userRole: UserRole): List<DashboardMenuModel> {
-        return if (userRole == UserRole.BNPB) {
-            listOf(
-                DashboardMenuModel(6, "Verifikasi Laporan", "Validasi laporan dari publik", Icons.Default.VerifiedUser, MenuCategory.EMERGENCY),
-                DashboardMenuModel(1, "Monitoring Peta", "Pantau sebaran titik bencana", Icons.Default.Map, MenuCategory.MITIGATION),
-                DashboardMenuModel(7, "Arsip Bencana", "Riwayat kejadian bencana", Icons.Default.Search, MenuCategory.SEARCH),
-                DashboardMenuModel(10, "Panduan BNPB", "SOP & Regulasi kebencanaan", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION)
-            )
-        } else {
-            listOf(
-                DashboardMenuModel(2, "Lapor Bencana", "Laporkan bencana yang terjadi", Icons.Default.Report, MenuCategory.EMERGENCY),
-                DashboardMenuModel(5, "Registrasi Relawan", "Daftar sebagai relawan", Icons.Default.PersonAdd, MenuCategory.VOLUNTEER),
-                DashboardMenuModel(10, "Panduan Mitigasi", "Buku saku menghadapi bencana", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION),
-                DashboardMenuModel(7, "Cari Informasi Bencana", "Cari riwayat & info bencana", Icons.Default.Search, MenuCategory.SEARCH)
-            )
+        return when (userRole) {
+            UserRole.BNPB -> {
+                listOf(
+                    DashboardMenuModel(6, "Verifikasi Laporan", "Validasi laporan dari publik", Icons.Default.VerifiedUser, MenuCategory.EMERGENCY),
+                    DashboardMenuModel(1, "Monitoring Peta", "Pantau sebaran titik bencana", Icons.Default.Map, MenuCategory.MITIGATION),
+                    DashboardMenuModel(7, "Arsip Bencana", "Riwayat kejadian bencana", Icons.Default.Search, MenuCategory.SEARCH),
+                    DashboardMenuModel(10, "Panduan BNPB", "SOP & Regulasi kebencanaan", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION)
+                )
+            }
+            UserRole.RELAWAN -> {
+                listOf(
+                    DashboardMenuModel(2, "Kirim Laporan Tugas", "Kirim laporan tugas ke BNPB", Icons.Default.Report, MenuCategory.EMERGENCY),
+                    DashboardMenuModel(5, "Registrasi Relawan", "Daftar sebagai relawan", Icons.Default.PersonAdd, MenuCategory.VOLUNTEER),
+                    DashboardMenuModel(10, "Panduan Mitigasi", "Buku saku menghadapi bencana", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION),
+                    DashboardMenuModel(7, "Cari Informasi Bencana", "Cari riwayat & info bencana", Icons.Default.Search, MenuCategory.SEARCH)
+                )
+            }
+            else -> {
+                listOf(
+                    DashboardMenuModel(2, "Lapor Bencana", "Laporkan bencana yang terjadi", Icons.Default.Report, MenuCategory.EMERGENCY),
+                    DashboardMenuModel(5, "Registrasi Relawan", "Daftar sebagai relawan", Icons.Default.PersonAdd, MenuCategory.VOLUNTEER),
+                    DashboardMenuModel(10, "Panduan Mitigasi", "Buku saku menghadapi bencana", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION),
+                    DashboardMenuModel(7, "Cari Informasi Bencana", "Cari riwayat & info bencana", Icons.Default.Search, MenuCategory.SEARCH)
+                )
+            }
         }
     }
 }

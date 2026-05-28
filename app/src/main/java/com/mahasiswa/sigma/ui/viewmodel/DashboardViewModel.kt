@@ -15,6 +15,8 @@ import com.mahasiswa.sigma.data.model.WeatherInfo
 import com.mahasiswa.sigma.data.repository.DashboardRepository
 import com.mahasiswa.sigma.data.repository.NewsRepository
 import com.mahasiswa.sigma.data.repository.WeatherRepository
+import com.mahasiswa.sigma.data.repository.VolunteerRepository
+import com.mahasiswa.sigma.data.model.SkillsVolunteer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -41,10 +43,10 @@ data class DashboardUiState(
     val newsError: String? = null,
     val lastUpdated: Long? = null,
     val newsLastUpdated: Long? = null,
-    
     val userCityName: String = "",
-    
-    val isAwaitingPermission: Boolean = false
+    val isAwaitingPermission: Boolean = false,
+    val volunteerStatus: String = "Pending",
+    val volunteerSkill: SkillsVolunteer? = null
 )
 
 @HiltViewModel
@@ -52,13 +54,33 @@ class DashboardViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dashboardRepo: DashboardRepository,
     private val weatherRepo: WeatherRepository,
-    private val newsRepo: NewsRepository
+    private val newsRepo: NewsRepository,
+    private val volunteerRepo: VolunteerRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     private var autoRefreshJob: Job? = null
+
+    fun loadVolunteerStatus(email: String) {
+        viewModelScope.launch {
+            val registration = volunteerRepo.getRegistration(email)
+            if (registration != null) {
+                _uiState.value = _uiState.value.copy(
+                    volunteerStatus = registration.status,
+                    volunteerSkill = registration.skill
+                )
+            }
+        }
+    }
+
+    fun updateVolunteerAvailability(email: String, newStatus: String) {
+        viewModelScope.launch {
+            volunteerRepo.updateVolunteerStatus(email, newStatus)
+            _uiState.value = _uiState.value.copy(volunteerStatus = newStatus)
+        }
+    }
 
     fun loadDashboardData(userRole: UserRole, @Suppress("UNUSED_PARAMETER") isDark: Boolean) {
         viewModelScope.launch {

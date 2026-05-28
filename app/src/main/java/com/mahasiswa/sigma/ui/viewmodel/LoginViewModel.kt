@@ -77,7 +77,7 @@ class LoginViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val userRole = authManager.loginUser(currentState.email, currentState.password)
+            val userRole = authManager.loginUser(currentState.email, currentState.password, currentState.selectedRole)
             if (userRole != null) {
                 if (userRole == currentState.selectedRole) {
                     val name = authManager.getUserName(currentState.email)

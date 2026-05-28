@@ -63,6 +63,7 @@ import kotlin.math.absoluteValue
 fun DashboardScreen(
     userRole: UserRole,
     userName: String,
+    userEmail: String = "",
     onFeatureClick: (Int) -> Unit,
     @Suppress("UNUSED_PARAMETER") onNavigateToProfile: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
@@ -85,6 +86,9 @@ fun DashboardScreen(
 
     LaunchedEffect(Unit) {
         viewModel.loadDashboardData(userRole, isDark)
+        if (userRole == UserRole.RELAWAN && userEmail.isNotBlank()) {
+            viewModel.loadVolunteerStatus(userEmail)
+        }
         viewModel.onPermissionRequested()
         permissionLauncher.launch(
             arrayOf(
@@ -98,6 +102,11 @@ fun DashboardScreen(
         userName = userName,
         uiState = uiState,
         isDark = isDark,
+        userRole = userRole,
+        userEmail = userEmail,
+        onVolunteerStatusChange = { newStatus ->
+            viewModel.updateVolunteerAvailability(userEmail, newStatus)
+        },
         onFeatureClick = onFeatureClick,
         onDismissNotification = { viewModel.dismissNotification() },
         onRetryLocation = {
@@ -125,6 +134,9 @@ fun DashboardContent(
     userName: String,
     uiState: DashboardUiState,
     isDark: Boolean,
+    userRole: UserRole,
+    userEmail: String,
+    onVolunteerStatusChange: (String) -> Unit,
     onFeatureClick: (Int) -> Unit,
     onDismissNotification: () -> Unit,
     onRetryLocation: () -> Unit,
@@ -165,6 +177,17 @@ fun DashboardContent(
                         onOpenSettings = onOpenSettings
                     )
                 }
+
+                if (userRole == UserRole.RELAWAN) {
+                    item(span = { GridItemSpan(2) }) {
+                        AvailabilityStatusCard(
+                            currentStatus = uiState.volunteerStatus,
+                            onStatusChange = onVolunteerStatusChange,
+                            isDark = isDark
+                        )
+                    }
+                }
+
 
                 item(span = { GridItemSpan(2) }) {
                     val severeWeatherCodes = listOf(65, 67, 75, 77, 82, 86, 95, 96, 99)
@@ -1561,6 +1584,9 @@ fun DashboardPreview() {
         userName = "Supriyanto",
         uiState = mockUiState,
         isDark = isDark,
+        userRole = UserRole.MASYARAKAT,
+        userEmail = "",
+        onVolunteerStatusChange = {},
         onFeatureClick = {},
         onDismissNotification = {},
         onRetryLocation = {},
@@ -1568,3 +1594,186 @@ fun DashboardPreview() {
         onOpenSettings = {}
     )
 }
+
+@Composable
+fun AvailabilityStatusCard(
+    currentStatus: String,
+    onStatusChange: (String) -> Unit,
+    isDark: Boolean
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDark) DarkElevatedSurface else Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = if (isDark)
+            BorderStroke(0.5.dp, Color.White.copy(alpha = 0.06f))
+        else
+            BorderStroke(0.5.dp, Color(0xFFE8ECF0))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                color = if (isDark) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                                       else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VerifiedUser,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Status Ketersediaan",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = if (isDark) Color.White else Color(0xFF1A1A1A)
+                        )
+                        Text(
+                            text = "Tentukan kesiapan tugas Anda",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isDark) Color.Gray else Color(0xFF888888)
+                        )
+                    }
+                }
+
+                val isAvailable = currentStatus == "Tersedia" || currentStatus == "Accepted"
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isAvailable) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(
+                                    color = if (isAvailable) Color(0xFF2E7D32) else Color(0xFFD32F2F),
+                                    shape = CircleShape
+                                )
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isAvailable) "Tersedia" else "Tidak Tersedia",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = if (isAvailable) Color(0xFF2E7D32) else Color(0xFFD32F2F)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                val isAvailable = currentStatus == "Tersedia" || currentStatus == "Accepted"
+                
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onStatusChange("Tersedia") },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isAvailable) {
+                        if (isDark) Color(0xFF2E7D32).copy(alpha = 0.2f) else Color(0xFFE8F5E9)
+                    } else Color.Transparent,
+                    border = BorderStroke(
+                        width = 1.5.dp,
+                        color = if (isAvailable) Color(0xFF2E7D32) 
+                                else if (isDark) Color.White.copy(alpha = 0.1f) else Color(0xFFE8ECF0)
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isAvailable) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color(0xFF2E7D32),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            Text(
+                                text = "Tersedia",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = if (isAvailable) Color(0xFF2E7D32) 
+                                        else if (isDark) Color.LightGray else Color.DarkGray
+                            )
+                        }
+                    }
+                }
+
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onStatusChange("Tidak Tersedia") },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (!isAvailable) {
+                        if (isDark) Color(0xFFD32F2F).copy(alpha = 0.2f) else Color(0xFFFFEBEE)
+                    } else Color.Transparent,
+                    border = BorderStroke(
+                        width = 1.5.dp,
+                        color = if (!isAvailable) Color(0xFFD32F2F)
+                                else if (isDark) Color.White.copy(alpha = 0.1f) else Color(0xFFE8ECF0)
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (!isAvailable) {
+                                Icon(
+                                    imageVector = Icons.Default.Cancel,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD32F2F),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            Text(
+                                text = "Tidak Tersedia",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = if (!isAvailable) Color(0xFFD32F2F)
+                                        else if (isDark) Color.LightGray else Color.DarkGray
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

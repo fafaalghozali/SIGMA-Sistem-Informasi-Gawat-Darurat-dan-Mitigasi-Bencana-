@@ -64,4 +64,24 @@ class VolunteerRepository @Inject constructor(
                 .build()
         }
     }
+
+    suspend fun updateVolunteerStatus(username: String, newStatus: String) {
+        dataStore.updateData { currentData ->
+            val index = currentData.registrationsList.indexOfFirst { it.username == username }
+            if (index == -1) return@updateData currentData
+
+            val updatedEntry = currentData.registrationsList[index].toBuilder()
+                .setStatus(newStatus)
+                .build()
+
+            currentData.toBuilder()
+                .setRegistrations(index, updatedEntry)
+                .build()
+        }
+    }
+
+    suspend fun getAllRegistrations(): List<VolunteerEntry> {
+        return dataStore.data.first().registrationsList
+    }
 }
+

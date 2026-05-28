@@ -31,8 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.mahasiswa.sigma.data.repository.ImageRepository
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.mahasiswa.sigma.ui.viewmodel.ImagePickerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,9 +41,7 @@ fun ImagePickerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val viewModel: ImagePickerViewModel = viewModel(
-        factory = ImagePickerViewModel.provideFactory(ImageRepository(context.contentResolver))
-    )
+    val viewModel: ImagePickerViewModel = hiltViewModel()
     
     val selectedBitmap by viewModel.selectedBitmap.collectAsState()
 
@@ -111,9 +108,7 @@ fun ImagePickerBottomSheet(
     onImageSelected: (Bitmap) -> Unit
 ) {
     val context = LocalContext.current
-    val viewModel: ImagePickerViewModel = viewModel(
-        factory = ImagePickerViewModel.provideFactory(ImageRepository(context.contentResolver))
-    )
+    val viewModel: ImagePickerViewModel = hiltViewModel()
     val selectedBitmap by viewModel.selectedBitmap.collectAsState()
 
     LaunchedEffect(selectedBitmap) {

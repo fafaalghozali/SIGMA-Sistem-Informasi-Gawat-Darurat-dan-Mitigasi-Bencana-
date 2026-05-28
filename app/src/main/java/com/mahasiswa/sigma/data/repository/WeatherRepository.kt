@@ -35,7 +35,14 @@ import kotlin.coroutines.resumeWithException
 
 
 
-class WeatherRepository(private val context: Context) {
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class WeatherRepository @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     
     class LocationUnavailableException : Exception("Could not determine device location")

@@ -4,9 +4,15 @@ import androidx.datastore.core.DataStore
 import com.mahasiswa.sigma.AuthData
 import com.mahasiswa.sigma.UserEntry
 import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.di.AuthDataStore
 import kotlinx.coroutines.flow.first
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AuthManager(private val authDataStore: DataStore<AuthData>) {
+@Singleton
+class AuthManager @Inject constructor(
+    @AuthDataStore private val authDataStore: DataStore<AuthData>
+) {
 
     suspend fun registerUser(username: String, pass: String, role: UserRole, name: String): Boolean {
         if (username.isEmpty() || pass.isEmpty()) return false

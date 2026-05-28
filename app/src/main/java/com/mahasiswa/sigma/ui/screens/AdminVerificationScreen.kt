@@ -13,7 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.ui.viewmodel.AdminVerificationViewModel
 import java.text.SimpleDateFormat
@@ -22,7 +22,7 @@ import java.util.*
 @Composable
 fun AdminVerificationScreen(
     onBack: () -> Unit,
-    viewModel: AdminVerificationViewModel = viewModel()
+    viewModel: AdminVerificationViewModel = hiltViewModel()
 ) {
     val pendingReports by viewModel.pendingReports.collectAsState()
 
@@ -126,4 +126,3 @@ fun ReportVerificationItem(
         }
     }
 }
-

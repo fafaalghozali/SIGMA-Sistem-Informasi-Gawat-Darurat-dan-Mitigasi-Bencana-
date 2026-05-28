@@ -4,10 +4,16 @@ import androidx.datastore.core.DataStore
 import com.mahasiswa.sigma.VolunteerData
 import com.mahasiswa.sigma.VolunteerEntry
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
+import com.mahasiswa.sigma.di.VolunteerDataStore
 import com.mahasiswa.sigma.ui.viewmodel.VolunteerRegistrationData
 import kotlinx.coroutines.flow.first
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class VolunteerRepository(private val dataStore: DataStore<VolunteerData>) {
+@Singleton
+class VolunteerRepository @Inject constructor(
+    @VolunteerDataStore private val dataStore: DataStore<VolunteerData>
+) {
 
     suspend fun saveRegistration(username: String, data: VolunteerRegistrationData) {
         dataStore.updateData { currentData ->

@@ -3,27 +3,19 @@ package com.mahasiswa.sigma.ui.viewmodel
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.mahasiswa.sigma.data.repository.ImageRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ImagePickerViewModel(
+@HiltViewModel
+class ImagePickerViewModel @Inject constructor(
     private val repository: ImageRepository
 ) : ViewModel() {
-
-    companion object {
-        fun provideFactory(repository: ImageRepository): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                ImagePickerViewModel(repository)
-            }
-        }
-    }
 
     private val _selectedBitmap = MutableStateFlow<Bitmap?>(null)
     val selectedBitmap: StateFlow<Bitmap?> = _selectedBitmap.asStateFlow()

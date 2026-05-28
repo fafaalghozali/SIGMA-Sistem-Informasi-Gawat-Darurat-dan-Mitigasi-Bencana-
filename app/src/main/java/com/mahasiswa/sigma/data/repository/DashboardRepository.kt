@@ -11,7 +11,11 @@ import com.mahasiswa.sigma.data.model.UserRole
 
 
 
-class DashboardRepository {
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class DashboardRepository @Inject constructor() {
 
     fun getMenuItems(userRole: UserRole): List<DashboardMenuModel> {
         return if (userRole == UserRole.BNPB) {

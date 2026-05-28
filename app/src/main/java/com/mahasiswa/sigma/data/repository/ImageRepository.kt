@@ -6,8 +6,11 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class ImageRepository(private val contentResolver: ContentResolver) {
+@Singleton
+class ImageRepository @Inject constructor(private val contentResolver: ContentResolver) {
     fun uriToBitmap(uri: Uri): Bitmap? {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

@@ -21,7 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.ui.viewmodel.ProfileViewModel
 
@@ -33,7 +33,7 @@ fun ProfileScreen(
     userEmail: String,
     @Suppress("UNUSED_PARAMETER") onBack: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: ProfileViewModel = viewModel()
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
     LaunchedEffect(userName, userEmail) {
         if (viewModel.name.isEmpty()) viewModel.name = userName

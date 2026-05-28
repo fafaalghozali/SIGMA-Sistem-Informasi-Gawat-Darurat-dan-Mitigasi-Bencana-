@@ -6,8 +6,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.mahasiswa.sigma.data.model.ReportStatus
 import com.mahasiswa.sigma.data.model.DisasterInfo
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class SearchDisasterViewModel : ViewModel() {
+@HiltViewModel
+class SearchDisasterViewModel @Inject constructor() : ViewModel() {
     var searchQuery by mutableStateOf("")
         private set
     

@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.mahasiswa.sigma.ui.viewmodel.VolunteerRegistrationData
 import com.mahasiswa.sigma.ui.viewmodel.VolunteerRegistrationViewModel
 
@@ -35,7 +35,7 @@ import com.mahasiswa.sigma.ui.viewmodel.VolunteerRegistrationViewModel
 fun VolunteerRegistrationScreen(
     userEmail: String,
     onBack: () -> Unit,
-    viewModel: VolunteerRegistrationViewModel = viewModel()
+    viewModel: VolunteerRegistrationViewModel = hiltViewModel()
 ) {
     LaunchedEffect(userEmail) {
         viewModel.loadRegistrationData(userEmail)

@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.ui.theme.*
 import com.mahasiswa.sigma.ui.viewmodel.LoginUiState
@@ -31,9 +31,9 @@ import com.mahasiswa.sigma.ui.viewmodel.LoginViewModel
 
 @Composable
 fun LoginScreen(
-    onNavigateToDashboard: (UserRole, String) -> Unit,
+    onNavigateToDashboard: (UserRole, String, String) -> Unit,
     onNavigateToRegister: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -54,7 +54,7 @@ fun LoginScreen(
         onDismissError = viewModel::onDismissErrorDialog,
         onConfirmSuccess = {
             viewModel.resetLoginState()
-            onNavigateToDashboard(uiState.selectedRole, uiState.email)
+            onNavigateToDashboard(uiState.selectedRole, uiState.email, uiState.loggedInName)
         }
     )
 }

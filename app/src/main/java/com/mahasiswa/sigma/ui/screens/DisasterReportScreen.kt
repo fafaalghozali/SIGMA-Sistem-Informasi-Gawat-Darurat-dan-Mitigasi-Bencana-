@@ -41,7 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -58,7 +58,7 @@ import java.util.*
 fun DisasterReportScreen(
     onBack: () -> Unit,
     onNavigateToDetail: (LocalDisasterReport) -> Unit,
-    viewModel: DisasterReportViewModel = viewModel()
+    viewModel: DisasterReportViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()

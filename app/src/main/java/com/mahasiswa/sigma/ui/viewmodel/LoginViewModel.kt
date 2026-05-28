@@ -1,16 +1,16 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.auth.AuthManager
-import com.mahasiswa.sigma.data.datastore.authDataStore
 import com.mahasiswa.sigma.data.model.UserRole
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class LoginUiState(
     val email: String = "",
@@ -24,9 +24,11 @@ data class LoginUiState(
     val loggedInName: String = ""
 )
 
-class LoginViewModel(application: Application) : AndroidViewModel(application) {
-    private val authManager = AuthManager(application.authDataStore)
-    
+@HiltViewModel
+class LoginViewModel @Inject constructor(
+    private val authManager: AuthManager
+) : ViewModel() {
+
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 

@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.mahasiswa.sigma.data.model.ReportStatus
 import com.mahasiswa.sigma.ui.viewmodel.SearchDisasterViewModel
 
@@ -22,7 +22,7 @@ import com.mahasiswa.sigma.ui.viewmodel.SearchDisasterViewModel
 @Composable
 fun SearchDisasterScreen(
     onBack: () -> Unit,
-    viewModel: SearchDisasterViewModel = viewModel()
+    viewModel: SearchDisasterViewModel = hiltViewModel()
 ) {
     val searchQuery = viewModel.searchQuery
     val filteredDisasters = viewModel.filteredDisasters

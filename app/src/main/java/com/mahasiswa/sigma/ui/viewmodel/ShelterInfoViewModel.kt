@@ -5,8 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.mahasiswa.sigma.data.model.ShelterMock
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class ShelterInfoViewModel : ViewModel() {
+@HiltViewModel
+class ShelterInfoViewModel @Inject constructor() : ViewModel() {
     val shelters = listOf(
         ShelterMock("Stadion UNS", "1.2 km", "80/100", "Tersedia", -7.556303, 110.8580877, listOf("Sembako", "Air Mineral", "Selimut")),
         ShelterMock("Taman Cerdas Jebres", "1.5 km", "50/50", "Penuh", -7.5541321, 110.8536159, listOf("Popok Bayi", "Susu Formula", "Obat-obatan")),

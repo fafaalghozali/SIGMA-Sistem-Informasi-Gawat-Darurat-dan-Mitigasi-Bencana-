@@ -1,10 +1,10 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
 import android.Manifest
-import android.app.Application
+import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.model.BmkgWarning
 import com.mahasiswa.sigma.data.model.DashboardMenuModel
@@ -15,6 +15,8 @@ import com.mahasiswa.sigma.data.model.WeatherInfo
 import com.mahasiswa.sigma.data.repository.DashboardRepository
 import com.mahasiswa.sigma.data.repository.NewsRepository
 import com.mahasiswa.sigma.data.repository.WeatherRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class DashboardUiState(
     val menuItems: List<DashboardMenuModel> = emptyList(),
@@ -44,35 +47,29 @@ data class DashboardUiState(
     val isAwaitingPermission: Boolean = false
 )
 
-class DashboardViewModel(
-    application: Application
-) : AndroidViewModel(application) {
-
-    private val dashboardRepo = DashboardRepository()
-    private val weatherRepo   = WeatherRepository(application)
-    private val newsRepo      = NewsRepository(application)
+@HiltViewModel
+class DashboardViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val dashboardRepo: DashboardRepository,
+    private val weatherRepo: WeatherRepository,
+    private val newsRepo: NewsRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     private var autoRefreshJob: Job? = null
 
-    
-
-
-
     fun loadDashboardData(userRole: UserRole, @Suppress("UNUSED_PARAMETER") isDark: Boolean) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, isNewsLoading = true)
 
-            
             val menu = dashboardRepo.getMenuItems(userRole)
             _uiState.value = _uiState.value.copy(
                 menuItems = menu,
                 isLoading = false
             )
 
-            
             val cached = newsRepo.getCachedNews(_uiState.value.userCityName)
             if (cached.isNotEmpty()) {
                 _uiState.value = _uiState.value.copy(
@@ -81,18 +78,12 @@ class DashboardViewModel(
                 )
             }
 
-            
             loadEarthquake()
             loadBmkgWarnings()
 
-            
             loadFreshNews()
         }
     }
-
-    
-
-
 
     fun onPermissionRequested() {
         _uiState.value = _uiState.value.copy(
@@ -103,10 +94,6 @@ class DashboardViewModel(
         )
     }
 
-    
-
-
-
     fun onLocationPermissionGranted() {
         _uiState.value = _uiState.value.copy(
             locationPermissionDenied = false,
@@ -116,7 +103,6 @@ class DashboardViewModel(
         startAutoRefresh()
     }
 
-    
     fun onLocationPermissionDenied() {
         _uiState.value = _uiState.value.copy(
             locationPermissionDenied = true,
@@ -124,10 +110,6 @@ class DashboardViewModel(
             isWeatherLoading = false
         )
     }
-
-    
-
-
 
     private fun loadWeatherFromRealLocation() {
         viewModelScope.launch {
@@ -142,7 +124,6 @@ class DashboardViewModel(
                     .removePrefix("(Default)")
                     .trim()
 
-                
                 val resorted = newsRepo.getCachedNews(cityName)
 
                 _uiState.value = _uiState.value.copy(
@@ -151,11 +132,9 @@ class DashboardViewModel(
                     weatherError = null,
                     lastUpdated = System.currentTimeMillis(),
                     userCityName = cityName,
-                    
                     newsItems = if (resorted.isNotEmpty()) resorted else _uiState.value.newsItems
                 )
-                
-                
+
                 loadEarthquake()
                 loadBmkgWarnings()
             } catch (e: WeatherRepository.LocationUnavailableException) {
@@ -183,7 +162,6 @@ class DashboardViewModel(
         }
     }
 
-    
     private fun loadFreshNews() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isNewsLoading = true, newsError = null)
@@ -196,7 +174,6 @@ class DashboardViewModel(
                     newsLastUpdated = System.currentTimeMillis()
                 )
             } catch (e: Exception) {
-                
                 val hasCached = _uiState.value.newsItems.isNotEmpty()
                 _uiState.value = _uiState.value.copy(
                     isNewsLoading = false,
@@ -206,20 +183,15 @@ class DashboardViewModel(
         }
     }
 
-    
-
-
     fun retryNews() {
         loadFreshNews()
     }
 
-    
     fun loadWeather() {
-        val ctx = getApplication<Application>()
         val hasPermission =
-            ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
                 PackageManager.PERMISSION_GRANTED
 
         if (!hasPermission) {
@@ -235,7 +207,6 @@ class DashboardViewModel(
 
     fun retryWeather() { loadWeather() }
 
-    
     private fun loadEarthquake() {
         viewModelScope.launch {
             try {
@@ -243,7 +214,6 @@ class DashboardViewModel(
                 val userCity = _uiState.value.userCityName
                 
                 if (eq != null) {
-                    
                     val isRelevant = isEventRelevant(eq.location, userCity) || 
                                      (eq.felt.isNotBlank() && eq.felt != "Tidak dirasakan")
                     if (isRelevant) {
@@ -258,7 +228,6 @@ class DashboardViewModel(
         }
     }
 
-    
     private fun loadBmkgWarnings() {
         viewModelScope.launch {
             try {
@@ -273,9 +242,6 @@ class DashboardViewModel(
         }
     }
 
-    
-
-
     private fun startAutoRefresh() {
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
@@ -284,7 +250,6 @@ class DashboardViewModel(
                 delay(NEWS_REFRESH_INTERVAL_MS)
                 tick++
 
-                
                 try {
                     val fresh = newsRepo.fetchFreshNews(_uiState.value.userCityName)
                     _uiState.value = _uiState.value.copy(
@@ -293,7 +258,6 @@ class DashboardViewModel(
                     )
                 } catch (_: Exception) {}
 
-                
                 if (tick % 2 != 0) {
                     try {
                         val weather = weatherRepo.getWeatherForCurrentLocation()
@@ -319,7 +283,6 @@ class DashboardViewModel(
     }
 
     companion object {
-        
         private const val NEWS_REFRESH_INTERVAL_MS = 10 * 60 * 1_000L
     }
 

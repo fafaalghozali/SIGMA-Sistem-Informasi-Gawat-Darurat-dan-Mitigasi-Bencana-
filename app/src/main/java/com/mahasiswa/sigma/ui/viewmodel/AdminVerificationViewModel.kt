@@ -1,18 +1,20 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mahasiswa.sigma.data.datastore.disasterReportsDataStore
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.data.repository.AdminRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class AdminVerificationViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = AdminRepository(application.disasterReportsDataStore)
+@HiltViewModel
+class AdminVerificationViewModel @Inject constructor(
+    private val repository: AdminRepository
+) : ViewModel() {
 
     private val _pendingReports = MutableStateFlow<List<LocalDisasterReport>>(emptyList())
     val pendingReports: StateFlow<List<LocalDisasterReport>> = _pendingReports.asStateFlow()

@@ -26,8 +26,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import com.mahasiswa.sigma.PdfUtils
-import com.mahasiswa.sigma.data.auth.AuthManager
-import com.mahasiswa.sigma.data.datastore.authDataStore
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.ui.components.SigmaBottomBar
 import com.mahasiswa.sigma.ui.screens.*
@@ -60,8 +58,6 @@ fun SigmaNavigation() {
     ) { mutableStateListOf<Route>(Route.Splash) }
 
     val context = LocalContext.current
-    val authManager = remember { AuthManager(context.authDataStore) }
-    val coroutineScope = rememberCoroutineScope()
 
     val currentRoute = backStack.lastOrNull()
     val dashboardRoute = backStack.filterIsInstance<Route.Dashboard>().lastOrNull()
@@ -83,11 +79,8 @@ fun SigmaNavigation() {
                     }
                     is Route.Login -> {
                         LoginScreen(
-                            onNavigateToDashboard = { role, email ->
-                                coroutineScope.launch {
-                                    val name = authManager.getUserName(email)
-                                    backStack.add(Route.Dashboard(role, email, name))
-                                }
+                            onNavigateToDashboard = { role, email, name ->
+                                backStack.add(Route.Dashboard(role, email, name))
                             },
                             onNavigateToRegister = {
                                 backStack.add(Route.Register)

@@ -23,14 +23,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.mahasiswa.sigma.ui.viewmodel.ShelterInfoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ShelterInfoScreen(
     @Suppress("UNUSED_PARAMETER") onBack: () -> Unit,
-    viewModel: ShelterInfoViewModel = viewModel()
+    viewModel: ShelterInfoViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val shelters = viewModel.shelters

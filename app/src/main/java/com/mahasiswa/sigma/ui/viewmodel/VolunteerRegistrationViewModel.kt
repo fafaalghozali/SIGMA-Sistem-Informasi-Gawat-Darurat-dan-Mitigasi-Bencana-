@@ -1,15 +1,15 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
-import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mahasiswa.sigma.data.datastore.volunteerDataStore
 import com.mahasiswa.sigma.data.repository.VolunteerRepository
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class VolunteerRegistrationData(
     val name: String,
@@ -19,8 +19,11 @@ data class VolunteerRegistrationData(
     val status: String = "Pending"
 )
 
-class VolunteerRegistrationViewModel(application: Application) : AndroidViewModel(application) {
-    private val volunteerRepository = VolunteerRepository(application.volunteerDataStore)
+@HiltViewModel
+class VolunteerRegistrationViewModel @Inject constructor(
+    private val volunteerRepository: VolunteerRepository
+) : ViewModel() {
+
     private var currentUserEmail: String = ""
 
     var name by mutableStateOf("")

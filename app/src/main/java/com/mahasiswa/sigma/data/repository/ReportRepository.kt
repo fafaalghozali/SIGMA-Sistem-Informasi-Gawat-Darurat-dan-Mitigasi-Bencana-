@@ -4,9 +4,15 @@ import androidx.datastore.core.DataStore
 import com.mahasiswa.sigma.DisasterReportEntry
 import com.mahasiswa.sigma.DisasterReportsData
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
+import com.mahasiswa.sigma.di.DisasterReportsDataStore
 import kotlinx.coroutines.flow.first
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class ReportRepository(private val dataStore: DataStore<DisasterReportsData>) {
+@Singleton
+class ReportRepository @Inject constructor(
+    @DisasterReportsDataStore private val dataStore: DataStore<DisasterReportsData>
+) {
 
     suspend fun saveReport(report: LocalDisasterReport) {
         dataStore.updateData { currentData ->

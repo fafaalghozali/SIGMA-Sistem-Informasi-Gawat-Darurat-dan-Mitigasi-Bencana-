@@ -1,22 +1,24 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
-import android.app.Application
 import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mahasiswa.sigma.data.datastore.disasterReportsDataStore
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.data.repository.ReportRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class DisasterReportViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = ReportRepository(application.disasterReportsDataStore)
+@HiltViewModel
+class DisasterReportViewModel @Inject constructor(
+    private val repository: ReportRepository
+) : ViewModel() {
 
     private val _reports = MutableStateFlow<List<LocalDisasterReport>>(emptyList())
     val reports: StateFlow<List<LocalDisasterReport>> = _reports.asStateFlow()

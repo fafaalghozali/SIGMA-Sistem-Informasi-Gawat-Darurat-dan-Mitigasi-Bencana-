@@ -7,21 +7,28 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.mahasiswa.sigma.data.auth.AuthManager
-import com.mahasiswa.sigma.data.datastore.authDataStore
-import com.mahasiswa.sigma.data.datastore.disasterReportsDataStore
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.data.repository.ReportRepository
 import com.mahasiswa.sigma.ui.screens.*
 import com.mahasiswa.sigma.ui.theme.SIGMATheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class DashboardActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var authManager: AuthManager
+
+    @Inject
+    lateinit var reportRepository: ReportRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -30,8 +37,6 @@ class DashboardActivity : ComponentActivity() {
 
         setContent {
             SIGMATheme {
-                val context = LocalContext.current
-                val authManager = remember { AuthManager(context.authDataStore) }
                 val coroutineScope = rememberCoroutineScope()
 
                 var userRoleState by rememberSaveable {
@@ -60,7 +65,6 @@ class DashboardActivity : ComponentActivity() {
     @Composable
     fun DashboardNavigation(userRole: UserRole, userName: String, userEmail: String) {
         val navController = rememberNavController()
-        val context = LocalContext.current
 
         NavHost(navController = navController, startDestination = "dashboard") {
             composable("dashboard") {
@@ -118,11 +122,10 @@ class DashboardActivity : ComponentActivity() {
             }
             composable("report_detail/{reportId}") { backStackEntry ->
                 val reportId = backStackEntry.arguments?.getString("reportId")
-                val repository = remember { ReportRepository(context.disasterReportsDataStore) }
                 var report by remember { mutableStateOf<LocalDisasterReport?>(null) }
 
                 LaunchedEffect(reportId) {
-                    report = repository.getAllReports().find { it.id == reportId }
+                    report = reportRepository.getAllReports().find { it.id == reportId }
                 }
                 
                 report?.let {

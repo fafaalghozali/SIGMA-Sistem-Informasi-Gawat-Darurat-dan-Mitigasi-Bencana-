@@ -1,19 +1,21 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
-import android.app.Application
 import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.auth.AuthManager
-import com.mahasiswa.sigma.data.datastore.authDataStore
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ProfileViewModel(application: Application) : AndroidViewModel(application) {
-    private val authManager = AuthManager(application.authDataStore)
-    
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
+    private val authManager: AuthManager
+) : ViewModel() {
+
     private var originalEmail: String = ""
     
     var name by mutableStateOf("")

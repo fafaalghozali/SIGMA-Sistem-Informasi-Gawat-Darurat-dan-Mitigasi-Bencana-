@@ -1,11 +1,9 @@
 package com.mahasiswa.sigma.data.repository
 
-import android.content.Context
 import android.util.Log
 import androidx.compose.ui.graphics.Color
 import com.mahasiswa.sigma.data.local.NewsDao
 import com.mahasiswa.sigma.data.local.NewsEntity
-import com.mahasiswa.sigma.data.local.SigmaDatabase
 import com.mahasiswa.sigma.data.model.NewsItem
 import com.mahasiswa.sigma.data.model.NewsSeverity
 import com.mahasiswa.sigma.data.news.DisasterFilter
@@ -19,30 +17,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class NewsRepository(context: Context) {
-
-    private val dao: NewsDao = SigmaDatabase.getInstance(context).newsDao()
+@Singleton
+class NewsRepository @Inject constructor(
+    private val dao: NewsDao
+) {
 
     companion object {
         private const val TAG = "NewsRepository"

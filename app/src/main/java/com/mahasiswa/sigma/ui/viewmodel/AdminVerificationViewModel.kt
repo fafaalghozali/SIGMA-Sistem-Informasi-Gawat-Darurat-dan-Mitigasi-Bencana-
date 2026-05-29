@@ -19,13 +19,18 @@ class AdminVerificationViewModel @Inject constructor(
     private val _pendingReports = MutableStateFlow<List<LocalDisasterReport>>(emptyList())
     val pendingReports: StateFlow<List<LocalDisasterReport>> = _pendingReports.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     init {
         loadPendingReports()
     }
 
     fun loadPendingReports() {
         viewModelScope.launch {
+            _isLoading.value = true
             _pendingReports.value = repository.getPendingReports()
+            _isLoading.value = false
         }
     }
 

@@ -11,6 +11,8 @@ message DisasterReportEntry {
   string reporter = 5;
   string status = 6;
   int64 timestamp = 7;
+  double latitude = 8;
+  double longitude = 9;
 }
 
 message DisasterReportsData {

@@ -52,7 +52,9 @@ class AdminRepository @Inject constructor(
             location = location,
             reporter = reporter,
             status = status,
-            timestamp = timestamp
+            timestamp = timestamp,
+            latitude = latitude,
+            longitude = longitude
         )
     }
 }

@@ -89,8 +89,8 @@ fun DisasterReportScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            fetchFreshLocation(context, fusedLocationClient, scope) { address ->
-                viewModel.onLocationReceived(address)
+            fetchFreshLocation(context, fusedLocationClient, scope) { address, lat, lng ->
+                viewModel.onLocationReceived(address, lat, lng)
             }
         } else {
             viewModel.onLocationReceived("Lokasi tidak aktif. Klik untuk aktifkan.")
@@ -105,8 +105,8 @@ fun DisasterReportScreen(
         val task = client.checkLocationSettings(builder.build())
 
         task.addOnSuccessListener {
-            fetchFreshLocation(context, fusedLocationClient, scope) { address ->
-                viewModel.onLocationReceived(address)
+            fetchFreshLocation(context, fusedLocationClient, scope) { address, lat, lng ->
+                viewModel.onLocationReceived(address, lat, lng)
             }
         }
 
@@ -470,7 +470,7 @@ private fun fetchFreshLocation(
     context: Context,
     fusedLocationClient: FusedLocationProviderClient,
     scope: kotlinx.coroutines.CoroutineScope,
-    onResult: (String) -> Unit
+    onResult: (address: String, lat: Double, lng: Double) -> Unit
 ) {
     try {
         val cts = CancellationTokenSource()
@@ -490,7 +490,9 @@ private fun fetchFreshLocation(
                                 } else {
                                     "${location.latitude}, ${location.longitude}"
                                 }
-                                scope.launch(Dispatchers.Main) { onResult(result) }
+                                scope.launch(Dispatchers.Main) {
+                                    onResult(result, location.latitude, location.longitude)
+                                }
                             }
                         } else {
                             @Suppress("DEPRECATION")
@@ -500,22 +502,24 @@ private fun fetchFreshLocation(
                             } else {
                                 "${location.latitude}, ${location.longitude}"
                             }
-                            scope.launch(Dispatchers.Main) { onResult(result) }
+                            scope.launch(Dispatchers.Main) {
+                                onResult(result, location.latitude, location.longitude)
+                            }
                         }
                     } catch (e: Exception) {
                         scope.launch(Dispatchers.Main) {
-                            onResult("${location.latitude}, ${location.longitude}")
+                            onResult("${location.latitude}, ${location.longitude}", location.latitude, location.longitude)
                         }
                     }
                 }
             } else {
-                onResult("Gagal mendapatkan lokasi")
+                onResult("Gagal mendapatkan lokasi", 0.0, 0.0)
             }
         }.addOnFailureListener {
-            onResult("Gagal mendeteksi lokasi")
+            onResult("Gagal mendeteksi lokasi", 0.0, 0.0)
         }
     } catch (e: SecurityException) {
-        onResult("Izin lokasi tidak diberikan")
+        onResult("Izin lokasi tidak diberikan", 0.0, 0.0)
     }
 }
 

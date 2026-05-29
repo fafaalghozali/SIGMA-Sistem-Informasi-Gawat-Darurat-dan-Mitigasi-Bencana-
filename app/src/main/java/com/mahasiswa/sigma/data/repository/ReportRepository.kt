@@ -48,6 +48,8 @@ class ReportRepository @Inject constructor(
             .setReporter(reporter)
             .setStatus(status)
             .setTimestamp(timestamp)
+            .setLatitude(latitude)
+            .setLongitude(longitude)
             .build()
     }
 
@@ -59,7 +61,9 @@ class ReportRepository @Inject constructor(
             location = location,
             reporter = reporter,
             status = status,
-            timestamp = timestamp
+            timestamp = timestamp,
+            latitude = latitude,
+            longitude = longitude
         )
     }
 }

@@ -36,8 +36,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     LaunchedEffect(userName, userEmail) {
-        if (viewModel.name.isEmpty()) viewModel.name = userName
-        if (viewModel.email.isEmpty()) viewModel.email = userEmail
+        viewModel.initData(userName, userEmail)
     }
 
     val name = viewModel.name

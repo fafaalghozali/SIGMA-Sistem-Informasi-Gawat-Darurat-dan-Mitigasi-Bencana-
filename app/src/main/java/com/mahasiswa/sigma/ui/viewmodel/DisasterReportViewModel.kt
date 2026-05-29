@@ -30,6 +30,8 @@ class DisasterReportViewModel @Inject constructor(
     var description by mutableStateOf("")
     var locationAddress by mutableStateOf("Mendeteksi lokasi...")
     var imageBitmap by mutableStateOf<Bitmap?>(null)
+    var currentLatitude by mutableStateOf(0.0)
+    var currentLongitude by mutableStateOf(0.0)
     
     var volunteerSkill by mutableStateOf<SkillsVolunteer?>(null)
     var volunteerName by mutableStateOf("")
@@ -60,7 +62,13 @@ class DisasterReportViewModel @Inject constructor(
 
     fun onTitleChange(newValue: String) { title = newValue }
     fun onDescriptionChange(newValue: String) { description = newValue }
-    fun onLocationReceived(address: String) { locationAddress = address }
+    fun onLocationReceived(address: String, lat: Double = 0.0, lng: Double = 0.0) {
+        locationAddress = address
+        if (lat != 0.0 && lng != 0.0) {
+            currentLatitude = lat
+            currentLongitude = lng
+        }
+    }
     fun onImageSelected(bitmap: Bitmap?) { 
         imageBitmap = bitmap 
         showPhotoSourceSheet = false
@@ -77,7 +85,9 @@ class DisasterReportViewModel @Inject constructor(
             val newReport = LocalDisasterReport(
                 title = title,
                 description = description,
-                location = locationAddress
+                location = locationAddress,
+                latitude = currentLatitude,
+                longitude = currentLongitude
             )
             repository.saveReport(newReport)
             

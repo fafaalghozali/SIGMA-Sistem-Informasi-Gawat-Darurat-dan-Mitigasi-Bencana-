@@ -28,7 +28,8 @@ class ProfileViewModel @Inject constructor(
     var errorMessage by mutableStateOf("")
 
     fun initData(initialName: String, initialEmail: String) {
-        if (originalEmail.isEmpty()) {
+        // Selalu update jika email berbeda (misal ganti akun)
+        if (originalEmail != initialEmail) {
             originalEmail = initialEmail
             name = initialName
             email = initialEmail

@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.protobuf)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
 }
@@ -63,22 +62,12 @@ android {
     }
 }
 
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}"
-    }
-    generateProtoTasks {
-        all().forEach { task ->
-            task.builtins {
-                create("java") {
-                    option("lite")
-                }
-            }
-        }
-    }
-}
-
 dependencies {
+    // Force browser version to 1.8.0 to avoid API 36 requirement from transitive dependencies
+    constraints {
+        implementation("androidx.browser:browser:1.8.0")
+    }
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -102,8 +91,6 @@ dependencies {
     implementation(libs.aandroidx.room.ktx)
     ksp(libs.aandroidx.room.compiler)
 
-    implementation(libs.androidx.datastore)
-    implementation(libs.protobuf.javalite)
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.hilt.navigation.compose)
@@ -114,6 +101,7 @@ dependencies {
     implementation(libs.supabase.auth)
     implementation(libs.supabase.storage)
     implementation(libs.ktor.client.android)
+    implementation(libs.androidx.browser)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

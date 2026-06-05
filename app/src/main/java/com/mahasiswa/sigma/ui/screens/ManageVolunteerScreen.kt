@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Phone
@@ -29,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import com.mahasiswa.sigma.VolunteerEntry
+import com.mahasiswa.sigma.data.repository.VolunteerDto
 import com.mahasiswa.sigma.ui.viewmodel.ManageVolunteerViewModel
 import kotlinx.coroutines.launch
 
@@ -40,12 +39,13 @@ fun ManageVolunteerScreen(
     viewModel: ManageVolunteerViewModel = hiltViewModel()
 ) {
     val registrations by viewModel.registrations.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     var selectedTab by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Filter registrations
-    val pendingList = registrations.filter { it.status == "Pending" || it.status.isBlank() }
+    // Filter registrations by status
+    val pendingList  = registrations.filter { it.status == "pending"  || it.status.isBlank() }
     val acceptedList = registrations.filter { it.status == "Accepted" || it.status == "Tersedia" || it.status == "Tidak Tersedia" }
     val declinedList = registrations.filter { it.status == "Declined" }
 
@@ -76,7 +76,6 @@ fun ManageVolunteerScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Elegant tab navigation
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -135,6 +134,13 @@ fun ManageVolunteerScreen(
                 )
             }
 
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                return@Column
+            }
+
             val currentList = when (selectedTab) {
                 0 -> pendingList
                 1 -> acceptedList
@@ -190,17 +196,19 @@ fun ManageVolunteerScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(currentList, key = { it.username }) { volunteer ->
+                    items(currentList, key = { it.id ?: it.userId ?: it.name }) { volunteer ->
                         VolunteerCardItem(
                             volunteer = volunteer,
                             onApprove = {
-                                viewModel.approveVolunteer(volunteer.username)
+                                val id = volunteer.id ?: return@VolunteerCardItem
+                                viewModel.approveVolunteer(id)
                                 scope.launch {
                                     snackbarHostState.showSnackbar("Pendaftaran ${volunteer.name} disetujui.")
                                 }
                             },
                             onReject = {
-                                viewModel.rejectVolunteer(volunteer.username)
+                                val id = volunteer.id ?: return@VolunteerCardItem
+                                viewModel.rejectVolunteer(id)
                                 scope.launch {
                                     snackbarHostState.showSnackbar("Pendaftaran ${volunteer.name} ditolak.")
                                 }
@@ -215,27 +223,24 @@ fun ManageVolunteerScreen(
 
 @Composable
 fun VolunteerCardItem(
-    volunteer: VolunteerEntry,
+    volunteer: VolunteerDto,
     onApprove: () -> Unit,
     onReject: () -> Unit
 ) {
-    // Elegant color mapping for skills
-    val skillColor = when (volunteer.skill) {
-        "Medis" -> Color(0xFF2196F3)      // Blue
-        "SAR" -> Color(0xFFFF5722)        // Orange-Red
-        "Logistik" -> Color(0xFF4CAF50)   // Green
-        "Psikososial" -> Color(0xFF9C27B0)// Purple
-        "Konsumsi" -> Color(0xFFFFC107)   // Amber
-        "Pendidikan" -> Color(0xFF009688) // Teal
-        else -> Color(0xFF757575)         // Grey
+    val skillColor = when (volunteer.skill.uppercase()) {
+        "MEDIS"       -> Color(0xFF2196F3)
+        "SAR"         -> Color(0xFFFF5722)
+        "LOGISTIK"    -> Color(0xFF4CAF50)
+        "PSIKOSOSIAL" -> Color(0xFF9C27B0)
+        "KONSUMSI"    -> Color(0xFFFFC107)
+        "PENDIDIKAN"  -> Color(0xFF009688)
+        else          -> Color(0xFF757575)
     }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -243,12 +248,10 @@ fun VolunteerCardItem(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Profile Header & Skill Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Circular Initial Icon
                 Box(
                     modifier = Modifier
                         .size(44.dp)
@@ -275,13 +278,13 @@ fun VolunteerCardItem(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = volunteer.username,
+                        text = volunteer.userId ?: "-",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-
-                // Skill Badge
                 Surface(
                     shape = RoundedCornerShape(32.dp),
                     color = skillColor.copy(alpha = 0.12f),
@@ -297,10 +300,9 @@ fun VolunteerCardItem(
             }
 
             Spacer(modifier = Modifier.height(14.dp))
-            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Phone Details
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -321,7 +323,6 @@ fun VolunteerCardItem(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Domisili Details
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top
@@ -341,16 +342,17 @@ fun VolunteerCardItem(
                 )
             }
 
-            // Status Indicator (for non-pending lists)
-            if (volunteer.status != "Pending" && volunteer.status.isNotBlank()) {
+            if (volunteer.status != "pending" && volunteer.status.isNotBlank()) {
                 Spacer(modifier = Modifier.height(14.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
                         .background(
-                            if (volunteer.status == "Declined") MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
-                            else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                            if (volunteer.status == "Declined")
+                                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+                            else
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
                         )
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -359,20 +361,25 @@ fun VolunteerCardItem(
                         imageVector = if (volunteer.status == "Declined") Icons.Default.Cancel else Icons.Default.CheckCircle,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = if (volunteer.status == "Declined") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        tint = if (volunteer.status == "Declined")
+                            MaterialTheme.colorScheme.error
+                        else
+                            MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Status: ${volunteer.status}",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (volunteer.status == "Declined") MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer
+                        color = if (volunteer.status == "Declined")
+                            MaterialTheme.colorScheme.onErrorContainer
+                        else
+                            MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
 
-            // Action Buttons (Pending / Rejected lists)
-            if (volunteer.status == "Pending" || volunteer.status.isBlank() || volunteer.status == "Declined") {
+            if (volunteer.status == "pending" || volunteer.status.isBlank() || volunteer.status == "Declined") {
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -416,7 +423,6 @@ fun VolunteerCardItem(
                     }
                 }
             } else {
-                // If it is accepted, let BNPB revoke if necessary
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
                     onClick = onReject,

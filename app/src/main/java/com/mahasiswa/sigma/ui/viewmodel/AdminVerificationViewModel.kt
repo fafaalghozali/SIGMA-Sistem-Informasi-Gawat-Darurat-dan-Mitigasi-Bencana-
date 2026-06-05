@@ -22,6 +22,9 @@ class AdminVerificationViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _actionError = MutableStateFlow<String?>(null)
+    val actionError: StateFlow<String?> = _actionError.asStateFlow()
+
     init {
         loadPendingReports()
     }
@@ -34,17 +37,28 @@ class AdminVerificationViewModel @Inject constructor(
         }
     }
 
-    fun verifyReport(reportId: String) {
+    /**
+     * Verify a report with a given alert level.
+     * @param reportId the ID of the disaster report
+     * @param newStatus one of "siaga_1", "siaga_2", "awas" (defaults to "siaga_1")
+     */
+    fun verifyReport(reportId: String, newStatus: String = "siaga_1") {
         viewModelScope.launch {
-            repository.verifyReport(reportId)
+            val result = repository.verifyReport(reportId, newStatus)
+            result.onFailure { _actionError.value = it.message }
             loadPendingReports()
         }
     }
 
     fun rejectReport(reportId: String) {
         viewModelScope.launch {
-            repository.rejectReport(reportId)
+            val result = repository.rejectReport(reportId)
+            result.onFailure { _actionError.value = it.message }
             loadPendingReports()
         }
+    }
+
+    fun clearActionError() {
+        _actionError.value = null
     }
 }

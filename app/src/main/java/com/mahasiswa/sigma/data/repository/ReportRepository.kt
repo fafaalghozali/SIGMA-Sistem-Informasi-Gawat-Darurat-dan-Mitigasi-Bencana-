@@ -1,5 +1,6 @@
 package com.mahasiswa.sigma.data.repository
 
+import android.net.Uri
 import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import io.github.jan.supabase.SupabaseClient
@@ -39,17 +40,24 @@ data class DisasterDto(
 @Singleton
 class ReportRepository @Inject constructor(
     private val supabase: SupabaseClient,
-    private val authManager: AuthManager
+    private val authManager: AuthManager,
+    private val storageRepository: StorageRepository
 ) {
 
     // -----------------------------------------------------------------------
-    // Task 3.3 — saveReport
+    // Task 3.3 — saveReport (with optional photo upload, Task 8.4)
     // -----------------------------------------------------------------------
 
-    suspend fun saveReport(report: LocalDisasterReport): Result<Unit> {
+    suspend fun saveReport(report: LocalDisasterReport, photoUri: Uri? = null): Result<Unit> {
         return try {
             val userId = authManager.getCurrentUserId()
-            val dto = report.toDto(userId = userId, status = "pending")
+
+            // Upload photo if provided, get public URL
+            val photoUrl: String? = if (photoUri != null && userId != null) {
+                storageRepository.uploadDisasterPhoto(userId, photoUri).getOrNull()
+            } else null
+
+            val dto = report.toDto(userId = userId, status = "pending", photoUrl = photoUrl)
             supabase.from("disasters").insert(dto)
             Result.success(Unit)
         } catch (e: RestException) {
@@ -138,7 +146,8 @@ class ReportRepository @Inject constructor(
 
     private fun LocalDisasterReport.toDto(
         userId: String?,
-        status: String
+        status: String,
+        photoUrl: String? = null
     ): DisasterDto = DisasterDto(
         id = id,
         userId = userId,
@@ -148,7 +157,8 @@ class ReportRepository @Inject constructor(
         latitude = latitude,
         longitude = longitude,
         status = status,
-        reporterName = reporter
+        reporterName = reporter,
+        photoUrl = photoUrl
     )
 
     private fun DisasterDto.toDomainModel(): LocalDisasterReport = LocalDisasterReport(

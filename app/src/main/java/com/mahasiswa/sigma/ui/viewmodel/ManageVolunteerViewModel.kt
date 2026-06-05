@@ -2,7 +2,7 @@ package com.mahasiswa.sigma.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mahasiswa.sigma.VolunteerEntry
+import com.mahasiswa.sigma.data.repository.VolunteerDto
 import com.mahasiswa.sigma.data.repository.VolunteerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,8 +16,14 @@ class ManageVolunteerViewModel @Inject constructor(
     private val volunteerRepository: VolunteerRepository
 ) : ViewModel() {
 
-    private val _registrations = MutableStateFlow<List<VolunteerEntry>>(emptyList())
-    val registrations: StateFlow<List<VolunteerEntry>> = _registrations.asStateFlow()
+    private val _registrations = MutableStateFlow<List<VolunteerDto>>(emptyList())
+    val registrations: StateFlow<List<VolunteerDto>> = _registrations.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     init {
         loadRegistrations()
@@ -25,20 +31,27 @@ class ManageVolunteerViewModel @Inject constructor(
 
     fun loadRegistrations() {
         viewModelScope.launch {
-            _registrations.value = volunteerRepository.getAllRegistrations()
+            _isLoading.value = true
+            _errorMessage.value = null
+            val result = volunteerRepository.getAllRegistrations()
+            result.fold(
+                onSuccess = { _registrations.value = it },
+                onFailure = { _errorMessage.value = it.message }
+            )
+            _isLoading.value = false
         }
     }
 
-    fun approveVolunteer(username: String) {
+    fun approveVolunteer(volunteerId: String) {
         viewModelScope.launch {
-            volunteerRepository.updateVolunteerStatus(username, "Accepted")
+            volunteerRepository.updateVolunteerStatusById(volunteerId, "Accepted")
             loadRegistrations()
         }
     }
 
-    fun rejectVolunteer(username: String) {
+    fun rejectVolunteer(volunteerId: String) {
         viewModelScope.launch {
-            volunteerRepository.updateVolunteerStatus(username, "Declined")
+            volunteerRepository.updateVolunteerStatusById(volunteerId, "Declined")
             loadRegistrations()
         }
     }

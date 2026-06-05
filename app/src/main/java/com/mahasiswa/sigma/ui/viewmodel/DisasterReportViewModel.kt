@@ -49,6 +49,8 @@ class DisasterReportViewModel @Inject constructor(
     var showIncompleteDialog by mutableStateOf(false)
     var showPhotoSourceSheet by mutableStateOf(false)
     var isLoading by mutableStateOf(false)
+    var saveErrorMessage by mutableStateOf<String?>(null)
+    var saveSuccess by mutableStateOf(false)
 
     init {
         loadReports()
@@ -82,6 +84,8 @@ class DisasterReportViewModel @Inject constructor(
 
         viewModelScope.launch {
             isLoading = true
+            saveErrorMessage = null
+            saveSuccess = false
             val newReport = LocalDisasterReport(
                 title = title,
                 description = description,
@@ -89,13 +93,17 @@ class DisasterReportViewModel @Inject constructor(
                 latitude = currentLatitude,
                 longitude = currentLongitude
             )
-            repository.saveReport(newReport)
-            
-            title = ""
-            description = ""
-            imageBitmap = null
-            
-            loadReports()
+            val result = repository.saveReport(newReport)
+            if (result.isSuccess) {
+                title = ""
+                description = ""
+                imageBitmap = null
+                saveSuccess = true
+                loadReports()
+            } else {
+                saveErrorMessage = result.exceptionOrNull()?.message
+                    ?: "Gagal mengirim laporan. Coba lagi."
+            }
             isLoading = false
         }
     }
@@ -103,6 +111,8 @@ class DisasterReportViewModel @Inject constructor(
     fun sendVolunteerReport(disasterTitle: String, dataLaporan: String, catatanTambahan: String) {
         viewModelScope.launch {
             isLoading = true
+            saveErrorMessage = null
+            saveSuccess = false
             val formattedTitle = "[LAPORAN TUGAS - ${volunteerSkill?.name ?: "UMUM"}] Terkait: $disasterTitle"
             val formattedDescription = """
                 DATA LAPORAN:
@@ -119,10 +129,21 @@ class DisasterReportViewModel @Inject constructor(
                 reporter = volunteerName.ifBlank { "Relawan" },
                 status = "Verified"
             )
-            repository.saveReport(newReport)
-            loadReports()
+            val result = repository.saveReport(newReport)
+            if (result.isSuccess) {
+                saveSuccess = true
+                loadReports()
+            } else {
+                saveErrorMessage = result.exceptionOrNull()?.message
+                    ?: "Gagal mengirim laporan. Coba lagi."
+            }
             isLoading = false
         }
+    }
+
+    fun clearSaveState() {
+        saveErrorMessage = null
+        saveSuccess = false
     }
 
 

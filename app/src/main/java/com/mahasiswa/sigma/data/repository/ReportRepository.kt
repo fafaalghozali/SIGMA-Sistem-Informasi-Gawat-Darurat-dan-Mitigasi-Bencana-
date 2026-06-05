@@ -1,69 +1,164 @@
 package com.mahasiswa.sigma.data.repository
 
-import androidx.datastore.core.DataStore
-import com.mahasiswa.sigma.DisasterReportEntry
-import com.mahasiswa.sigma.DisasterReportsData
+import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
-import com.mahasiswa.sigma.di.DisasterReportsDataStore
-import kotlinx.coroutines.flow.first
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.exceptions.RestException
+import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
+import io.ktor.client.plugins.HttpRequestTimeoutException
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// ---------------------------------------------------------------------------
+// Task 3.1 — DTO for the "disasters" Supabase table
+// ---------------------------------------------------------------------------
+
+@Serializable
+data class DisasterDto(
+    val id: String? = null,
+    @SerialName("user_id") val userId: String? = null,
+    val title: String,
+    val description: String,
+    @SerialName("disaster_type") val disasterType: String? = null,
+    val location: String,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val status: String = "pending",
+    @SerialName("reporter_name") val reporterName: String,
+    @SerialName("photo_url") val photoUrl: String? = null,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+// ---------------------------------------------------------------------------
+// Task 3.2 — Repository wired to SupabaseClient + AuthManager
+// ---------------------------------------------------------------------------
+
 @Singleton
 class ReportRepository @Inject constructor(
-    @DisasterReportsDataStore private val dataStore: DataStore<DisasterReportsData>
+    private val supabase: SupabaseClient,
+    private val authManager: AuthManager
 ) {
 
-    suspend fun saveReport(report: LocalDisasterReport) {
-        dataStore.updateData { currentData ->
-            val newEntry = report.toProtoEntry()
-            currentData.toBuilder()
-                .addReports(0, newEntry)
-                .build()
+    // -----------------------------------------------------------------------
+    // Task 3.3 — saveReport
+    // -----------------------------------------------------------------------
+
+    suspend fun saveReport(report: LocalDisasterReport): Result<Unit> {
+        return try {
+            val userId = authManager.getCurrentUserId()
+            val dto = report.toDto(userId = userId, status = "pending")
+            supabase.from("disasters").insert(dto)
+            Result.success(Unit)
+        } catch (e: RestException) {
+            Result.failure(Exception("Gagal menyimpan laporan: ${e.message}"))
+        } catch (e: HttpRequestTimeoutException) {
+            Result.failure(Exception("Tidak ada koneksi internet. Periksa jaringan Anda."))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
+
+    // -----------------------------------------------------------------------
+    // Task 3.4 — getAllReports
+    // Returns List (not Result) for backward compatibility with callers that
+    // do not handle Result, e.g. DashboardActivity and ViewModels.
+    // Returns emptyList on any error.
+    // -----------------------------------------------------------------------
 
     suspend fun getAllReports(): List<LocalDisasterReport> {
-        val data = dataStore.data.first()
-        return data.reportsList.map { it.toDomainModel() }
-    }
-
-    suspend fun updateReport(updatedReport: LocalDisasterReport) {
-        dataStore.updateData { currentData ->
-            val index = currentData.reportsList.indexOfFirst { it.id == updatedReport.id }
-            if (index == -1) return@updateData currentData
-
-            currentData.toBuilder()
-                .setReports(index, updatedReport.toProtoEntry())
-                .build()
+        return try {
+            supabase.from("disasters")
+                .select {
+                    order("created_at", Order.DESCENDING)
+                }
+                .decodeList<DisasterDto>()
+                .map { it.toDomainModel() }
+        } catch (e: RestException) {
+            emptyList()
+        } catch (e: HttpRequestTimeoutException) {
+            emptyList()
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 
-    private fun LocalDisasterReport.toProtoEntry(): DisasterReportEntry {
-        return DisasterReportEntry.newBuilder()
-            .setId(id)
-            .setTitle(title)
-            .setDescription(description)
-            .setLocation(location)
-            .setReporter(reporter)
-            .setStatus(status)
-            .setTimestamp(timestamp)
-            .setLatitude(latitude)
-            .setLongitude(longitude)
-            .build()
+    // -----------------------------------------------------------------------
+    // Task 3.5 — getReportById
+    // Returns nullable for backward compatibility; returns null on error.
+    // -----------------------------------------------------------------------
+
+    suspend fun getReportById(id: String): LocalDisasterReport? {
+        return try {
+            supabase.from("disasters")
+                .select {
+                    filter {
+                        eq("id", id)
+                    }
+                }
+                .decodeSingle<DisasterDto>()
+                .toDomainModel()
+        } catch (e: RestException) {
+            null
+        } catch (e: HttpRequestTimeoutException) {
+            null
+        } catch (e: Exception) {
+            null
+        }
     }
 
-    private fun DisasterReportEntry.toDomainModel(): LocalDisasterReport {
-        return LocalDisasterReport(
-            id = id,
-            title = title,
-            description = description,
-            location = location,
-            reporter = reporter,
-            status = status,
-            timestamp = timestamp,
-            latitude = latitude,
-            longitude = longitude
-        )
+    // -----------------------------------------------------------------------
+    // Task 3.6 — updateReport
+    // -----------------------------------------------------------------------
+
+    suspend fun updateReport(report: LocalDisasterReport): Result<Unit> {
+        return try {
+            val userId = authManager.getCurrentUserId()
+            val dto = report.toDto(userId = userId, status = report.status)
+            supabase.from("disasters").update(dto) {
+                filter {
+                    eq("id", report.id)
+                }
+            }
+            Result.success(Unit)
+        } catch (e: RestException) {
+            Result.failure(Exception("Gagal memperbarui laporan: ${e.message}"))
+        } catch (e: HttpRequestTimeoutException) {
+            Result.failure(Exception("Tidak ada koneksi internet. Periksa jaringan Anda."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
+
+    // -----------------------------------------------------------------------
+    // Mapping helpers
+    // -----------------------------------------------------------------------
+
+    private fun LocalDisasterReport.toDto(
+        userId: String?,
+        status: String
+    ): DisasterDto = DisasterDto(
+        id = id,
+        userId = userId,
+        title = title,
+        description = description,
+        location = location,
+        latitude = latitude,
+        longitude = longitude,
+        status = status,
+        reporterName = reporter
+    )
+
+    private fun DisasterDto.toDomainModel(): LocalDisasterReport = LocalDisasterReport(
+        id = id ?: java.util.UUID.randomUUID().toString(),
+        title = title,
+        description = description,
+        location = location,
+        reporter = reporterName,
+        status = status,
+        latitude = latitude,
+        longitude = longitude
+    )
 }

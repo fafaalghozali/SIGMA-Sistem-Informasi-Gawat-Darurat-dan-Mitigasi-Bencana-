@@ -37,14 +37,15 @@ class RegisterViewModel @Inject constructor(
         if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
             if (isEmailValid(email)) {
                 viewModelScope.launch {
-                    val isSaved = authManager.registerUser(email, password, selectedRole, name)
-                    if (isSaved) {
+                    val result = authManager.registerUser(email, password, selectedRole, name)
+                    if (result.isSuccess) {
                         registrationSuccess = true
                         dialogMessage = "Akun Anda telah berhasil didaftarkan ke sistem SIGMA. Silakan masuk untuk melanjutkan."
                         showDialog = true
                     } else {
                         registrationSuccess = false
-                        dialogMessage = "Terjadi kesalahan saat menyimpan data. Silakan coba lagi."
+                        dialogMessage = result.exceptionOrNull()?.message
+                            ?: "Terjadi kesalahan saat menyimpan data. Silakan coba lagi."
                         showDialog = true
                     }
                 }

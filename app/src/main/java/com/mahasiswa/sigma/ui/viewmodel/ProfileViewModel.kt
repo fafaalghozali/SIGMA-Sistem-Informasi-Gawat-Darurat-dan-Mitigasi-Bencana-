@@ -49,12 +49,13 @@ class ProfileViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val success = authManager.updateProfile(originalEmail, name, email)
-            if (success) {
+            val result = authManager.updateProfile(name, email)
+            if (result.isSuccess) {
                 originalEmail = email
                 isUpdateSuccess = true
             } else {
-                errorMessage = "Gagal memperbarui profil"
+                errorMessage = result.exceptionOrNull()?.message
+                    ?: "Gagal memperbarui profil"
                 isUpdateError = true
             }
         }

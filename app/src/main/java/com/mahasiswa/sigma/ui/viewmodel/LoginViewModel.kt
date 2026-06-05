@@ -21,7 +21,9 @@ data class LoginUiState(
     val showErrorDialog: Boolean = false,
     val errorMessage: String = "",
     val showSuccessDialog: Boolean = false,
-    val loggedInName: String = ""
+    val loggedInName: String = "",
+    // Role returned from the server after a successful login (source of truth)
+    val loggedInRole: UserRole = UserRole.MASYARAKAT
 )
 
 @HiltViewModel
@@ -77,29 +79,23 @@ class LoginViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val userRole = authManager.loginUser(currentState.email, currentState.password, currentState.selectedRole)
-            if (userRole != null) {
-                if (userRole == currentState.selectedRole) {
-                    val name = authManager.getUserName(currentState.email)
-                    _uiState.update { 
-                        it.copy(
-                            showSuccessDialog = true, 
-                            loggedInName = name 
-                        ) 
-                    }
-                } else {
-                    _uiState.update { 
-                        it.copy(
-                            showErrorDialog = true, 
-                            errorMessage = "Role yang Anda pilih tidak sesuai dengan akun ini."
-                        ) 
-                    }
+            val result = authManager.loginUser(currentState.email, currentState.password)
+            if (result.isSuccess) {
+                val role = result.getOrDefault(UserRole.MASYARAKAT)
+                val name = authManager.getUserName()
+                _uiState.update { 
+                    it.copy(
+                        showSuccessDialog = true, 
+                        loggedInName = name,
+                        loggedInRole = role
+                    ) 
                 }
             } else {
                 _uiState.update { 
                     it.copy(
                         showErrorDialog = true, 
-                        errorMessage = "Email atau Password salah. Silakan periksa kembali."
+                        errorMessage = result.exceptionOrNull()?.message
+                            ?: "Email atau Password salah. Silakan periksa kembali."
                     ) 
                 }
             }

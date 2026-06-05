@@ -49,8 +49,8 @@ class DashboardActivity : ComponentActivity() {
                     mutableStateOf("")
                 }
 
-                LaunchedEffect(userEmailState) {
-                    userNameState = authManager.getUserName(userEmailState)
+                LaunchedEffect(Unit) {
+                    userNameState = authManager.getUserName()
                 }
                 
                 DashboardNavigation(

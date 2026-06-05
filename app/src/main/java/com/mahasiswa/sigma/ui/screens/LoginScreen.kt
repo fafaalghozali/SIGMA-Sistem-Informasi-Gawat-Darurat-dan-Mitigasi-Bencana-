@@ -54,7 +54,7 @@ fun LoginScreen(
         onDismissError = viewModel::onDismissErrorDialog,
         onConfirmSuccess = {
             viewModel.resetLoginState()
-            onNavigateToDashboard(uiState.selectedRole, uiState.email, uiState.loggedInName)
+            onNavigateToDashboard(uiState.loggedInRole, uiState.email, uiState.loggedInName)
         }
     )
 }

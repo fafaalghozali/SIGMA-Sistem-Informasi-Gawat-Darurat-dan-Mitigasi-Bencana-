@@ -42,7 +42,7 @@ fun ImagePickerScreen(
 ) {
     val context = LocalContext.current
     val viewModel: ImagePickerViewModel = hiltViewModel()
-    
+
     val selectedBitmap by viewModel.selectedBitmap.collectAsState()
 
     LaunchedEffect(selectedBitmap) {

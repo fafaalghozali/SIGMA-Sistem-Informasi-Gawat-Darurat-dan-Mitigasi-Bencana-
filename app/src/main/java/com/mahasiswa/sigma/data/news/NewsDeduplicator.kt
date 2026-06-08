@@ -2,21 +2,10 @@ package com.mahasiswa.sigma.data.news
 
 import com.mahasiswa.sigma.data.model.NewsItem
 
-
-
-
-
-
-
-
-
-
-
 object NewsDeduplicator {
 
     private const val SIMILARITY_THRESHOLD = 0.60
 
-    
     private val STOP_WORDS = setOf(
         "di", "ke", "dari", "yang", "dan", "dengan", "untuk", "dalam",
         "pada", "oleh", "ini", "itu", "atau", "juga", "sudah", "telah",
@@ -25,15 +14,9 @@ object NewsDeduplicator {
         "warga", "pihak", "dua", "tiga", "satu", "lima", "puluh"
     )
 
-    
-
-
-
-
     fun deduplicate(items: List<NewsItem>): List<NewsItem> {
         if (items.size <= 1) return items
 
-        
         val accepted = mutableListOf<NewsItem>()
 
         for (candidate in items) {
@@ -45,10 +28,10 @@ object NewsDeduplicator {
             }
 
             if (duplicateIndex == -1) {
-                
+
                 accepted.add(candidate)
             } else {
-                
+
                 val existing = accepted[duplicateIndex]
                 val better = pickBetter(candidate, existing)
                 if (better !== existing) {
@@ -59,15 +42,6 @@ object NewsDeduplicator {
 
         return accepted
     }
-
-    
-
-    
-
-
-
-
-
 
     private fun jaccardSimilarity(a: String, b: String): Double {
         val bigramsA = wordBigrams(a)
@@ -82,17 +56,12 @@ object NewsDeduplicator {
         return if (union == 0.0) 0.0 else intersection / union
     }
 
-    
-
-
-
     private fun wordBigrams(text: String): Set<Pair<String, String>> {
         val words = text.split(" ").filter { it.length > 2 }
         if (words.size < 2) return emptySet()
         return (0 until words.size - 1).map { Pair(words[it], words[it + 1]) }.toSet()
     }
 
-    
     private fun normalizeTitle(title: String): String {
         return title
             .lowercase()
@@ -102,15 +71,11 @@ object NewsDeduplicator {
             .joinToString(" ")
     }
 
-    
-
-    
     private fun pickBetter(a: NewsItem, b: NewsItem): NewsItem {
-        
+
         if (a.isOfficial && !b.isOfficial) return a
         if (b.isOfficial && !a.isOfficial) return b
 
-        
         val severityOrder = mapOf(
             com.mahasiswa.sigma.data.model.NewsSeverity.DARURAT to 2,
             com.mahasiswa.sigma.data.model.NewsSeverity.WASPADA to 1,
@@ -120,7 +85,6 @@ object NewsDeduplicator {
         val bScore = severityOrder[b.severity] ?: 0
         if (aScore != bScore) return if (aScore > bScore) a else b
 
-        
         return if (a.publishedAt >= b.publishedAt) a else b
     }
 }

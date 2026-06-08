@@ -16,18 +16,18 @@ enum class MenuCategory {
 }
 
 data class NewsItem(
-    val id: String,                
+    val id: String,
     val title: String,
-    val time: String,              
-    val publishedAt: Long = 0L,    
-    val category: String,          
+    val time: String,
+    val publishedAt: Long = 0L,
+    val category: String,
     val categoryColor: Color = Color.Gray,
     val imageUrl: String? = null,
-    val source: String = "",       
-    val link: String = "",         
+    val source: String = "",
+    val link: String = "",
     val severity: NewsSeverity = NewsSeverity.INFO,
-    val isOfficial: Boolean = false,  
-    val region: String? = null     
+    val isOfficial: Boolean = false,
+    val region: String? = null
 )
 
 enum class NewsSeverity { INFO, WASPADA, DARURAT }
@@ -38,9 +38,9 @@ data class WeatherInfo(
     val temperature: String,
     val riskStatus: String,
     val riskColor: Color,
-    val weatherCode: Int = 0,        
-    val humidity: String = "--",      
-    val windSpeed: String = "--",     
+    val weatherCode: Int = 0,
+    val humidity: String = "--",
+    val windSpeed: String = "--",
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
@@ -49,15 +49,11 @@ data class EarthquakeInfo(
     val location: String,
     val depth: String,
     val time: String,
-    val felt: String        
+    val felt: String
 )
 
-
-
-
-
 data class BmkgWarning(
-    val type: String,               
+    val type: String,
     val message: String,
     val severity: WarningSeverity,
     val time: String

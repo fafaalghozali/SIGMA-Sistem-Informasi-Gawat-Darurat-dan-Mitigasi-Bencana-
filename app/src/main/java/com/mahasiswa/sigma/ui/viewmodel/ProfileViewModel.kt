@@ -17,18 +17,18 @@ class ProfileViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var originalEmail: String = ""
-    
+
     var name by mutableStateOf("")
     var email by mutableStateOf("")
     var imageBitmap by mutableStateOf<Bitmap?>(null)
     var showImageSheet by mutableStateOf(false)
-    
+
     var isUpdateSuccess by mutableStateOf(false)
     var isUpdateError by mutableStateOf(false)
     var errorMessage by mutableStateOf("")
 
     fun initData(initialName: String, initialEmail: String) {
-        // Selalu update jika email berbeda (misal ganti akun)
+
         if (originalEmail != initialEmail) {
             originalEmail = initialEmail
             name = initialName
@@ -60,7 +60,7 @@ class ProfileViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun dismissDialogs() {
         isUpdateSuccess = false
         isUpdateError = false

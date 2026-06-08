@@ -9,17 +9,18 @@ import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.exceptions.RestException
 import io.github.jan.supabase.postgrest.from
 import io.ktor.client.plugins.HttpRequestTimeoutException
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import org.mindrot.jbcrypt.BCrypt
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
-
-@Serializable
-private data class ProfileDto(
-    val id: String,
-    @SerialName("full_name") val fullName: String,
-    val role: String
-)
 
 @Singleton
 class AuthManager @Inject constructor(
@@ -28,65 +29,124 @@ class AuthManager @Inject constructor(
 
     suspend fun registerUser(email: String, pass: String, role: UserRole, name: String): Result<Unit> {
         return try {
-            // Step 1: Register user with Supabase Auth
+
             supabase.auth.signUpWith(Email) {
                 this.email = email
                 this.password = pass
+                this.data = buildJsonObject {
+                    put("full_name", name)
+
+                    put("role", role.displayName)
+                }
             }
 
-            // Step 2: Get the newly created user's ID
-            val userId = supabase.auth.currentUserOrNull()?.id
-                ?: return Result.failure(Exception("Registrasi berhasil tetapi gagal mendapatkan ID pengguna."))
+            val userId = supabase.auth.currentSessionOrNull()?.user?.id
+            if (userId != null) {
+                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                val now = LocalDateTime.now().format(formatter)
+                val rememberToken = (1..40)
+                    .map { "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".random() }
+                    .joinToString("")
+                val hashedPassword = withContext(Dispatchers.Default) {
+                    BCrypt.hashpw(pass, BCrypt.gensalt(12))
+                }
 
-            // Step 3: Insert profile data into the profiles table
-            supabase.from("profiles").insert(
-                mapOf(
-                    "id" to userId,
-                    "full_name" to name,
-                    "role" to role.name
-                )
-            )
+                runCatching {
+                    supabase.from("profiles").upsert(
+                        buildJsonObject {
+                            put("id", userId)
+                            put("full_name", name)
+                            put("role", role.displayName)
+                            put("email", email)
+                            put("password", hashedPassword)
+                            put("remember_token", rememberToken)
+                            put("created_at", now)
+                            put("updated_at", now)
+                        }
+                    )
+                }
+            }
 
             Result.success(Unit)
-        } catch (e: RestException) {
+        } catch (e: AuthRestException) {
             val message = when {
                 e.message?.contains("already registered", ignoreCase = true) == true ||
                 e.message?.contains("already been registered", ignoreCase = true) == true ||
+                e.message?.contains("User already registered", ignoreCase = true) == true ->
+                    "Email sudah terdaftar. Gunakan email lain atau login dengan email tersebut."
+                e.message?.contains("Password should be", ignoreCase = true) == true ->
+                    "Password terlalu lemah. Gunakan minimal 6 karakter."
+                e.message?.contains("Unable to validate email", ignoreCase = true) == true ->
+                    "Format email tidak valid. Periksa kembali alamat email Anda."
+                e.message?.contains("signup_disabled", ignoreCase = true) == true ->
+                    "Pendaftaran akun sementara dinonaktifkan. Hubungi administrator."
+                else -> "Registrasi gagal: ${e.message ?: "Terjadi kesalahan pada server autentikasi."}"
+            }
+            Result.failure(Exception(message))
+        } catch (e: RestException) {
+            val message = when {
+                e.message?.contains("already registered", ignoreCase = true) == true ||
                 e.message?.contains("duplicate", ignoreCase = true) == true ||
                 e.message?.contains("unique", ignoreCase = true) == true ->
                     "Email sudah terdaftar. Gunakan email lain atau login dengan email tersebut."
-                else -> "Registrasi gagal: ${e.message}"
+                e.message?.contains("violates", ignoreCase = true) == true ||
+                e.message?.contains("constraint", ignoreCase = true) == true ->
+                    "Gagal menyimpan data profil. Pastikan semua data yang diisi valid."
+                else -> "Registrasi gagal: ${e.message ?: "Terjadi kesalahan pada server."}"
             }
             Result.failure(Exception(message))
         } catch (e: HttpRequestTimeoutException) {
-            Result.failure(Exception("Tidak ada koneksi internet. Periksa jaringan Anda."))
+            Result.failure(Exception("Koneksi timeout. Periksa jaringan internet Anda dan coba lagi."))
         } catch (e: Exception) {
-            Result.failure(e)
+            val message = when {
+                e.message?.contains("Unable to resolve host", ignoreCase = true) == true ->
+                    "Tidak dapat terhubung ke server. Periksa koneksi internet Anda."
+                e.message?.contains("timeout", ignoreCase = true) == true ->
+                    "Koneksi timeout. Coba lagi beberapa saat."
+                e.message.isNullOrBlank() || e.message == "Unknown Error" ->
+                    "Terjadi kesalahan tidak dikenal. Pastikan koneksi internet aktif dan coba lagi."
+                else -> "Registrasi gagal: ${e.message}"
+            }
+            Result.failure(Exception(message))
         }
     }
 
     suspend fun loginUser(email: String, pass: String): Result<UserRole> {
         return try {
-            // Step 1: Authenticate with Supabase Auth
             supabase.auth.signInWith(Email) {
                 this.email = email
                 this.password = pass
             }
 
-            // Step 2: Get the authenticated user's ID
-            val userId = supabase.auth.currentUserOrNull()?.id
+            val session = supabase.auth.currentSessionOrNull()
+            val userId = session?.user?.id
                 ?: return Result.failure(Exception("Login berhasil tetapi gagal mendapatkan ID pengguna."))
 
-            // Step 3: Query profiles table to get role and full_name
-            val profile = supabase.from("profiles")
+            val profilesById = supabase.from("profiles")
                 .select {
-                    filter {
-                        eq("id", userId)
-                    }
+                    filter { eq("id", userId) }
+                    limit(1)
                 }
-                .decodeSingle<ProfileDto>()
+                .decodeList<JsonObject>()
 
-            Result.success(UserRole.fromString(profile.role))
+            if (profilesById.isNotEmpty()) {
+                val roleStr = profilesById.first()["role"]?.jsonPrimitive?.contentOrNull ?: "Masyarakat"
+                return Result.success(UserRole.fromString(roleStr))
+            }
+
+            val profilesByEmail = supabase.from("profiles")
+                .select {
+                    filter { eq("email", email) }
+                    limit(1)
+                }
+                .decodeList<JsonObject>()
+
+            if (profilesByEmail.isNotEmpty()) {
+                val roleStr = profilesByEmail.first()["role"]?.jsonPrimitive?.contentOrNull ?: "Masyarakat"
+                return Result.success(UserRole.fromString(roleStr))
+            }
+
+            Result.failure(Exception("Profil pengguna tidak ditemukan di database."))
         } catch (e: AuthRestException) {
             val message = when {
                 e.message?.contains("Invalid login credentials", ignoreCase = true) == true ->
@@ -113,20 +173,22 @@ class AuthManager @Inject constructor(
 
             val userId = session.user?.id ?: return null
 
-            val profile = supabase.from("profiles")
+            val profiles = supabase.from("profiles")
                 .select {
                     filter {
                         eq("id", userId)
                     }
                 }
-                .decodeSingle<ProfileDto>()
+                .decodeList<JsonObject>()
 
-            UserRole.fromString(profile.role)
+            val profile = profiles.firstOrNull() ?: return null
+            val roleStr = profile["role"]?.jsonPrimitive?.contentOrNull ?: "MASYARAKAT"
+            UserRole.fromString(roleStr)
         } catch (e: AuthSessionMissingException) {
-            // Session expired or missing — user must log in again
+
             null
         } catch (e: HttpRequestTimeoutException) {
-            // Network unavailable — treat as no session to avoid crash
+
             null
         } catch (e: Exception) {
             null
@@ -146,15 +208,19 @@ class AuthManager @Inject constructor(
             ?: return ""
 
         return try {
-            val profile = supabase.from("profiles")
+            val profiles = supabase.from("profiles")
                 .select {
                     filter {
                         eq("id", userId)
                     }
                 }
-                .decodeSingle<ProfileDto>()
+                .decodeList<JsonObject>()
 
-            profile.fullName
+            profiles.firstOrNull()
+                ?.get("full_name")
+                ?.jsonPrimitive
+                ?.contentOrNull
+                ?: ""
         } catch (e: HttpRequestTimeoutException) {
             ""
         } catch (e: Exception) {
@@ -162,11 +228,6 @@ class AuthManager @Inject constructor(
         }
     }
 
-    /**
-     * Returns true if there is a valid active session.
-     * Used to determine whether the user needs to be redirected to the login screen.
-     * Requirements: 9.3, 9.4
-     */
     fun isSessionValid(): Boolean {
         return supabase.auth.currentSessionOrNull() != null
     }
@@ -176,7 +237,6 @@ class AuthManager @Inject constructor(
             val userId = getCurrentUserId()
                 ?: return Result.failure(Exception("Tidak ada pengguna yang sedang login."))
 
-            // Update full_name in profiles table
             supabase.from("profiles").update(
                 mapOf("full_name" to newName)
             ) {
@@ -185,7 +245,6 @@ class AuthManager @Inject constructor(
                 }
             }
 
-            // Update email in Supabase Auth if provided
             if (newEmail.isNotBlank()) {
                 supabase.auth.updateUser {
                     email = newEmail

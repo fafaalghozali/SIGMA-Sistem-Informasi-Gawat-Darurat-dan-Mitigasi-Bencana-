@@ -12,10 +12,6 @@ import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// ---------------------------------------------------------------------------
-// Task 5.6 — ShelterDto (shared with ShelterRepository)
-// ---------------------------------------------------------------------------
-
 @Serializable
 data class ShelterDto(
     val id: String? = null,
@@ -28,10 +24,6 @@ data class ShelterDto(
     val status: String = "active"
 )
 
-// ---------------------------------------------------------------------------
-// Task 5.1 — Repository wired to SupabaseClient + AuthManager
-// ---------------------------------------------------------------------------
-
 @Singleton
 class AdminRepository @Inject constructor(
     private val supabase: SupabaseClient,
@@ -41,10 +33,6 @@ class AdminRepository @Inject constructor(
     companion object {
         private const val TAG = "AdminRepository"
     }
-
-    // -----------------------------------------------------------------------
-    // Task 5.2 — getPendingReports
-    // -----------------------------------------------------------------------
 
     suspend fun getPendingReports(): List<LocalDisasterReport> {
         return try {
@@ -67,11 +55,6 @@ class AdminRepository @Inject constructor(
             emptyList()
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Task 5.3 — verifyReport / rejectReport
-    // verifyReport now accepts a newStatus string (siaga_1, siaga_2, awas, etc.)
-    // -----------------------------------------------------------------------
 
     suspend fun verifyReport(reportId: String, newStatus: String = "siaga_1"): Result<Unit> {
         return updateDisasterStatus(reportId, newStatus)
@@ -108,10 +91,6 @@ class AdminRepository @Inject constructor(
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Task 5.4 — getAllVolunteers / updateVolunteerStatus
-    // -----------------------------------------------------------------------
-
     suspend fun getAllVolunteers(): Result<List<VolunteerDto>> {
         return try {
             val list = supabase.from("volunteers")
@@ -146,10 +125,6 @@ class AdminRepository @Inject constructor(
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Task 5.5 — assignVolunteer
-    // -----------------------------------------------------------------------
-
     suspend fun assignVolunteer(
         id: String,
         assignment: String,
@@ -176,10 +151,6 @@ class AdminRepository @Inject constructor(
             Result.failure(e)
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Task 5.6 — CRUD Shelter
-    // -----------------------------------------------------------------------
 
     suspend fun createShelter(shelter: ShelterDto): Result<Unit> {
         return try {
@@ -236,10 +207,6 @@ class AdminRepository @Inject constructor(
             Result.failure(Exception("Operasi posko gagal: ${e.message}"))
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Mapping helper — reuse DisasterDto from ReportRepository
-    // -----------------------------------------------------------------------
 
     private fun DisasterDto.toDomainModel(): LocalDisasterReport = LocalDisasterReport(
         id = id ?: java.util.UUID.randomUUID().toString(),

@@ -44,7 +44,6 @@ fun ManageVolunteerScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Filter registrations by status
     val pendingList  = registrations.filter { it.status == "pending"  || it.status.isBlank() }
     val acceptedList = registrations.filter { it.status == "Accepted" || it.status == "Tersedia" || it.status == "Tidak Tersedia" }
     val declinedList = registrations.filter { it.status == "Declined" }

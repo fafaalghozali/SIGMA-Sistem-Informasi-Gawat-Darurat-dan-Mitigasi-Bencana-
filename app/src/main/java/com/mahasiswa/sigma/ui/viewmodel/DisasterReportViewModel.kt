@@ -32,10 +32,10 @@ class DisasterReportViewModel @Inject constructor(
     var imageBitmap by mutableStateOf<Bitmap?>(null)
     var currentLatitude by mutableStateOf(0.0)
     var currentLongitude by mutableStateOf(0.0)
-    
+
     var volunteerSkill by mutableStateOf<SkillsVolunteer?>(null)
     var volunteerName by mutableStateOf("")
-    
+
     fun loadVolunteerSkill(email: String) {
         viewModelScope.launch {
             val reg = volunteerRepository.getRegistration(email)
@@ -45,7 +45,7 @@ class DisasterReportViewModel @Inject constructor(
             }
         }
     }
-    
+
     var showIncompleteDialog by mutableStateOf(false)
     var showPhotoSourceSheet by mutableStateOf(false)
     var isLoading by mutableStateOf(false)
@@ -71,8 +71,8 @@ class DisasterReportViewModel @Inject constructor(
             currentLongitude = lng
         }
     }
-    fun onImageSelected(bitmap: Bitmap?) { 
-        imageBitmap = bitmap 
+    fun onImageSelected(bitmap: Bitmap?) {
+        imageBitmap = bitmap
         showPhotoSourceSheet = false
     }
 
@@ -145,7 +145,6 @@ class DisasterReportViewModel @Inject constructor(
         saveErrorMessage = null
         saveSuccess = false
     }
-
 
     fun updateReport(report: LocalDisasterReport) {
         viewModelScope.launch {

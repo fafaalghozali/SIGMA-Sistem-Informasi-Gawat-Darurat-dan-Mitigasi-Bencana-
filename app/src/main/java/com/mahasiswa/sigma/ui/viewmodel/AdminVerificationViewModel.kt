@@ -37,11 +37,6 @@ class AdminVerificationViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Verify a report with a given alert level.
-     * @param reportId the ID of the disaster report
-     * @param newStatus one of "siaga_1", "siaga_2", "awas" (defaults to "siaga_1")
-     */
     fun verifyReport(reportId: String, newStatus: String = "siaga_1") {
         viewModelScope.launch {
             val result = repository.verifyReport(reportId, newStatus)

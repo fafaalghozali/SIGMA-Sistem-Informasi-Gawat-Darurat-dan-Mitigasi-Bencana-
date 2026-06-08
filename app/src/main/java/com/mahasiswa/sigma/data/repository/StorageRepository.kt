@@ -9,10 +9,6 @@ import io.ktor.client.plugins.HttpRequestTimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// ---------------------------------------------------------------------------
-// Task 8.1 — StorageRepository
-// ---------------------------------------------------------------------------
-
 @Singleton
 class StorageRepository @Inject constructor(
     private val supabase: SupabaseClient,
@@ -21,30 +17,18 @@ class StorageRepository @Inject constructor(
 
     companion object {
         private const val TAG = "StorageRepository"
-        private const val MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024L // 5 MB
+        private const val MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024L
         private const val BUCKET_DISASTER  = "disaster-photos"
         private const val BUCKET_VOLUNTEER = "volunteer-reports"
     }
-
-    // -----------------------------------------------------------------------
-    // Task 8.2 — uploadDisasterPhoto
-    // -----------------------------------------------------------------------
 
     suspend fun uploadDisasterPhoto(userId: String, uri: Uri): Result<String> {
         return uploadPhoto(uri, BUCKET_DISASTER, userId)
     }
 
-    // -----------------------------------------------------------------------
-    // Task 8.3 — uploadVolunteerReportPhoto
-    // -----------------------------------------------------------------------
-
     suspend fun uploadVolunteerReportPhoto(userId: String, uri: Uri): Result<String> {
         return uploadPhoto(uri, BUCKET_VOLUNTEER, userId)
     }
-
-    // -----------------------------------------------------------------------
-    // Internal — generic upload logic
-    // -----------------------------------------------------------------------
 
     private suspend fun uploadPhoto(uri: Uri, bucket: String, userId: String): Result<String> {
         return try {

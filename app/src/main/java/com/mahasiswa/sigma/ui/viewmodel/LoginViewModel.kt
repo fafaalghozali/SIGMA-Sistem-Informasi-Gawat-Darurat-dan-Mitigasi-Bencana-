@@ -22,7 +22,7 @@ data class LoginUiState(
     val errorMessage: String = "",
     val showSuccessDialog: Boolean = false,
     val loggedInName: String = "",
-    // Role returned from the server after a successful login (source of truth)
+
     val loggedInRole: UserRole = UserRole.MASYARAKAT
 )
 
@@ -69,11 +69,11 @@ class LoginViewModel @Inject constructor(
     fun login() {
         val currentState = _uiState.value
         if (currentState.email.isEmpty() || currentState.password.isEmpty()) {
-            _uiState.update { 
+            _uiState.update {
                 it.copy(
-                    showErrorDialog = true, 
+                    showErrorDialog = true,
                     errorMessage = "Mohon isi Email dan Password Anda."
-                ) 
+                )
             }
             return
         }
@@ -83,20 +83,20 @@ class LoginViewModel @Inject constructor(
             if (result.isSuccess) {
                 val role = result.getOrDefault(UserRole.MASYARAKAT)
                 val name = authManager.getUserName()
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
-                        showSuccessDialog = true, 
+                        showSuccessDialog = true,
                         loggedInName = name,
                         loggedInRole = role
-                    ) 
+                    )
                 }
             } else {
-                _uiState.update { 
+                _uiState.update {
                     it.copy(
-                        showErrorDialog = true, 
+                        showErrorDialog = true,
                         errorMessage = result.exceptionOrNull()?.message
                             ?: "Email atau Password salah. Silakan periksa kembali."
-                    ) 
+                    )
                 }
             }
         }

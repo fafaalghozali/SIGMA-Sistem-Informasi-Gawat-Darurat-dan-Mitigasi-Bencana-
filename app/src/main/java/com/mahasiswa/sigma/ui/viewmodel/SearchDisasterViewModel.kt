@@ -13,7 +13,7 @@ import javax.inject.Inject
 class SearchDisasterViewModel @Inject constructor() : ViewModel() {
     var searchQuery by mutableStateOf("")
         private set
-    
+
     private val allDisasters = listOf(
         DisasterInfo("Banjir", "Sukoharjo", ReportStatus.SIAGA_1, "14 April 2026"),
     )
@@ -28,7 +28,7 @@ class SearchDisasterViewModel @Inject constructor() : ViewModel() {
 
     private fun filterDisasters() {
         filteredDisasters = allDisasters.filter { d ->
-            d.location.contains(searchQuery, ignoreCase = true) || 
+            d.location.contains(searchQuery, ignoreCase = true) ||
             d.type.contains(searchQuery, ignoreCase = true)
         }
     }

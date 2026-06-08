@@ -99,8 +99,8 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Ubah Foto Profil", 
-                style = MaterialTheme.typography.labelLarge, 
+                text = "Ubah Foto Profil",
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable { viewModel.showImageSheet = true }
             )
@@ -140,7 +140,7 @@ fun ProfileScreen(
                 ) {
                     Column {
                         Text(
-                            "Status Akun", 
+                            "Status Akun",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -166,7 +166,6 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth(),
@@ -181,8 +180,7 @@ fun ProfileScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Keluar (Logout)", fontWeight = FontWeight.Bold)
             }
-            
-            
+
             Spacer(modifier = Modifier.height(100.dp))
         }
     }

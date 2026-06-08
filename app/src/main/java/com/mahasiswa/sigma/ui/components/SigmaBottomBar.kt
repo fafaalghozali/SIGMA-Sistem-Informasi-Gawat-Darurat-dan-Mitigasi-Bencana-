@@ -36,7 +36,7 @@ fun SigmaBottomBar(
     onNavigateToProfile: () -> Unit,
     onNavigateToManageVolunteer: () -> Unit
 ) {
-    
+
     val isVisible = currentRoute != null && (
             currentRoute is Route.Dashboard ||
             currentRoute is Route.Map ||
@@ -48,7 +48,6 @@ fun SigmaBottomBar(
 
     if (!isVisible) return
 
-    
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -77,7 +76,7 @@ fun SigmaBottomBar(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                
+
                 BottomNavItem(
                     selected = currentRoute is Route.Dashboard,
                     onClick = onNavigateToHome,
@@ -85,7 +84,6 @@ fun SigmaBottomBar(
                     label = "Home"
                 )
 
-                
                 if (userRole == UserRole.BNPB) {
                     BottomNavItem(
                         selected = currentRoute is Route.ManageVolunteer,
@@ -102,7 +100,6 @@ fun SigmaBottomBar(
                     )
                 }
 
-                
                 val isPoskoSelected = currentRoute is Route.ShelterInfo || currentRoute is Route.ManageShelter
                 BottomNavItem(
                     selected = isPoskoSelected,
@@ -111,7 +108,6 @@ fun SigmaBottomBar(
                     label = "Posko"
                 )
 
-                
                 BottomNavItem(
                     selected = currentRoute is Route.Profile,
                     onClick = onNavigateToProfile,

@@ -188,7 +188,6 @@ fun DashboardContent(
                     }
                 }
 
-
                 item(span = { GridItemSpan(2) }) {
                     val severeWeatherCodes = listOf(65, 67, 75, 77, 82, 86, 95, 96, 99)
                     val activeBmkg = uiState.bmkgWarnings.firstOrNull()
@@ -656,7 +655,7 @@ private fun StatusCardShimmer(isDark: Boolean) {
                 isDark = isDark
             )
             Spacer(modifier = Modifier.height(6.dp))
-            
+
             ShimmerBox(
                 modifier = Modifier
                     .width(50.dp)
@@ -664,7 +663,7 @@ private fun StatusCardShimmer(isDark: Boolean) {
                 isDark = isDark
             )
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             ShimmerBox(
                 modifier = Modifier
                     .width(60.dp)
@@ -768,8 +767,6 @@ fun EmergencyAlertCard(
         }
     }
 }
-
-/** EarthquakeCard and BmkgWarningBanner are kept for future move to Map Screen */
 
 @Composable
 fun EarthquakeCard(earthquake: EarthquakeInfo, isDark: Boolean) {
@@ -1364,7 +1361,7 @@ fun SafeStateCard(onDismiss: () -> Unit, isDark: Boolean) {
                     )
                 }
             }
-            
+
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier
@@ -1692,7 +1689,7 @@ fun AvailabilityStatusCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 val isAvailable = currentStatus == "Tersedia" || currentStatus == "Accepted"
-                
+
                 Surface(
                     modifier = Modifier
                         .weight(1f)
@@ -1703,7 +1700,7 @@ fun AvailabilityStatusCard(
                     } else Color.Transparent,
                     border = BorderStroke(
                         width = 1.5.dp,
-                        color = if (isAvailable) Color(0xFF2E7D32) 
+                        color = if (isAvailable) Color(0xFF2E7D32)
                                 else if (isDark) Color.White.copy(alpha = 0.1f) else Color(0xFFE8ECF0)
                     )
                 ) {
@@ -1726,7 +1723,7 @@ fun AvailabilityStatusCard(
                             Text(
                                 text = "Tersedia",
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = if (isAvailable) Color(0xFF2E7D32) 
+                                color = if (isAvailable) Color(0xFF2E7D32)
                                         else if (isDark) Color.LightGray else Color.DarkGray
                             )
                         }
@@ -1776,4 +1773,3 @@ fun AvailabilityStatusCard(
         }
     }
 }
-

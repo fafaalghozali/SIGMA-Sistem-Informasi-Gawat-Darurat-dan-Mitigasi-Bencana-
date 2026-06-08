@@ -58,6 +58,7 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+            freeCompilerArgs.add("-Xskip-metadata-version-check")
         }
     }
 }
@@ -102,6 +103,7 @@ dependencies {
     implementation(libs.supabase.storage)
     implementation(libs.ktor.client.android)
     implementation(libs.androidx.browser)
+    implementation("org.mindrot:jbcrypt:0.4")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

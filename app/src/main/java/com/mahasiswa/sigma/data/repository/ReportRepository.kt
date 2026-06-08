@@ -13,10 +13,6 @@ import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// ---------------------------------------------------------------------------
-// Task 3.1 — DTO for the "disasters" Supabase table
-// ---------------------------------------------------------------------------
-
 @Serializable
 data class DisasterDto(
     val id: String? = null,
@@ -33,10 +29,6 @@ data class DisasterDto(
     @SerialName("created_at") val createdAt: String? = null
 )
 
-// ---------------------------------------------------------------------------
-// Task 3.2 — Repository wired to SupabaseClient + AuthManager
-// ---------------------------------------------------------------------------
-
 @Singleton
 class ReportRepository @Inject constructor(
     private val supabase: SupabaseClient,
@@ -44,15 +36,10 @@ class ReportRepository @Inject constructor(
     private val storageRepository: StorageRepository
 ) {
 
-    // -----------------------------------------------------------------------
-    // Task 3.3 — saveReport (with optional photo upload, Task 8.4)
-    // -----------------------------------------------------------------------
-
     suspend fun saveReport(report: LocalDisasterReport, photoUri: Uri? = null): Result<Unit> {
         return try {
             val userId = authManager.getCurrentUserId()
 
-            // Upload photo if provided, get public URL
             val photoUrl: String? = if (photoUri != null && userId != null) {
                 storageRepository.uploadDisasterPhoto(userId, photoUri).getOrNull()
             } else null
@@ -68,13 +55,6 @@ class ReportRepository @Inject constructor(
             Result.failure(e)
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Task 3.4 — getAllReports
-    // Returns List (not Result) for backward compatibility with callers that
-    // do not handle Result, e.g. DashboardActivity and ViewModels.
-    // Returns emptyList on any error.
-    // -----------------------------------------------------------------------
 
     suspend fun getAllReports(): List<LocalDisasterReport> {
         return try {
@@ -92,11 +72,6 @@ class ReportRepository @Inject constructor(
             emptyList()
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Task 3.5 — getReportById
-    // Returns nullable for backward compatibility; returns null on error.
-    // -----------------------------------------------------------------------
 
     suspend fun getReportById(id: String): LocalDisasterReport? {
         return try {
@@ -117,10 +92,6 @@ class ReportRepository @Inject constructor(
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Task 3.6 — updateReport
-    // -----------------------------------------------------------------------
-
     suspend fun updateReport(report: LocalDisasterReport): Result<Unit> {
         return try {
             val userId = authManager.getCurrentUserId()
@@ -139,10 +110,6 @@ class ReportRepository @Inject constructor(
             Result.failure(e)
         }
     }
-
-    // -----------------------------------------------------------------------
-    // Mapping helpers
-    // -----------------------------------------------------------------------
 
     private fun LocalDisasterReport.toDto(
         userId: String?,

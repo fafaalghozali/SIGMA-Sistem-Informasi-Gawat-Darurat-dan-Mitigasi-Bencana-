@@ -5,6 +5,7 @@ import com.mahasiswa.sigma.data.local.NewsDao
 import com.mahasiswa.sigma.data.local.NewsEntity
 import com.mahasiswa.sigma.data.model.NewsItem
 import com.mahasiswa.sigma.data.model.NewsSeverity
+import com.mahasiswa.sigma.data.model.RawRssItem
 import com.mahasiswa.sigma.data.news.DisasterFilter
 import com.mahasiswa.sigma.data.news.LocationPrioritizer
 import com.mahasiswa.sigma.data.news.NewsDeduplicator
@@ -23,10 +24,6 @@ import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// ---------------------------------------------------------------------------
-// Task 9.1 — NewsDto for Supabase "news" table
-// ---------------------------------------------------------------------------
-
 @Serializable
 data class NewsDto(
     val id: String,
@@ -38,14 +35,10 @@ data class NewsDto(
     @SerialName("published_at") val publishedAt: Long? = null
 )
 
-// ---------------------------------------------------------------------------
-// Task 9.2 — NewsRepository with SupabaseClient added
-// ---------------------------------------------------------------------------
-
 @Singleton
 class NewsRepository @Inject constructor(
     private val dao: NewsDao,
-    private val supabase: SupabaseClient          // Task 9.2
+    private val supabase: SupabaseClient
 ) {
 
     companion object {
@@ -61,10 +54,6 @@ class NewsRepository @Inject constructor(
                 .let { LocationPrioritizer.prioritize(it, userCity) }
                 .take(MAX_ITEMS)
         }
-
-    // -----------------------------------------------------------------------
-    // Task 9.3 / 9.4 — fetchFreshNews now includes Supabase as third source
-    // -----------------------------------------------------------------------
 
     suspend fun fetchFreshNews(userCity: String = ""): List<NewsItem> =
         withContext(Dispatchers.IO) {
@@ -84,13 +73,13 @@ class NewsRepository @Inject constructor(
                         emptyList()
                     }
                 }
-                // Task 9.3 — Supabase as third async source
+
                 val supa = async {
                     try {
                         supabase.from("news")
                             .select()
                             .decodeList<NewsDto>()
-                            .map { it.toNewsItem() }
+                            .map { it.toRawRssItem() }
                     } catch (e: RestException) {
                         Log.w(TAG, "Supabase news fetch failed: ${e.message}")
                         emptyList()
@@ -102,7 +91,6 @@ class NewsRepository @Inject constructor(
                 Triple(rss.await(), bmkg.await(), supa.await())
             }
 
-            // Task 9.4 — merge all sources before filter/dedup
             val allRaw = bmkgItems + rssItems + supabaseItems
 
             if (allRaw.isEmpty()) {
@@ -114,7 +102,6 @@ class NewsRepository @Inject constructor(
             val prioritized = LocationPrioritizer.prioritize(deduped, userCity)
             val result      = prioritized.take(MAX_ITEMS)
 
-            // Cache merged result to Room
             dao.upsertAll(result.map { it.toEntity() })
             val cutoff = System.currentTimeMillis() - CACHE_MAX_AGE_MS
             dao.deleteOlderThan(cutoff)
@@ -126,25 +113,22 @@ class NewsRepository @Inject constructor(
             result
         }
 
-    // -----------------------------------------------------------------------
-    // Mapping helpers
-    // -----------------------------------------------------------------------
-
-    private fun NewsDto.toNewsItem(): NewsItem {
-        val severity = NewsSeverity.INFO
-        return NewsItem(
-            id          = id,
+    private fun NewsDto.toRawRssItem(): RawRssItem {
+        val dateString = if (publishedAt != null) {
+            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
+            sdf.format(java.util.Date(publishedAt))
+        } else {
+            ""
+        }
+        return RawRssItem(
+            guid        = id,
             title       = title,
-            time        = DisasterFilter.relativeTimeString(publishedAt ?: System.currentTimeMillis()),
-            publishedAt = publishedAt ?: System.currentTimeMillis(),
-            category    = source ?: "Berita",
-            categoryColor = severity.toColor(),
-            imageUrl    = imageUrl,
-            source      = source ?: "Supabase",
+            description = summary ?: "",
             link        = url ?: "",
-            severity    = severity,
-            isOfficial  = false,
-            region      = ""
+            pubDate     = dateString,
+            imageUrl    = imageUrl,
+            sourceName  = source ?: "Supabase",
+            isOfficial  = false
         )
     }
 

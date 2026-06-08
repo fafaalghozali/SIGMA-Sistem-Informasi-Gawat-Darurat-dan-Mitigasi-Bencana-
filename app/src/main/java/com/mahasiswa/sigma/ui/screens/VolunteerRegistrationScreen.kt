@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.mahasiswa.sigma.ui.viewmodel.VolunteerRegistrationData
+import com.mahasiswa.sigma.data.model.VolunteerRegistrationData
 import com.mahasiswa.sigma.ui.viewmodel.VolunteerRegistrationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,7 +49,7 @@ fun VolunteerRegistrationScreen(
     val skillOptions = viewModel.skillOptions
     val selectedSkill = viewModel.selectedSkill
     val skillExpanded = viewModel.skillExpanded
-    
+
     val isRegistered = viewModel.isRegistered
     val registeredData = viewModel.registeredData
 
@@ -329,7 +329,7 @@ fun RegistrationStatusBox(
         "Declined" -> Color(0xFFD32F2F)
         else -> Color(0xFFE65100)
     }
-    
+
     val statusBgColor = when (data.status) {
         "Accepted" -> Color(0xFFE8F5E9)
         "Declined" -> Color(0xFFFFEBEE)
@@ -360,7 +360,7 @@ fun RegistrationStatusBox(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = if (data.status == "Accepted") "Pendaftaran Diterima" 
+                    text = if (data.status == "Accepted") "Pendaftaran Diterima"
                            else if (data.status == "Declined") "Pendaftaran Ditolak"
                            else "Pendaftaran Terkirim",
                     fontSize = 18.sp,
@@ -368,9 +368,9 @@ fun RegistrationStatusBox(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Surface(
                 color = statusBgColor,
                 shape = RoundedCornerShape(8.dp)
@@ -391,26 +391,26 @@ fun RegistrationStatusBox(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(16.dp))
 
             Text("Detail Pendaftaran:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             InfoRow(label = "Nama", value = data.name)
             InfoRow(label = "Spesialisasi", value = data.skill.name)
             InfoRow(label = "Alamat", value = data.address)
             InfoRow(label = "Kontak", value = data.phoneNumber)
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             val footerText = when (data.status) {
                 "Accepted" -> "Selamat! Anda telah resmi terdaftar sebagai relawan SIGMA. Silakan cek menu penugasan secara berkala."
                 "Declined" -> "Mohon maaf, pendaftaran Anda belum dapat kami setujui saat ini karena kualifikasi yang belum terpenuhi."
                 else -> "Tim BNPB akan segera meninjau kualifikasi Anda. Mohon tunggu notifikasi selanjutnya melalui aplikasi atau kontak yang terdaftar."
             }
-            
+
             Text(
                 text = footerText,
                 fontSize = 12.sp,

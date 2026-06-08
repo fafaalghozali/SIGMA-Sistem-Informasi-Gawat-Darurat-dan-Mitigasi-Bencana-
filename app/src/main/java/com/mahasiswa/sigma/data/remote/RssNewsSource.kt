@@ -15,22 +15,12 @@ import java.io.StringReader
 import java.net.HttpURLConnection
 import java.net.URL
 
-
-
-
-
-
-
 object RssNewsSource {
 
     private const val TAG = "RssNewsSource"
     private const val CONNECT_TIMEOUT_MS = 8_000
     private const val READ_TIMEOUT_MS = 10_000
     private const val PER_SOURCE_TIMEOUT_MS = 15_000L
-
-    
-
-
 
     val SOURCES = listOf(
         RssSource(
@@ -58,12 +48,8 @@ object RssNewsSource {
             url = "https://news.detik.com/rss",
             isOfficial = false
         ),
-        
+
     )
-
-    
-
-
 
     suspend fun fetchAll(): List<RawRssItem> = coroutineScope {
         SOURCES.map { source ->
@@ -79,8 +65,6 @@ object RssNewsSource {
             }
         }.awaitAll().flatten()
     }
-
-    
 
     private suspend fun fetchSource(source: RssSource): List<RawRssItem> =
         withContext(Dispatchers.IO) {
@@ -106,8 +90,6 @@ object RssNewsSource {
             conn.disconnect()
         }
     }
-
-    
 
     private fun parseRss(xml: String, source: RssSource): List<RawRssItem> {
         val items = mutableListOf<RawRssItem>()
@@ -140,14 +122,14 @@ object RssNewsSource {
                         "link"        -> if (inItem) link = readText(parser)
                         "guid"        -> if (inItem) guid = readText(parser)
                         "pubdate"     -> if (inItem) pubDate = readText(parser)
-                        
+
                         "media:content", "media:thumbnail" -> {
                             if (inItem && imageUrl == null) {
                                 val url = parser.getAttributeValue(null, "url")
                                 if (!url.isNullOrBlank()) imageUrl = url
                             }
                         }
-                        
+
                         "enclosure" -> {
                             if (inItem && imageUrl == null) {
                                 val type = parser.getAttributeValue(null, "type") ?: ""
@@ -165,7 +147,7 @@ object RssNewsSource {
                             "${source.name}-${title.hashCode()}"
                         }
                         if (title.isNotBlank()) {
-                            
+
                             val extractedImage = imageUrl
                                 ?: extractImageFromHtml(description)
 
@@ -190,8 +172,6 @@ object RssNewsSource {
         return items
     }
 
-    
-
     private fun readText(parser: XmlPullParser): String {
         var result = ""
         if (parser.next() == XmlPullParser.TEXT) {
@@ -201,7 +181,6 @@ object RssNewsSource {
         return result.trim()
     }
 
-    
     private fun String.cleanHtml(): String =
         this.replace(Regex("<[^>]*>"), "")
             .replace("&amp;", "&")
@@ -213,7 +192,6 @@ object RssNewsSource {
             .replace("&nbsp;", " ")
             .trim()
 
-    
     private fun extractImageFromHtml(html: String): String? {
         val regex = Regex("""<img[^>]+src=["']([^"']+)["']""", RegexOption.IGNORE_CASE)
         return regex.find(html)?.groupValues?.getOrNull(1)

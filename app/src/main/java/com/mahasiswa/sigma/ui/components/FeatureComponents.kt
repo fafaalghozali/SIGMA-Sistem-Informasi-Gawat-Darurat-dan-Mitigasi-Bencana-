@@ -18,14 +18,14 @@ fun FeatureTemplate(title: String, actionText: String? = null, onAction: (() -> 
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = title, 
-                fontSize = 28.sp, 
-                fontWeight = FontWeight.Bold, 
+                text = title,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(text = "Halaman Fitur SIGMA")
-            
+
             if (actionText != null && onAction != null) {
                 Spacer(modifier = Modifier.height(32.dp))
                 Button(onClick = onAction, modifier = Modifier.fillMaxWidth()) {

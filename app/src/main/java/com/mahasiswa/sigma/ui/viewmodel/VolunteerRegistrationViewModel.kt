@@ -5,19 +5,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mahasiswa.sigma.data.model.VolunteerRegistrationData
 import com.mahasiswa.sigma.data.repository.VolunteerRepository
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class VolunteerRegistrationData(
-    val name: String,
-    val skill: SkillsVolunteer,
-    val address: String,
-    val phoneNumber: String,
-    val status: String = "Pending"
-)
 
 @HiltViewModel
 class VolunteerRegistrationViewModel @Inject constructor(
@@ -80,9 +73,9 @@ class VolunteerRegistrationViewModel @Inject constructor(
     }
 
     private fun isFormValid(): Boolean {
-        return name.isNotBlank() && 
-               address.isNotBlank() && 
-               phoneNumber.isNotBlank() && 
+        return name.isNotBlank() &&
+               address.isNotBlank() &&
+               phoneNumber.isNotBlank() &&
                phoneNumber.length >= 10 &&
                phoneNumber.all { it.isDigit() }
     }
@@ -95,12 +88,12 @@ class VolunteerRegistrationViewModel @Inject constructor(
             phoneNumber = phoneNumber,
             status = "Pending"
         )
-        
+
         viewModelScope.launch {
             volunteerRepository.saveRegistration(currentUserEmail, data)
             registeredData = data
             isRegistered = true
-            
+
             name = ""
             address = ""
             phoneNumber = ""

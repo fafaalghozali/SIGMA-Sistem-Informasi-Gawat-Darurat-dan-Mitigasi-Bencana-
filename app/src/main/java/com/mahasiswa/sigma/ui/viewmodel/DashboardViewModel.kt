@@ -234,9 +234,9 @@ class DashboardViewModel @Inject constructor(
             try {
                 val eq = weatherRepo.getLatestEarthquake()
                 val userCity = _uiState.value.userCityName
-                
+
                 if (eq != null) {
-                    val isRelevant = isEventRelevant(eq.location, userCity) || 
+                    val isRelevant = isEventRelevant(eq.location, userCity) ||
                                      (eq.felt.isNotBlank() && eq.felt != "Tidak dirasakan")
                     if (isRelevant) {
                         _uiState.value = _uiState.value.copy(earthquakeInfo = eq)
@@ -255,9 +255,9 @@ class DashboardViewModel @Inject constructor(
             try {
                 val warnings = weatherRepo.getRecentBmkgWarnings()
                 val userCity = _uiState.value.userCityName
-                
-                val localWarnings = warnings.filter { 
-                    isEventRelevant(it.type, userCity) || isEventRelevant(it.message, userCity) 
+
+                val localWarnings = warnings.filter {
+                    isEventRelevant(it.type, userCity) || isEventRelevant(it.message, userCity)
                 }
                 _uiState.value = _uiState.value.copy(bmkgWarnings = localWarnings)
             } catch (_: Exception) {}
@@ -312,9 +312,9 @@ class DashboardViewModel @Inject constructor(
         if (userCity.isBlank()) return false
         val loc = eventLocation.lowercase()
         val city = userCity.lowercase()
-        
+
         if (loc.contains(city)) return true
-        
+
         when (city) {
             "surakarta", "solo" -> if (loc.contains("jawa tengah") || loc.contains("solo") || loc.contains("sukoharjo") || loc.contains("karanganyar") || loc.contains("boyolali") || loc.contains("sragen") || loc.contains("klaten") || loc.contains("wonogiri")) return true
             "jakarta" -> if (loc.contains("dki") || loc.contains("banten") || loc.contains("jawa barat")) return true

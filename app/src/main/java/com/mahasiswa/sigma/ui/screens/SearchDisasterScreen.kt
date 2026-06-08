@@ -63,7 +63,7 @@ fun SearchDisasterScreen(
                 Icon(Icons.Default.FilterList, contentDescription = null)
                 Text("Filter Status:", fontWeight = FontWeight.Bold)
             }
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)

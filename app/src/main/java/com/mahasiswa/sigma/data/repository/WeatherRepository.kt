@@ -26,15 +26,6 @@ import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-
-
-
-
-
-
-
-
-
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,15 +35,7 @@ class WeatherRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
-    
     class LocationUnavailableException : Exception("Could not determine device location")
-
-    
-
-    
-
-
-
 
     @SuppressLint("MissingPermission")
     suspend fun getWeatherForCurrentLocation(): WeatherInfo {
@@ -61,16 +44,11 @@ class WeatherRepository @Inject constructor(
         return fetchOpenMeteoWeather(lat, lon, cityName)
     }
 
-    
-
-
-
     suspend fun getWeatherForFallbackLocation(): WeatherInfo {
         val (lat, lon) = SURAKARTA_COORDS
         return fetchOpenMeteoWeather(lat, lon, "Surakarta (Default)")
     }
 
-    
     suspend fun getLatestEarthquake(): EarthquakeInfo? = withContext(Dispatchers.IO) {
         try {
             val json = fetchJsonWithRetry("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json")
@@ -80,11 +58,6 @@ class WeatherRepository @Inject constructor(
         }
     }
 
-    
-
-
-
-
     suspend fun getRecentBmkgWarnings(): List<BmkgWarning> = withContext(Dispatchers.IO) {
         try {
             val json = fetchJsonWithRetry("https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json")
@@ -93,14 +66,6 @@ class WeatherRepository @Inject constructor(
             emptyList()
         }
     }
-
-    
-
-    
-
-
-
-
 
     @SuppressLint("MissingPermission")
     private suspend fun getCurrentLocation(): Pair<Double, Double> =
@@ -113,7 +78,7 @@ class WeatherRepository @Inject constructor(
                     if (location != null) {
                         cont.resume(Pair(location.latitude, location.longitude))
                     } else {
-                        
+
                         client.lastLocation
                             .addOnSuccessListener { last ->
                                 if (last != null) {
@@ -132,8 +97,6 @@ class WeatherRepository @Inject constructor(
             cont.invokeOnCancellation { cts.cancel() }
         }
 
-    
-
     private suspend fun reverseGeocode(lat: Double, lon: Double): String =
         withContext(Dispatchers.IO) {
             try {
@@ -150,24 +113,6 @@ class WeatherRepository @Inject constructor(
                 "Lokasi Anda"
             }
         }
-
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     private suspend fun fetchOpenMeteoWeather(
         lat: Double,
@@ -217,19 +162,6 @@ class WeatherRepository @Inject constructor(
         }
     }
 
-    
-
-    
-
-
-
-
-
-
-
-
-
-
     private fun parseEarthquake(json: String): EarthquakeInfo? {
         return try {
             val gempa = JSONObject(json)
@@ -247,18 +179,6 @@ class WeatherRepository @Inject constructor(
             null
         }
     }
-
-    
-
-
-
-
-
-
-
-
-
-
 
     private fun parseRecentQuakeWarnings(json: String): List<BmkgWarning> {
         return try {
@@ -292,12 +212,6 @@ class WeatherRepository @Inject constructor(
         }
     }
 
-    
-
-    
-
-
-
     private suspend fun fetchJsonWithRetry(
         urlString: String,
         maxRetries: Int = 3
@@ -309,7 +223,7 @@ class WeatherRepository @Inject constructor(
             } catch (e: Exception) {
                 lastException = e
                 if (attempt < maxRetries - 1) {
-                    delay(1000L * (1 shl attempt)) 
+                    delay(1000L * (1 shl attempt))
                 }
             }
         }
@@ -333,9 +247,6 @@ class WeatherRepository @Inject constructor(
         }
     }
 
-
-
-
     fun wmoCodeToCondition(code: Int): String = when (code) {
         0 -> "Cerah"
         1 -> "Cerah Berawan"
@@ -354,7 +265,6 @@ class WeatherRepository @Inject constructor(
         else -> "Kondisi Tidak Diketahui"
     }
 
-
     fun wmoCodeToEmoji(code: Int): String = when (code) {
         0 -> "☀️"
         1 -> "🌤️"
@@ -367,17 +277,6 @@ class WeatherRepository @Inject constructor(
         56, 57, 66, 67, 71, 73, 75, 77, 85, 86 -> "🌩️"
         else -> "☁️"
     }
-
-
-
-
-
-
-
-
-
-
-
 
     private fun wmoCodeToRisk(code: Int, tempC: Int): Pair<String, Color> = when {
 

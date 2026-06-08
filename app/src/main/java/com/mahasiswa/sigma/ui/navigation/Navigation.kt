@@ -65,7 +65,7 @@ fun SigmaNavigation() {
     val userEmail = dashboardRoute?.email ?: ""
 
     CompositionLocalProvider(LocalBackStack provides backStack) {
-        
+
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
                 modifier = Modifier.fillMaxSize(),
@@ -222,7 +222,6 @@ fun SigmaNavigation() {
                 }
             }
 
-            
             Box(
                 modifier = Modifier.align(Alignment.BottomCenter)
             ) {

@@ -20,7 +20,7 @@ class RegisterViewModel @Inject constructor(
     var password by mutableStateOf("")
     var passwordVisible by mutableStateOf(false)
     val selectedRole = UserRole.MASYARAKAT
-    
+
     var showDialog by mutableStateOf(false)
     var registrationSuccess by mutableStateOf(false)
     var dialogMessage by mutableStateOf("")
@@ -60,7 +60,7 @@ class RegisterViewModel @Inject constructor(
             showDialog = true
         }
     }
-    
+
     fun onDialogConfirm(onNavigateToLogin: () -> Unit) {
         showDialog = false
         if (registrationSuccess) {

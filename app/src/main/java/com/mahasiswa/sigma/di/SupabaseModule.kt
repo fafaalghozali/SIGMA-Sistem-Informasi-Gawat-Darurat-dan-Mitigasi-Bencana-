@@ -17,6 +17,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object SupabaseModule {
 
+    @OptIn(io.github.jan.supabase.annotations.SupabaseInternal::class)
     @Provides
     @Singleton
     fun provideSupabaseClient(): SupabaseClient {
@@ -27,7 +28,7 @@ object SupabaseModule {
             install(Auth)
             install(Postgrest)
             install(Storage)
-            // Configure Ktor engine with 30-second timeout (Requirement 9.5)
+
             httpConfig {
                 install(HttpTimeout) {
                     requestTimeoutMillis = 30_000

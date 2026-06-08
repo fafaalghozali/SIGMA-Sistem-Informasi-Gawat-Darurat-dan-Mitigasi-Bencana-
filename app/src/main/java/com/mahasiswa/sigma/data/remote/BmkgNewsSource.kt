@@ -8,17 +8,6 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-
-
-
-
-
-
-
-
-
-
-
 object BmkgNewsSource {
 
     private const val AUTOGEMPA_URL =
@@ -29,21 +18,14 @@ object BmkgNewsSource {
     private const val CONNECT_TIMEOUT_MS = 8_000
     private const val READ_TIMEOUT_MS = 10_000
 
-    
-
-
-
-
     suspend fun fetchBmkgNews(): List<RawRssItem> = withContext(Dispatchers.IO) {
         val results = mutableListOf<RawRssItem>()
 
-        
         try {
             val json = fetchJson(AUTOGEMPA_URL)
             parseAutogempa(json)?.let { results.add(it) }
         } catch (_: Exception) {}
 
-        
         try {
             val json = fetchJson(GEMPATERKINI_URL)
             results.addAll(parseGempaterkini(json))
@@ -51,14 +33,6 @@ object BmkgNewsSource {
 
         results
     }
-
-    
-
-    
-
-
-
-
 
     private fun parseAutogempa(json: String): RawRssItem? {
         return try {
@@ -87,7 +61,6 @@ object BmkgNewsSource {
                 append("Waktu: $tanggal $jam WIB.")
             }
 
-            
             val imageUrl = if (shakemap.isNotBlank()) {
                 "https://data.bmkg.go.id/DataMKG/TEWS/$shakemap"
             } else null
@@ -107,11 +80,6 @@ object BmkgNewsSource {
         }
     }
 
-    
-
-
-
-
     private fun parseGempaterkini(json: String): List<RawRssItem> {
         return try {
             val arr = JSONObject(json)
@@ -119,11 +87,11 @@ object BmkgNewsSource {
                 .getJSONArray("gempa")
 
             val result = mutableListOf<RawRssItem>()
-            
+
             for (i in 1 until minOf(arr.length(), 6)) {
                 val g = arr.getJSONObject(i)
                 val mag = g.optString("Magnitude", "0").toDoubleOrNull() ?: 0.0
-                if (mag < 5.0) continue   
+                if (mag < 5.0) continue
 
                 val wilayah = g.optString("Wilayah", "--")
                 val tanggal = g.optString("Tanggal", "")
@@ -159,8 +127,6 @@ object BmkgNewsSource {
             emptyList()
         }
     }
-
-    
 
     private fun bmkgMagnitudeToSeverityLabel(mag: Double): String = when {
         mag >= 7.0 -> "DARURAT"

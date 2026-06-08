@@ -31,7 +31,7 @@ class DashboardActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         val intentRole = intent.getStringExtra("USER_ROLE")
         val intentEmail = intent.getStringExtra("USER_EMAIL") ?: ""
 
@@ -52,10 +52,10 @@ class DashboardActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     userNameState = authManager.getUserName()
                 }
-                
+
                 DashboardNavigation(
-                    userRole = userRoleState, 
-                    userName = userNameState, 
+                    userRole = userRoleState,
+                    userName = userNameState,
                     userEmail = userEmailState
                 )
             }
@@ -130,7 +130,7 @@ class DashboardActivity : ComponentActivity() {
                 LaunchedEffect(reportId) {
                     report = reportRepository.getAllReports().find { it.id == reportId }
                 }
-                
+
                 report?.let {
                     ReportDetailScreen(
                         report = it,

@@ -393,7 +393,6 @@ fun DisasterReportContent(
           }
         }
 
-
         if (showIncompleteDialog) {
             Box(
                 modifier = Modifier
@@ -462,10 +461,6 @@ fun DisasterReportContent(
     }
 }
 
-/**
- * Mendapatkan lokasi terbaru dengan tingkat akurasi tinggi dan mengubahnya
- * menjadi alamat yang dapat dibaca menggunakan proses background untuk mencegah lag.
- */
 private fun fetchFreshLocation(
     context: Context,
     fusedLocationClient: FusedLocationProviderClient,
@@ -603,7 +598,6 @@ fun ReportItemCard(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VolunteerReportLayout(
@@ -616,7 +610,6 @@ fun VolunteerReportLayout(
 ) {
     val isDark = isSystemInDarkTheme()
 
-    // Mock active disasters list
     val disasterOptions = listOf(
         "Banjir Bandang Surakarta (Mei 2026)",
         "Gempa Bumi Yogyakarta (M 5.6)",
@@ -625,24 +618,19 @@ fun VolunteerReportLayout(
     var selectedDisaster by remember { mutableStateOf("") }
     var disasterExpanded by remember { mutableStateOf(false) }
 
-    // Textarea Catatan Tambahan
     var catatanTambahan by remember { mutableStateOf("") }
 
-    // Dynamic field states
-    // PSIKOSOSIAL
     var jumlahDidampingi by remember { mutableStateOf("") }
     var kondisiPsikologis by remember { mutableStateOf("Stabil") }
     var psikologisExpanded by remember { mutableStateOf(false) }
     var kasusKhusus by remember { mutableStateOf("") }
     var rekomendasi by remember { mutableStateOf("") }
 
-    // LOGISTIK
     var jenisBantuan by remember { mutableStateOf("") }
     var jumlahDisalurkan by remember { mutableStateOf("") }
     var stokTersisa by remember { mutableStateOf("") }
     var kebutuhanMendesakLogistik by remember { mutableStateOf("") }
 
-    // MEDIS
     var totalKorban by remember { mutableStateOf("") }
     var selamat by remember { mutableStateOf("") }
     var lukaRingan by remember { mutableStateOf("") }
@@ -651,7 +639,6 @@ fun VolunteerReportLayout(
     var meninggal by remember { mutableStateOf("") }
     var kebutuhanMedis by remember { mutableStateOf("") }
 
-    // SAR
     var totalDievakuasi by remember { mutableStateOf("") }
     var masihDicari by remember { mutableStateOf("") }
     var lokasiEvakuasi by remember { mutableStateOf("") }
@@ -659,30 +646,27 @@ fun VolunteerReportLayout(
     var statusPencarian by remember { mutableStateOf("Sedang Berjalan") }
     var pencarianExpanded by remember { mutableStateOf(false) }
 
-    // KONSUMSI
     var jumlahPorsi by remember { mutableStateOf("") }
     var menuHariIni by remember { mutableStateOf("") }
     var pengungsiDilayani by remember { mutableStateOf("") }
     var kebutuhanBahan by remember { mutableStateOf("") }
 
-    // PENDIDIKAN
     var jumlahSiswa by remember { mutableStateOf("") }
     var materiPembelajaran by remember { mutableStateOf("") }
     var kebutuhanEduKits by remember { mutableStateOf("") }
 
-    // Validation dialog
     var showIncompleteDialog by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
 
     val skillColor = when (volunteerSkill) {
-        SkillsVolunteer.MEDIS -> Color(0xFF2196F3)      // Blue
-        SkillsVolunteer.SAR -> Color(0xFFFF5722)        // Orange-Red
-        SkillsVolunteer.LOGISTIK -> Color(0xFF4CAF50)   // Green
-        SkillsVolunteer.PSIKOSOSIAL -> Color(0xFF9C27B0)// Purple
-        SkillsVolunteer.KONSUMSI -> Color(0xFFFFC107)   // Amber
-        SkillsVolunteer.PENDIDIKAN -> Color(0xFF009688) // Teal
-        else -> Color(0xFF757575)         // Grey
+        SkillsVolunteer.MEDIS -> Color(0xFF2196F3)
+        SkillsVolunteer.SAR -> Color(0xFFFF5722)
+        SkillsVolunteer.LOGISTIK -> Color(0xFF4CAF50)
+        SkillsVolunteer.PSIKOSOSIAL -> Color(0xFF9C27B0)
+        SkillsVolunteer.KONSUMSI -> Color(0xFFFFC107)
+        SkillsVolunteer.PENDIDIKAN -> Color(0xFF009688)
+        else -> Color(0xFF757575)
     }
 
     Column(
@@ -693,7 +677,7 @@ fun VolunteerReportLayout(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Divisi Header Card
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -749,7 +733,6 @@ fun VolunteerReportLayout(
             }
         }
 
-        // Grouped Form Fields Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -769,7 +752,6 @@ fun VolunteerReportLayout(
                     color = MaterialTheme.colorScheme.primary
                 )
 
-                // Dropdown Terkait Bencana
                 ExposedDropdownMenuBox(
                     expanded = disasterExpanded,
                     onExpandedChange = { disasterExpanded = !disasterExpanded },
@@ -812,12 +794,10 @@ fun VolunteerReportLayout(
                     }
                 }
 
-                // Dynamic fields per role
                 when (volunteerSkill) {
                     SkillsVolunteer.PSIKOSOSIAL -> {
                         SigmaNumberField(jumlahDidampingi, { jumlahDidampingi = it }, "Jumlah Didampingi (Jiwa)", "Contoh: 15")
 
-                        // Kondisi Psikologis Dropdown
                         val psikologisOptions = listOf("Stabil", "Trauma Ringan", "Trauma Sedang", "Trauma Berat")
                         ExposedDropdownMenuBox(
                             expanded = psikologisExpanded,
@@ -886,7 +866,6 @@ fun VolunteerReportLayout(
                         SigmaTextField(lokasiEvakuasi, { lokasiEvakuasi = it }, "Lokasi Evakuasi (Koordinat/Sektor)", "Contoh: Sektor C, RT 02/03")
                         SigmaTextAreaField(kendalaDiLapangan, { kendalaDiLapangan = it }, "Kendala di Lapangan", "Contoh: Arus deras, jembatan terputus...")
 
-                        // Status Pencarian Dropdown
                         val statusOptions = listOf("Sedang Berjalan", "Dihentikan Sementara", "Selesai")
                         ExposedDropdownMenuBox(
                             expanded = pencarianExpanded,
@@ -952,7 +931,6 @@ fun VolunteerReportLayout(
             }
         }
 
-        // Elegant, compact Action Buttons
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -970,7 +948,7 @@ fun VolunteerReportLayout(
 
             Button(
                 onClick = {
-                    // Gather data depending on role
+
                     val dataBuilder = StringBuilder()
                     var isValid = true
 
@@ -1050,7 +1028,6 @@ fun VolunteerReportLayout(
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Statistik Laporan Anda Card
         val taskReports = reportsList.filter { it.title.contains("[LAPORAN TUGAS") }
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1101,7 +1078,6 @@ fun VolunteerReportLayout(
             }
         }
 
-        // Riwayat Laporan Tugas Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -1152,7 +1128,6 @@ fun VolunteerReportLayout(
             }
         }
 
-        // Panduan Cepat Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -1368,4 +1343,3 @@ fun SigmaTextAreaField(
         )
     )
 }
-

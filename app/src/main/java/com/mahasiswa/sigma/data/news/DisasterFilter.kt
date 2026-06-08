@@ -10,19 +10,7 @@ import com.mahasiswa.sigma.ui.theme.WarningOrange
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-
-
-
-
-
-
-
-
-
-
 object DisasterFilter {
-
-    
 
     private val DISASTER_KEYWORDS = setOf(
         "gempa bumi", "banjir bandang", "tanah longsor", "angin puting beliung", "evakuasi warga",
@@ -35,20 +23,18 @@ object DisasterFilter {
     )
 
     private val EXCLUSION_KEYWORDS = setOf(
-        "sepak bola", "transfer pemain", "olahraga", "artis", "hiburan", 
+        "sepak bola", "transfer pemain", "olahraga", "artis", "hiburan",
         "konser", "liga", "pertandingan", "viral", "selebriti",
         "transfer", "pemain", "gol", "bola basket", "tenis", "bulutangkis",
         "turnamen", "juara", "piala", "klasemen", "degradasi",
         "gosip", "film", "musik", "sinetron", "drakor", "drama korea", "serial",
         "saham", "investasi", "bursa", "kurs", "dolar", "pilkada", "pemilu",
-        "kampanye", "esports", "gaming", "divonis", "jambret", "wisata", 
+        "kampanye", "esports", "gaming", "divonis", "jambret", "wisata",
         "waisak", "kriminal", "pencurian", "sidak", "lapas", "ditjenpas",
-        "politik umum", "apel", "polisi", "polda", "polres", "kapolres", 
+        "politik umum", "apel", "polisi", "polda", "polres", "kapolres",
         "kapolda", "mabes", "gas", "tabung gas", "ledakan gas", "ledakan tabung",
         "disekap", "penculikan", "pembunuhan", "narkoba", "penganiayaan"
     )
-
-    
 
     private val DARURAT_TRIGGERS = setOf(
         "tsunami", "likuifaksi", "lahar", "erupsi", "letusan", "meletus",
@@ -64,29 +50,16 @@ object DisasterFilter {
         "evakuasi", "pengungsi"
     )
 
-    
-
     private val DATE_FORMATS = listOf(
         SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH),
         SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.ENGLISH),
         SimpleDateFormat("dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH),
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.ENGLISH),
         SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH),
-        
+
         SimpleDateFormat("dd MMM yyyy HH:mm:ss", Locale("id", "ID")),
         SimpleDateFormat("dd MMMM yyyy HH:mm:ss", Locale("id", "ID")),
     )
-
-    
-
-    
-
-
-
-
-
-
-
 
     fun filter(rawItems: List<RawRssItem>): List<NewsItem> {
         val now = System.currentTimeMillis()
@@ -96,20 +69,17 @@ object DisasterFilter {
             val title = raw.title.lowercase()
             val fullText = "$title ${raw.description.lowercase()}"
 
-            
             if (EXCLUSION_KEYWORDS.any { fullText.contains(it) }) {
                 return@mapNotNull null
             }
 
-            
             val hasDisasterInTitle = DISASTER_KEYWORDS.any { title.contains(it) }
             if (!hasDisasterInTitle && !raw.isOfficial) {
                 return@mapNotNull null
             }
 
             val publishedAt = parsePubDate(raw.pubDate)
-            
-            
+
             if ((now - publishedAt) > maxAgeMs) {
                 return@mapNotNull null
             }
@@ -135,15 +105,12 @@ object DisasterFilter {
         }.sortedByDescending { it.publishedAt }
     }
 
-    
-
     private fun classifySeverity(text: String, isOfficial: Boolean): NewsSeverity {
-        
+
         for (kw in DARURAT_TRIGGERS) {
             if (text.contains(kw)) return NewsSeverity.DARURAT
         }
 
-        
         if (isOfficial) {
             val magMatch = Regex("""m\s*([\d.]+)""").find(text)
             val mag = magMatch?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0
@@ -151,7 +118,6 @@ object DisasterFilter {
             if (mag >= 5.5) return NewsSeverity.WASPADA
         }
 
-        
         for (kw in WASPADA_TRIGGERS) {
             if (text.contains(kw)) return NewsSeverity.WASPADA
         }
@@ -159,9 +125,6 @@ object DisasterFilter {
         return NewsSeverity.INFO
     }
 
-    
-
-    
     private fun detectRegion(text: String): String? {
         val regionMap = mapOf(
             "jawa tengah" to "Jawa Tengah",
@@ -198,8 +161,6 @@ object DisasterFilter {
         }
         return null
     }
-
-    
 
     fun parsePubDate(pubDate: String): Long {
         if (pubDate.isBlank()) return System.currentTimeMillis()

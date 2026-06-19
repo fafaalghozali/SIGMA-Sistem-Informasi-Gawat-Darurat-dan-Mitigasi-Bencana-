@@ -11,17 +11,15 @@ import com.mahasiswa.sigma.data.model.BmkgWarning
 import com.mahasiswa.sigma.data.model.EarthquakeInfo
 import com.mahasiswa.sigma.data.model.WarningSeverity
 import com.mahasiswa.sigma.data.model.WeatherInfo
+import com.mahasiswa.sigma.data.remote.api.BmkgApiService
+import com.mahasiswa.sigma.data.remote.api.OpenMeteoApiService
 import com.mahasiswa.sigma.ui.theme.EmergencyRed
 import com.mahasiswa.sigma.ui.theme.MitigationBlue
 import com.mahasiswa.sigma.ui.theme.VolunteerGreen
 import com.mahasiswa.sigma.ui.theme.WarningOrange
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -32,7 +30,9 @@ import javax.inject.Singleton
 
 @Singleton
 class WeatherRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val openMeteoApiService: OpenMeteoApiService,
+    private val bmkgApiService: BmkgApiService
 ) {
 
     class LocationUnavailableException : Exception("Could not determine device location")
@@ -51,18 +51,44 @@ class WeatherRepository @Inject constructor(
 
     suspend fun getLatestEarthquake(): EarthquakeInfo? = withContext(Dispatchers.IO) {
         try {
-            val json = fetchJsonWithRetry("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json")
-            parseEarthquake(json)
-        } catch (e: Exception) {
+            val response = bmkgApiService.getAutoGempa()
+            val gempa = response.infogempa.gempa
+            EarthquakeInfo(
+                magnitude = gempa.magnitude.ifBlank { "--" },
+                location = gempa.wilayah.ifBlank { "--" },
+                depth = gempa.kedalaman.ifBlank { "--" },
+                time = "${gempa.tanggal} ${gempa.jam}".trim(),
+                felt = gempa.dirasakan.ifBlank { "Tidak dirasakan" }
+            )
+        } catch (_: Exception) {
             null
         }
     }
 
     suspend fun getRecentBmkgWarnings(): List<BmkgWarning> = withContext(Dispatchers.IO) {
         try {
-            val json = fetchJsonWithRetry("https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json")
-            parseRecentQuakeWarnings(json)
-        } catch (e: Exception) {
+            val response = bmkgApiService.getGempaTerkini()
+            val warnings = mutableListOf<BmkgWarning>()
+            for (item in response.infogempa.gempa.take(5)) {
+                val mag = item.magnitude.toDoubleOrNull() ?: 0.0
+                if (mag >= 5.0) {
+                    val severity = when {
+                        mag >= 7.0 -> WarningSeverity.DANGER
+                        mag >= 5.5 -> WarningSeverity.WARNING
+                        else -> WarningSeverity.INFO
+                    }
+                    warnings.add(
+                        BmkgWarning(
+                            type = "Gempa Bumi",
+                            message = "M ${"%.1f".format(mag)} – ${item.wilayah.ifBlank { "--" }}",
+                            severity = severity,
+                            time = "${item.tanggal} ${item.jam}".trim()
+                        )
+                    )
+                }
+            }
+            warnings
+        } catch (_: Exception) {
             emptyList()
         }
     }
@@ -78,7 +104,6 @@ class WeatherRepository @Inject constructor(
                     if (location != null) {
                         cont.resume(Pair(location.latitude, location.longitude))
                     } else {
-
                         client.lastLocation
                             .addOnSuccessListener { last ->
                                 if (last != null) {
@@ -120,130 +145,33 @@ class WeatherRepository @Inject constructor(
         cityName: String
     ): WeatherInfo = withContext(Dispatchers.IO) {
         try {
-            val url = buildString {
-                append("https://api.open-meteo.com/v1/forecast")
-                append("?latitude=$lat")
-                append("&longitude=$lon")
-                append("&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m")
-                append("&timezone=Asia/Jakarta")
+            val response = openMeteoApiService.getCurrentWeather(lat, lon)
+            val current = response.current
+            if (current != null) {
+                val tempC = current.temperature2m.toInt()
+                val wmoCode = current.weatherCode
+                val humidity = current.relativeHumidity2m
+                val windSpeed = current.windSpeed10m
+
+                val condition = wmoCodeToCondition(wmoCode)
+                val (riskStatus, riskColor) = wmoCodeToRisk(wmoCode, tempC)
+
+                WeatherInfo(
+                    location = cityName,
+                    condition = condition,
+                    temperature = "${tempC}°C",
+                    riskStatus = riskStatus,
+                    riskColor = riskColor,
+                    weatherCode = wmoCode,
+                    humidity = if (humidity >= 0) "${humidity}%" else "--",
+                    windSpeed = if (windSpeed >= 0) "${windSpeed.toInt()} km/h" else "--",
+                    lastUpdated = System.currentTimeMillis()
+                )
+            } else {
+                buildWeatherFallback(cityName)
             }
-            val json = fetchJsonWithRetry(url)
-            parseOpenMeteoResponse(json, cityName)
-        } catch (e: Exception) {
-            buildWeatherFallback(cityName)
-        }
-    }
-
-    private fun parseOpenMeteoResponse(json: String, cityName: String): WeatherInfo {
-        return try {
-            val root = JSONObject(json)
-            val current = root.getJSONObject("current")
-            val tempC = current.getDouble("temperature_2m").toInt()
-            val wmoCode = current.getInt("weather_code")
-            val humidity = current.optInt("relative_humidity_2m", -1)
-            val windSpeed = current.optDouble("wind_speed_10m", -1.0)
-
-            val condition = wmoCodeToCondition(wmoCode)
-            val (riskStatus, riskColor) = wmoCodeToRisk(wmoCode, tempC)
-
-            WeatherInfo(
-                location = cityName,
-                condition = condition,
-                temperature = "${tempC}°C",
-                riskStatus = riskStatus,
-                riskColor = riskColor,
-                weatherCode = wmoCode,
-                humidity = if (humidity >= 0) "${humidity}%" else "--",
-                windSpeed = if (windSpeed >= 0) "${windSpeed.toInt()} km/h" else "--",
-                lastUpdated = System.currentTimeMillis()
-            )
-        } catch (e: Exception) {
-            buildWeatherFallback(cityName)
-        }
-    }
-
-    private fun parseEarthquake(json: String): EarthquakeInfo? {
-        return try {
-            val gempa = JSONObject(json)
-                .getJSONObject("Infogempa")
-                .getJSONObject("gempa")
-
-            EarthquakeInfo(
-                magnitude = gempa.optString("Magnitude", "--"),
-                location = gempa.optString("Wilayah", "--"),
-                depth = gempa.optString("Kedalaman", "--"),
-                time = "${gempa.optString("Tanggal", "")} ${gempa.optString("Jam", "")}".trim(),
-                felt = gempa.optString("Dirasakan", "Tidak dirasakan")
-            )
         } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun parseRecentQuakeWarnings(json: String): List<BmkgWarning> {
-        return try {
-            val gempaArray = JSONObject(json)
-                .getJSONObject("Infogempa")
-                .getJSONArray("gempa")
-
-            val warnings = mutableListOf<BmkgWarning>()
-            for (i in 0 until minOf(gempaArray.length(), 5)) {
-                val g = gempaArray.getJSONObject(i)
-                val mag = g.optString("Magnitude", "0").toDoubleOrNull() ?: 0.0
-                if (mag >= 5.0) {
-                    val severity = when {
-                        mag >= 7.0 -> WarningSeverity.DANGER
-                        mag >= 5.5 -> WarningSeverity.WARNING
-                        else -> WarningSeverity.INFO
-                    }
-                    warnings.add(
-                        BmkgWarning(
-                            type = "Gempa Bumi",
-                            message = "M ${"%.1f".format(mag)} – ${g.optString("Wilayah", "--")}",
-                            severity = severity,
-                            time = "${g.optString("Tanggal", "")} ${g.optString("Jam", "")}".trim()
-                        )
-                    )
-                }
-            }
-            warnings
-        } catch (_: Exception) {
-            emptyList()
-        }
-    }
-
-    private suspend fun fetchJsonWithRetry(
-        urlString: String,
-        maxRetries: Int = 3
-    ): String {
-        var lastException: Exception? = null
-        repeat(maxRetries) { attempt ->
-            try {
-                return fetchJson(urlString)
-            } catch (e: Exception) {
-                lastException = e
-                if (attempt < maxRetries - 1) {
-                    delay(1000L * (1 shl attempt))
-                }
-            }
-        }
-        throw lastException ?: Exception("Failed after $maxRetries attempts")
-    }
-
-    private fun fetchJson(urlString: String): String {
-        val conn = URL(urlString).openConnection() as HttpURLConnection
-        return try {
-            conn.connectTimeout = 10_000
-            conn.readTimeout = 10_000
-            conn.requestMethod = "GET"
-            conn.setRequestProperty("Accept", "application/json")
-            conn.connect()
-            if (conn.responseCode != HttpURLConnection.HTTP_OK) {
-                throw Exception("HTTP ${conn.responseCode}")
-            }
-            conn.inputStream.bufferedReader().readText()
-        } finally {
-            conn.disconnect()
+            buildWeatherFallback(cityName)
         }
     }
 
@@ -279,34 +207,24 @@ class WeatherRepository @Inject constructor(
     }
 
     private fun wmoCodeToRisk(code: Int, tempC: Int): Pair<String, Color> = when {
-
         code in listOf(95, 96, 99) ->
             Pair("Risiko Petir Tinggi", EmergencyRed)
-
         code == 65 || code == 82 ->
             Pair("Risiko Banjir Tinggi", EmergencyRed)
-
         tempC >= 38 ->
             Pair("Suhu Ekstrem", EmergencyRed)
-
         code in listOf(61, 63, 80, 81) ->
             Pair("Waspada Hujan", WarningOrange)
-
         code in listOf(45, 48) ->
             Pair("Kabut Tebal", WarningOrange)
-
         tempC >= 35 ->
             Pair("Cuaca Panas", WarningOrange)
-
         code in listOf(51, 53, 55) ->
             Pair("Gerimis", MitigationBlue)
-
         code in listOf(56, 57, 66, 67, 71, 73, 75, 77, 85, 86) ->
             Pair("Cuaca Ekstrem", MitigationBlue)
-
         code in listOf(0, 1, 2, 3) ->
             Pair("Kondisi Normal", VolunteerGreen)
-
         else ->
             Pair("Kondisi Stabil", VolunteerGreen)
     }

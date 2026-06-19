@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
-import com.mahasiswa.sigma.data.repository.VolunteerDto
+import com.mahasiswa.sigma.data.model.VolunteerDto
 import com.mahasiswa.sigma.ui.viewmodel.ManageVolunteerViewModel
 import kotlinx.coroutines.launch
 

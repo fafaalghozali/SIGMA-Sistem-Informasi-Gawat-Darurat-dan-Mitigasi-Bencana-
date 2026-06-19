@@ -2,8 +2,10 @@ package com.mahasiswa.sigma.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
-import com.mahasiswa.sigma.data.repository.AdminRepository
+import com.mahasiswa.sigma.data.model.UpdateDisasterReportRequest
+import com.mahasiswa.sigma.data.repository.DisasterReportRepositoryRetrofit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AdminVerificationViewModel @Inject constructor(
-    private val repository: AdminRepository
+    private val repository: DisasterReportRepositoryRetrofit,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     private val _pendingReports = MutableStateFlow<List<LocalDisasterReport>>(emptyList())
@@ -32,14 +35,36 @@ class AdminVerificationViewModel @Inject constructor(
     fun loadPendingReports() {
         viewModelScope.launch {
             _isLoading.value = true
-            _pendingReports.value = repository.getPendingReports()
+            val result = repository.getDisasterReportsByStatus("pending")
+            result.onSuccess { reports ->
+                _pendingReports.value = reports.map { dto ->
+                    LocalDisasterReport(
+                        id = dto.id ?: "",
+                        title = dto.title,
+                        description = dto.description,
+                        location = dto.location,
+                        reporter = dto.reporterName,
+                        status = dto.status,
+                        latitude = dto.latitude,
+                        longitude = dto.longitude
+                    )
+                }
+            }
+            result.onFailure {
+                _pendingReports.value = emptyList()
+            }
             _isLoading.value = false
         }
     }
 
     fun verifyReport(reportId: String, newStatus: String = "siaga_1") {
         viewModelScope.launch {
-            val result = repository.verifyReport(reportId, newStatus)
+            val userId = authManager.getCurrentUserId()
+            val request = UpdateDisasterReportRequest(
+                status = newStatus,
+                verifiedBy = userId
+            )
+            val result = repository.updateDisasterReport(reportId, request)
             result.onFailure { _actionError.value = it.message }
             loadPendingReports()
         }
@@ -47,7 +72,10 @@ class AdminVerificationViewModel @Inject constructor(
 
     fun rejectReport(reportId: String) {
         viewModelScope.launch {
-            val result = repository.rejectReport(reportId)
+            val request = UpdateDisasterReportRequest(
+                status = "decline"
+            )
+            val result = repository.updateDisasterReport(reportId, request)
             result.onFailure { _actionError.value = it.message }
             loadPendingReports()
         }

@@ -1,35 +1,103 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.mahasiswa.sigma.data.model.ReportStatus
-import com.mahasiswa.sigma.data.model.DisasterInfo
+import androidx.lifecycle.viewModelScope
+import com.mahasiswa.sigma.data.repository.EarthquakeData
+import com.mahasiswa.sigma.data.repository.EarthquakeRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 import javax.inject.Inject
 
 @HiltViewModel
-class SearchDisasterViewModel @Inject constructor() : ViewModel() {
-    var searchQuery by mutableStateOf("")
-        private set
+class SearchDisasterViewModel @Inject constructor(
+    private val earthquakeRepository: EarthquakeRepository
+) : ViewModel() {
 
-    private val allDisasters = listOf(
-        DisasterInfo("Banjir", "Sukoharjo", ReportStatus.SIAGA_1, "14 April 2026"),
-    )
+    private val _earthquakeListState = MutableStateFlow<UiState<List<EarthquakeData>>>(UiState.Idle)
+    val earthquakeListState: StateFlow<UiState<List<EarthquakeData>>> = _earthquakeListState.asStateFlow()
 
-    var filteredDisasters by mutableStateOf(allDisasters)
-        private set
+    private val _latestEarthquakeState = MutableStateFlow<UiState<EarthquakeData>>(UiState.Idle)
+    val latestEarthquakeState: StateFlow<UiState<EarthquakeData>> = _latestEarthquakeState.asStateFlow()
 
-    fun onSearchQueryChange(newQuery: String) {
-        searchQuery = newQuery
-        filterDisasters()
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    init {
+        loadRecentEarthquakes()
     }
 
-    private fun filterDisasters() {
-        filteredDisasters = allDisasters.filter { d ->
-            d.location.contains(searchQuery, ignoreCase = true) ||
-            d.type.contains(searchQuery, ignoreCase = true)
+    fun loadRecentEarthquakes() {
+        viewModelScope.launch {
+            _earthquakeListState.value = UiState.Loading
+            try {
+                val data = earthquakeRepository.getRecentEarthquakes()
+                if (data.isEmpty()) {
+                    _earthquakeListState.value = UiState.Empty
+                } else {
+                    _earthquakeListState.value = UiState.Success(data)
+                }
+            } catch (e: IOException) {
+                _earthquakeListState.value = UiState.Error(e.message ?: "Kesalahan jaringan")
+            } catch (e: HttpException) {
+                _earthquakeListState.value = UiState.Error("Server error: ${e.code()} ${e.message()}")
+            } catch (e: Exception) {
+                _earthquakeListState.value = UiState.Error(e.message ?: "Terjadi kesalahan")
+            }
+        }
+    }
+
+    fun loadLatestEarthquake() {
+        viewModelScope.launch {
+            _latestEarthquakeState.value = UiState.Loading
+            try {
+                val data = earthquakeRepository.getLatestEarthquake()
+                _latestEarthquakeState.value = UiState.Success(data)
+            } catch (e: IOException) {
+                _latestEarthquakeState.value = UiState.Error(e.message ?: "Kesalahan jaringan")
+            } catch (e: HttpException) {
+                _latestEarthquakeState.value = UiState.Error("Server error: ${e.code()} ${e.message()}")
+            } catch (e: Exception) {
+                _latestEarthquakeState.value = UiState.Error(e.message ?: "Terjadi kesalahan")
+            }
+        }
+    }
+
+    fun onSearchQueryChange(newQuery: String) {
+        _searchQuery.value = newQuery
+        if (newQuery.isBlank()) {
+            loadRecentEarthquakes()
+            return
+        }
+        viewModelScope.launch {
+            _earthquakeListState.value = UiState.Loading
+            try {
+                val data = earthquakeRepository.searchEarthquakes(newQuery)
+                if (data.isEmpty()) {
+                    _earthquakeListState.value = UiState.Empty
+                } else {
+                    _earthquakeListState.value = UiState.Success(data)
+                }
+            } catch (e: IOException) {
+                _earthquakeListState.value = UiState.Error(e.message ?: "Kesalahan jaringan")
+            } catch (e: HttpException) {
+                _earthquakeListState.value = UiState.Error("Server error: ${e.code()} ${e.message()}")
+            } catch (e: Exception) {
+                _earthquakeListState.value = UiState.Error(e.message ?: "Terjadi kesalahan")
+            }
+        }
+    }
+
+    fun retry() {
+        val currentQuery = _searchQuery.value
+        if (currentQuery.isBlank()) {
+            loadRecentEarthquakes()
+        } else {
+            onSearchQueryChange(currentQuery)
         }
     }
 }

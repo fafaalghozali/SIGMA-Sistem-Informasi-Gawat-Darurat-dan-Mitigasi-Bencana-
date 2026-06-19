@@ -6,9 +6,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.data.model.CreateDisasterReportRequest
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
-import com.mahasiswa.sigma.data.repository.ReportRepository
-import com.mahasiswa.sigma.data.repository.VolunteerRepository
+import com.mahasiswa.sigma.data.repository.DisasterReportRepositoryRetrofit
+import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,8 +21,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DisasterReportViewModel @Inject constructor(
-    private val repository: ReportRepository,
-    private val volunteerRepository: VolunteerRepository
+    private val repository: DisasterReportRepositoryRetrofit,
+    private val volunteerRepository: VolunteerRepositoryRetrofit,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     private val _reports = MutableStateFlow<List<LocalDisasterReport>>(emptyList())
@@ -35,16 +38,7 @@ class DisasterReportViewModel @Inject constructor(
 
     var volunteerSkill by mutableStateOf<SkillsVolunteer?>(null)
     var volunteerName by mutableStateOf("")
-
-    fun loadVolunteerSkill(email: String) {
-        viewModelScope.launch {
-            val reg = volunteerRepository.getRegistration(email)
-            if (reg != null) {
-                volunteerSkill = reg.skill
-                volunteerName = reg.name
-            }
-        }
-    }
+    private var volunteerId: String? = null
 
     var showIncompleteDialog by mutableStateOf(false)
     var showPhotoSourceSheet by mutableStateOf(false)
@@ -52,13 +46,45 @@ class DisasterReportViewModel @Inject constructor(
     var saveErrorMessage by mutableStateOf<String?>(null)
     var saveSuccess by mutableStateOf(false)
 
+    fun loadVolunteerSkill(email: String) {
+        viewModelScope.launch {
+            val userId = authManager.getCurrentUserId() ?: return@launch
+            val result = volunteerRepository.getVolunteerByUserId(userId)
+            result.onSuccess { volunteerDto ->
+                if (volunteerDto != null) {
+                    volunteerId = volunteerDto.id
+                    volunteerSkill = try {
+                        SkillsVolunteer.valueOf(volunteerDto.skill.uppercase())
+                    } catch (_: Exception) {
+                        SkillsVolunteer.MEDIS
+                    }
+                    volunteerName = volunteerDto.name
+                }
+            }
+        }
+    }
+
     init {
         loadReports()
     }
 
     fun loadReports() {
         viewModelScope.launch {
-            _reports.value = repository.getAllReports()
+            val result = repository.getAllDisasterReports()
+            result.onSuccess { reports ->
+                _reports.value = reports.map { dto ->
+                    LocalDisasterReport(
+                        id = dto.id ?: "",
+                        title = dto.title,
+                        description = dto.description,
+                        location = dto.location,
+                        reporter = dto.reporterName,
+                        status = dto.status,
+                        latitude = dto.latitude,
+                        longitude = dto.longitude
+                    )
+                }
+            }
         }
     }
 
@@ -86,14 +112,21 @@ class DisasterReportViewModel @Inject constructor(
             isLoading = true
             saveErrorMessage = null
             saveSuccess = false
-            val newReport = LocalDisasterReport(
+            
+            val userId = authManager.getCurrentUserId()
+            val request = CreateDisasterReportRequest(
+                userId = userId,
                 title = title,
                 description = description,
+                disasterType = null,
                 location = locationAddress,
                 latitude = currentLatitude,
-                longitude = currentLongitude
+                longitude = currentLongitude,
+                reporterName = "Warga",
+                photoUrl = null
             )
-            val result = repository.saveReport(newReport)
+            
+            val result = repository.createDisasterReport(request)
             if (result.isSuccess) {
                 title = ""
                 description = ""
@@ -113,26 +146,35 @@ class DisasterReportViewModel @Inject constructor(
             isLoading = true
             saveErrorMessage = null
             saveSuccess = false
-            val formattedTitle = "[LAPORAN TUGAS - ${volunteerSkill?.name ?: "UMUM"}] Terkait: $disasterTitle"
-            val formattedDescription = """
-                DATA LAPORAN:
-                $dataLaporan
 
-                CATATAN TAMBAHAN:
-                $catatanTambahan
-            """.trimIndent()
+            // Ensure we have the volunteer id (resolve lazily if needed).
+            if (volunteerId == null) {
+                val userId = authManager.getCurrentUserId()
+                if (userId != null) {
+                    volunteerRepository.getVolunteerByUserId(userId).onSuccess { volunteerId = it?.id }
+                }
+            }
 
-            val newReport = LocalDisasterReport(
-                title = formattedTitle,
-                description = formattedDescription,
-                location = locationAddress,
-                reporter = volunteerName.ifBlank { "Relawan" },
-                status = "Verified"
+            val resolvedVolunteerId = volunteerId
+            if (resolvedVolunteerId == null) {
+                saveErrorMessage = "Anda belum terdaftar sebagai relawan."
+                isLoading = false
+                return@launch
+            }
+
+            val reportData = "Terkait: $disasterTitle\n$dataLaporan"
+            val request = com.mahasiswa.sigma.data.model.CreateVolunteerReportRequest(
+                volunteerId = resolvedVolunteerId,
+                disasterId = null,
+                skillType = volunteerSkill?.name,
+                reportData = reportData,
+                notes = catatanTambahan.ifBlank { null },
+                photoUrls = null
             )
-            val result = repository.saveReport(newReport)
+
+            val result = volunteerRepository.createVolunteerReport(request)
             if (result.isSuccess) {
                 saveSuccess = true
-                loadReports()
             } else {
                 saveErrorMessage = result.exceptionOrNull()?.message
                     ?: "Gagal mengirim laporan. Coba lagi."
@@ -148,7 +190,13 @@ class DisasterReportViewModel @Inject constructor(
 
     fun updateReport(report: LocalDisasterReport) {
         viewModelScope.launch {
-            repository.updateReport(report)
+            val request = com.mahasiswa.sigma.data.model.UpdateDisasterReportRequest(
+                status = report.status,
+                title = report.title,
+                description = report.description,
+                location = report.location
+            )
+            repository.updateDisasterReport(report.id, request)
             loadReports()
         }
     }

@@ -30,7 +30,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
-import com.mahasiswa.sigma.data.model.ShelterMock
+import com.mahasiswa.sigma.data.model.ShelterMapItem
 import com.mahasiswa.sigma.ui.viewmodel.MapViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -461,7 +461,7 @@ private fun ReportInfoSheet(
 
 @Composable
 private fun ShelterMapInfoSheet(
-    shelter: ShelterMock,
+    shelter: ShelterMapItem,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -517,8 +517,8 @@ private fun ShelterMapInfoSheet(
             }
             Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(Icons.Default.NearMe, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
-                Text(shelter.distance, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(shelter.address, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             }
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -542,16 +542,23 @@ private fun ShelterMapInfoSheet(
                     fontSize = 12.sp
                 )
             }
-            if (shelter.logisticsNeeded.isNotEmpty()) {
+            if (!shelter.logistics.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Text("Kebutuhan Logistik:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Text("Logistik:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    shelter.logisticsNeeded.take(3).forEach { item ->
+                    shelter.logistics.take(3).forEach { item ->
                         Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)) {
                             Text(item, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         }
                     }
+                }
+            }
+            if (!shelter.contactPhone.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(shelter.contactPhone, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 }
             }
         }

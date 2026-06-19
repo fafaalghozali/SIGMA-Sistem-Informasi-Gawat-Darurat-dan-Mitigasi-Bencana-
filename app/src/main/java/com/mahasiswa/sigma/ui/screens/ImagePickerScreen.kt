@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PhotoLibrary
@@ -29,76 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.navigation.NavController
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mahasiswa.sigma.ui.viewmodel.ImagePickerViewModel
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ImagePickerScreen(
-    navController: NavController,
-    onBack: () -> Unit
-) {
-    val context = LocalContext.current
-    val viewModel: ImagePickerViewModel = hiltViewModel()
-
-    val selectedBitmap by viewModel.selectedBitmap.collectAsState()
-
-    LaunchedEffect(selectedBitmap) {
-        selectedBitmap?.let {
-            navController.previousBackStackEntry?.savedStateHandle?.set("image_bitmap", it)
-            viewModel.resetState()
-            navController.popBackStack()
-        }
-    }
-
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { viewModel.handleImageUri(it) }
-    }
-
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
-        bitmap?.let { viewModel.handleImageBitmap(it) }
-    }
-
-    val fileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { viewModel.handleImageUri(it) }
-    }
-
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-        if (isGranted) cameraLauncher.launch(null)
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Pilih Gambar") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentAlignment = Alignment.Center
-        ) {
-            ImagePickerContent(
-                onCameraClick = {
-                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                        cameraLauncher.launch(null)
-                    } else {
-                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                    }
-                },
-                onGalleryClick = { galleryLauncher.launch("image/*") },
-                onFileClick = { fileLauncher.launch(arrayOf("image/*")) }
-            )
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

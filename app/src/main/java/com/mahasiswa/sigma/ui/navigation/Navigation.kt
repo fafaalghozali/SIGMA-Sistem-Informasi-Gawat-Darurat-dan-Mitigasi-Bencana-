@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Box
 import com.mahasiswa.sigma.PdfUtils
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.ui.components.SigmaBottomBar
+import com.mahasiswa.sigma.ui.screen.ProfileListScreen
 import com.mahasiswa.sigma.ui.screens.*
 import kotlinx.coroutines.launch
 
@@ -112,6 +113,9 @@ fun SigmaNavigation() {
                                     6 -> backStack.add(Route.AdminVerification)
                                     11 -> backStack.add(Route.ManageShelter)
                                     12 -> backStack.add(Route.ManageVolunteer)
+                                    13 -> backStack.add(Route.NewsList)
+                                    14 -> backStack.add(Route.VolunteerReport)
+                                    15 -> backStack.add(Route.ProfileList)
                                     99 -> {
                                         val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:112"))
                                         context.startActivity(intent)
@@ -219,6 +223,23 @@ fun SigmaNavigation() {
                     is Route.AdminVerification -> AdminVerificationScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
                     is Route.ManageShelter -> ManageShelterScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
                     is Route.ManageVolunteer -> ManageVolunteerScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
+                    is Route.NewsList -> NewsListScreen(
+                        userRole = userRole,
+                        onBack = { backStack.removeAt(backStack.lastIndex) },
+                        onOpenDetail = { newsId -> backStack.add(Route.NewsDetail(newsId)) }
+                    )
+                    is Route.NewsDetail -> NewsDetailScreen(
+                        newsId = route.newsId,
+                        userRole = userRole,
+                        onBack = { backStack.removeAt(backStack.lastIndex) }
+                    )
+                    is Route.VolunteerReport -> VolunteerReportScreen(
+                        userRole = userRole,
+                        onBack = { backStack.removeAt(backStack.lastIndex) }
+                    )
+                    is Route.ProfileList -> ProfileListScreen(
+                        onBack = { backStack.removeAt(backStack.lastIndex) }
+                    )
                 }
             }
 

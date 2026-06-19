@@ -54,7 +54,7 @@ class DisasterReportViewModel @Inject constructor(
             val result = volunteerRepository.getVolunteerByUserId(userId)
             result.onSuccess { volunteerDto ->
                 if (volunteerDto != null) {
-                    volunteerId = volunteerDto.id
+                    volunteerId = volunteerDto.id?.toString()
                     volunteerSkill = try {
                         SkillsVolunteer.valueOf(volunteerDto.skill.uppercase())
                     } catch (_: Exception) {
@@ -167,7 +167,7 @@ class DisasterReportViewModel @Inject constructor(
             if (volunteerId == null) {
                 val userId = authManager.getCurrentUserId()
                 if (userId != null) {
-                    volunteerRepository.getVolunteerByUserId(userId).onSuccess { volunteerId = it?.id }
+                    volunteerRepository.getVolunteerByUserId(userId).onSuccess { volunteerId = it?.id?.toString() }
                 }
             }
 

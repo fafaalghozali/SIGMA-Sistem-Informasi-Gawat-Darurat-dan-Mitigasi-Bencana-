@@ -19,14 +19,14 @@ data class ProfileDto(
 
 @Serializable
 data class VolunteerDto(
-    val id: String? = null,
+    val id: Long? = null,
     @SerialName("user_id") @SerializedName("user_id") val userId: String? = null,
     val name: String,
     val skill: String,
     val address: String,
     @SerialName("phone_number") @SerializedName("phone_number") val phoneNumber: String,
     val availability: String? = null,
-    val status: String = "pending",
+    val status: String = "PENDING",
     val assignment: String? = null,
     @SerialName("assignment_status") @SerializedName("assignment_status") val assignmentStatus: String? = null,
     @SerialName("disaster_id") @SerializedName("disaster_id") val disasterId: String? = null
@@ -107,7 +107,7 @@ data class CreateVolunteerRequest(
     val address: String,
     @SerializedName("phone_number") val phoneNumber: String,
     val availability: String? = null,
-    val status: String = "pending"
+    val status: String = "PENDING"
 )
 
 data class CreateDisasterReportRequest(

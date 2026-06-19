@@ -7,5 +7,5 @@ data class VolunteerRegistrationData(
     val skill: SkillsVolunteer,
     val address: String,
     val phoneNumber: String,
-    val status: String = "Pending"
+    val status: String = "PENDING"
 ) : Serializable

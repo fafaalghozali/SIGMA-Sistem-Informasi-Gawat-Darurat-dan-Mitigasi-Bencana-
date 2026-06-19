@@ -103,7 +103,7 @@ class DashboardViewModel @Inject constructor(
                     val request = com.mahasiswa.sigma.data.model.UpdateVolunteerRequest(
                         status = newStatus
                     )
-                    volunteerRepo.updateVolunteer(volunteerId, request)
+                    volunteerRepo.updateVolunteer(volunteerId.toString(), request)
                     _uiState.value = _uiState.value.copy(volunteerStatus = newStatus)
                 }
             }

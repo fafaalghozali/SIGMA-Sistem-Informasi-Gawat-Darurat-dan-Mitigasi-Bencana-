@@ -45,7 +45,7 @@ class ManageVolunteerViewModel @Inject constructor(
 
     fun approveVolunteer(volunteerId: String) {
         viewModelScope.launch {
-            val request = UpdateVolunteerRequest(status = "Accepted")
+            val request = UpdateVolunteerRequest(status = "ACCEPTED")
             volunteerRepository.updateVolunteer(volunteerId, request)
             loadRegistrations()
         }
@@ -53,7 +53,7 @@ class ManageVolunteerViewModel @Inject constructor(
 
     fun rejectVolunteer(volunteerId: String) {
         viewModelScope.launch {
-            val request = UpdateVolunteerRequest(status = "Declined")
+            val request = UpdateVolunteerRequest(status = "DECLINED")
             volunteerRepository.updateVolunteer(volunteerId, request)
             loadRegistrations()
         }

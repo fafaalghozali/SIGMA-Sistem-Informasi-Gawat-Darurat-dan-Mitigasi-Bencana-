@@ -1,6 +1,7 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -22,21 +23,28 @@ class VolunteerRegistrationViewModel @Inject constructor(
 
     private var currentUserEmail: String = ""
 
+    // Multi-step: 1 = Data Diri, 2 = Keahlian, 3 = Konfirmasi
+    var currentStep by mutableIntStateOf(1)
+
     var name by mutableStateOf("")
     var address by mutableStateOf("")
     var phoneNumber by mutableStateOf("")
-    var showConfirmDialog by mutableStateOf(false)
     var showIncompleteDialog by mutableStateOf(false)
+    var isSubmitting by mutableStateOf(false)
+    var submitError by mutableStateOf<String?>(null)
 
     val skillOptions = SkillsVolunteer.entries
     var selectedSkill by mutableStateOf(skillOptions[0])
-    var skillExpanded by mutableStateOf(false)
 
     var registeredData by mutableStateOf<VolunteerRegistrationData?>(null)
     var isRegistered by mutableStateOf(false)
 
-    fun loadRegistrationData(email: String) {
+    fun loadRegistrationData(email: String, userName: String = "") {
         currentUserEmail = email
+        // Auto-fill nama dari profil yang sudah login jika belum diisi
+        if (name.isBlank() && userName.isNotBlank()) {
+            name = userName
+        }
         viewModelScope.launch {
             val userId = authManager.getCurrentUserId() ?: return@launch
             val result = volunteerRepository.getVolunteerByUserId(userId)
@@ -44,10 +52,10 @@ class VolunteerRegistrationViewModel @Inject constructor(
                 if (volunteerDto != null) {
                     registeredData = VolunteerRegistrationData(
                         name = volunteerDto.name,
-                        skill = try { 
-                            SkillsVolunteer.valueOf(volunteerDto.skill.uppercase()) 
-                        } catch (_: Exception) { 
-                            SkillsVolunteer.MEDIS 
+                        skill = try {
+                            SkillsVolunteer.valueOf(volunteerDto.skill.uppercase())
+                        } catch (_: Exception) {
+                            SkillsVolunteer.MEDIS
                         },
                         address = volunteerDto.address,
                         phoneNumber = volunteerDto.phoneNumber,
@@ -59,36 +67,33 @@ class VolunteerRegistrationViewModel @Inject constructor(
         }
     }
 
-    fun onNameChange(newValue: String) {
-        name = newValue
-    }
-
-    fun onAddressChange(newValue: String) {
-        address = newValue
-    }
-
-    fun onPhoneNumberChange(newValue: String) {
-        phoneNumber = newValue
-    }
+    fun onNameChange(newValue: String) { name = newValue }
+    fun onAddressChange(newValue: String) { address = newValue }
+    fun onPhoneNumberChange(newValue: String) { phoneNumber = newValue }
 
     fun onSkillSelected(skill: SkillsVolunteer) {
         selectedSkill = skill
-        skillExpanded = false
     }
 
-    fun toggleSkillExpanded() {
-        skillExpanded = !skillExpanded
-    }
-
-    fun onRegisterClick() {
-        if (isFormValid()) {
-            showConfirmDialog = true
-        } else {
-            showIncompleteDialog = true
+    // Navigasi antar step
+    fun goToNextStep() {
+        when (currentStep) {
+            1 -> {
+                if (isStep1Valid()) {
+                    currentStep = 2
+                } else {
+                    showIncompleteDialog = true
+                }
+            }
+            2 -> currentStep = 3
         }
     }
 
-    private fun isFormValid(): Boolean {
+    fun goToPreviousStep() {
+        if (currentStep > 1) currentStep--
+    }
+
+    private fun isStep1Valid(): Boolean {
         return name.isNotBlank() &&
                address.isNotBlank() &&
                phoneNumber.isNotBlank() &&
@@ -98,15 +103,21 @@ class VolunteerRegistrationViewModel @Inject constructor(
 
     fun submitRegistration() {
         viewModelScope.launch {
-            val userId = authManager.getCurrentUserId() ?: return@launch
-            
+            isSubmitting = true
+            submitError = null
+            val userId = authManager.getCurrentUserId() ?: run {
+                submitError = "Sesi tidak ditemukan, silakan login ulang."
+                isSubmitting = false
+                return@launch
+            }
+
             val request = CreateVolunteerRequest(
                 userId = userId,
                 name = name,
                 skill = selectedSkill.name,
                 address = address,
                 phoneNumber = phoneNumber,
-                status = "pending"
+                status = "PENDING"
             )
 
             val result = volunteerRepository.createVolunteer(request)
@@ -119,17 +130,16 @@ class VolunteerRegistrationViewModel @Inject constructor(
                     status = volunteerDto.status
                 )
                 isRegistered = true
-                
-                // Clear form
+                // Reset form & step
                 name = ""
                 address = ""
                 phoneNumber = ""
-                showConfirmDialog = false
+                currentStep = 1
             }
-            result.onFailure {
-                // Handle error - could add error state here
-                showConfirmDialog = false
+            result.onFailure { e ->
+                submitError = e.message ?: "Pendaftaran gagal, coba lagi."
             }
+            isSubmitting = false
         }
     }
 
@@ -139,11 +149,12 @@ class VolunteerRegistrationViewModel @Inject constructor(
             val result = volunteerRepository.getVolunteerByUserId(userId)
             result.onSuccess { volunteerDto ->
                 volunteerDto?.id?.let { volunteerId ->
-                    volunteerRepository.deleteVolunteer(volunteerId)
+                    volunteerRepository.deleteVolunteer(volunteerId.toString())
                 }
             }
             isRegistered = false
             registeredData = null
+            currentStep = 1
         }
     }
 }

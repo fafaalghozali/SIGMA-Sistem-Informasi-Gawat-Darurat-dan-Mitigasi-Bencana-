@@ -43,12 +43,10 @@ fun LoginScreen(
 
     LoginContent(
         uiState = uiState,
-        availableRoles = viewModel.availableRoles,
         onEmailChange = viewModel::onEmailChange,
         onPasswordChange = viewModel::onPasswordChange,
         onPasswordVisibilityToggle = viewModel::onPasswordVisibilityToggle,
-        onRoleExpandedChange = viewModel::onRoleExpandedChange,
-        onRoleSelected = viewModel::onRoleSelected,
+        onRememberMeToggle = viewModel::onRememberMeToggle,
         onLoginClick = viewModel::login,
         onNavigateToRegister = onNavigateToRegister,
         onDismissError = viewModel::onDismissErrorDialog,
@@ -63,12 +61,10 @@ fun LoginScreen(
 @Composable
 fun LoginContent(
     uiState: LoginUiState,
-    availableRoles: List<UserRole>,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onPasswordVisibilityToggle: () -> Unit,
-    onRoleExpandedChange: (Boolean) -> Unit,
-    onRoleSelected: (UserRole) -> Unit,
+    onRememberMeToggle: () -> Unit,
     onLoginClick: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onDismissError: () -> Unit,
@@ -163,52 +159,32 @@ fun LoginContent(
                         unfocusedContainerColor = cardColor,
                     )
                 )
-
-                ExposedDropdownMenuBox(
-                    expanded = uiState.isRoleExpanded,
-                    onExpandedChange = onRoleExpandedChange,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = uiState.selectedRole.displayName,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Masuk Sebagai") },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.AccountCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.isRoleExpanded)
-                        },
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = cardColor,
-                            unfocusedContainerColor = cardColor,
-                        )
-                    )
-                    ExposedDropdownMenu(
-                        expanded = uiState.isRoleExpanded,
-                        onDismissRequest = { onRoleExpandedChange(false) },
-                        modifier = Modifier.background(cardColor)
-                    ) {
-                        availableRoles.forEach { role ->
-                            DropdownMenuItem(
-                                text = { Text(role.displayName, fontWeight = FontWeight.Medium) },
-                                onClick = { onRoleSelected(role) }
-                            )
-                        }
-                    }
-                }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Ingat Saya checkbox
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = uiState.rememberMe,
+                    onCheckedChange = { onRememberMeToggle() },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Ingat Saya",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isDark) Color.LightGray else Color.DarkGray,
+                    modifier = Modifier.clickable { onRememberMeToggle() }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Button(
                 onClick = onLoginClick,
@@ -382,12 +358,10 @@ fun SuccessOverlay(name: String, onConfirm: () -> Unit, isDark: Boolean) {
 fun LoginScreenPreview() {
     LoginContent(
         uiState = LoginUiState(),
-        availableRoles = listOf(UserRole.MASYARAKAT, UserRole.RELAWAN, UserRole.BNPB),
         onEmailChange = {},
         onPasswordChange = {},
         onPasswordVisibilityToggle = {},
-        onRoleExpandedChange = {},
-        onRoleSelected = {},
+        onRememberMeToggle = {},
         onLoginClick = {},
         onNavigateToRegister = {},
         onDismissError = {},

@@ -104,14 +104,9 @@ class NewsRepository @Inject constructor(
         }
 
     private fun NewsDto.toRawRssItem(): RawRssItem {
-        val dateString = if (publishedAt != null) {
-            val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
-            sdf.format(java.util.Date(publishedAt))
-        } else {
-            ""
-        }
+        val dateString = publishedAt ?: ""
         return RawRssItem(
-            guid        = id,
+            guid        = id?.toString() ?: title,
             title       = title,
             description = summary ?: "",
             link        = url ?: "",

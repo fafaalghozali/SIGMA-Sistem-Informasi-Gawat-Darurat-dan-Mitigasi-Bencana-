@@ -73,7 +73,7 @@ class MapViewModel @Inject constructor(
                     }
                     .map { dto ->
                         LocalDisasterReport(
-                            id = dto.id ?: "",
+                            id = dto.id?.toString() ?: "",
                             title = dto.title,
                             description = dto.description,
                             location = dto.location,

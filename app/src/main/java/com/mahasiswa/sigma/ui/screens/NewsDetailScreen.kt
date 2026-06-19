@@ -151,7 +151,7 @@ fun NewsDetailScreen(
             initial = current,
             onDismiss = { showEditor = false },
             onSubmit = { title, summary, source, url, imageUrl ->
-                viewModel.updateNews(current.id, title, summary, source, url, imageUrl)
+                viewModel.updateNews(current.id.toString(), title, summary, source, url, imageUrl)
                 showEditor = false
             }
         )

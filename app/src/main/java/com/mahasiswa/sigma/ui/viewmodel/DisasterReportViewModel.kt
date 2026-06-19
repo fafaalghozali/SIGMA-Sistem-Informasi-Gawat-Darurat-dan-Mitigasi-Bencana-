@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.model.CreateDisasterReportRequest
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
+import com.mahasiswa.sigma.data.remote.api.SupabaseStorageService
 import com.mahasiswa.sigma.data.repository.DisasterReportRepositoryRetrofit
 import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
@@ -23,6 +24,7 @@ import javax.inject.Inject
 class DisasterReportViewModel @Inject constructor(
     private val repository: DisasterReportRepositoryRetrofit,
     private val volunteerRepository: VolunteerRepositoryRetrofit,
+    private val storageService: SupabaseStorageService,
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -70,20 +72,24 @@ class DisasterReportViewModel @Inject constructor(
 
     fun loadReports() {
         viewModelScope.launch {
+            val userId = authManager.getCurrentUserId()
             val result = repository.getAllDisasterReports()
             result.onSuccess { reports ->
-                _reports.value = reports.map { dto ->
-                    LocalDisasterReport(
-                        id = dto.id ?: "",
-                        title = dto.title,
-                        description = dto.description,
-                        location = dto.location,
-                        reporter = dto.reporterName,
-                        status = dto.status,
-                        latitude = dto.latitude,
-                        longitude = dto.longitude
-                    )
-                }
+                // Only show reports belonging to current user
+                _reports.value = reports
+                    .filter { it.userId == userId }
+                    .map { dto ->
+                        LocalDisasterReport(
+                            id = dto.id?.toString() ?: "",
+                            title = dto.title,
+                            description = dto.description,
+                            location = dto.location,
+                            reporter = dto.reporterName,
+                            status = dto.status,
+                            latitude = dto.latitude,
+                            longitude = dto.longitude
+                        )
+                    }
             }
         }
     }
@@ -103,7 +109,7 @@ class DisasterReportViewModel @Inject constructor(
     }
 
     fun sendReport() {
-        if (title.isBlank() || description.isBlank() || imageBitmap == null) {
+        if (title.isBlank() || description.isBlank()) {
             showIncompleteDialog = true
             return
         }
@@ -114,6 +120,16 @@ class DisasterReportViewModel @Inject constructor(
             saveSuccess = false
             
             val userId = authManager.getCurrentUserId()
+            val userName = try { authManager.getUserName() } catch (_: Exception) { "Warga" }
+
+            // Upload photo to Supabase Storage if available
+            var photoUrl: String? = null
+            if (imageBitmap != null) {
+                photoUrl = storageService.uploadImage(imageBitmap!!, "report")
+            }
+
+            val photoUrlJson = if (photoUrl != null) "[\"$photoUrl\"]" else null
+
             val request = CreateDisasterReportRequest(
                 userId = userId,
                 title = title,
@@ -122,8 +138,8 @@ class DisasterReportViewModel @Inject constructor(
                 location = locationAddress,
                 latitude = currentLatitude,
                 longitude = currentLongitude,
-                reporterName = "Warga",
-                photoUrl = null
+                reporterName = userName.ifBlank { "Warga" },
+                photoUrl = photoUrlJson
             )
             
             val result = repository.createDisasterReport(request)

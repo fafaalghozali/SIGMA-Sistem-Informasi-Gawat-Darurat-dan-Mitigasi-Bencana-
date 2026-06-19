@@ -39,7 +39,7 @@ class AdminVerificationViewModel @Inject constructor(
             result.onSuccess { reports ->
                 _pendingReports.value = reports.map { dto ->
                     LocalDisasterReport(
-                        id = dto.id ?: "",
+                        id = dto.id?.toString() ?: "",
                         title = dto.title,
                         description = dto.description,
                         location = dto.location,

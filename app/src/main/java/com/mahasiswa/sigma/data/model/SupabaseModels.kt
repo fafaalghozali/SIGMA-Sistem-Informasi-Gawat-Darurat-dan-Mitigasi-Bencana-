@@ -45,19 +45,20 @@ data class VolunteerReportDto(
 
 @Serializable
 data class DisasterReportDto(
-    val id: String? = null,
+    val id: Int? = null,
     @SerialName("user_id") @SerializedName("user_id") val userId: String? = null,
-    val title: String,
-    val description: String,
+    val title: String = "",
+    val description: String = "",
     @SerialName("disaster_type") @SerializedName("disaster_type") val disasterType: String? = null,
-    val location: String,
+    val location: String = "",
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
-    val status: String = "pending",
-    @SerialName("reporter_name") @SerializedName("reporter_name") val reporterName: String,
+    val status: String = "PENDING",
+    @SerialName("reporter_name") @SerializedName("reporter_name") val reporterName: String = "",
     @SerialName("photo_url") @SerializedName("photo_url") val photoUrl: String? = null,
     @SerialName("verified_by") @SerializedName("verified_by") val verifiedBy: String? = null,
-    @SerialName("created_at") @SerializedName("created_at") val createdAt: String? = null
+    @SerialName("created_at") @SerializedName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") @SerializedName("updated_at") val updatedAt: String? = null
 )
 
 @Serializable
@@ -79,13 +80,15 @@ data class ShelterDto(
 
 @Serializable
 data class NewsDto(
-    val id: String,
-    val title: String,
+    val id: Int? = null,
+    val title: String = "",
     val summary: String? = null,
     @SerialName("image_url") @SerializedName("image_url") val imageUrl: String? = null,
     val source: String? = null,
     val url: String? = null,
-    @SerialName("published_at") @SerializedName("published_at") val publishedAt: Long? = null
+    @SerialName("published_at") @SerializedName("published_at") val publishedAt: String? = null,
+    @SerialName("created_at") @SerializedName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") @SerializedName("updated_at") val updatedAt: String? = null
 )
 
 // Request models for CREATE operations

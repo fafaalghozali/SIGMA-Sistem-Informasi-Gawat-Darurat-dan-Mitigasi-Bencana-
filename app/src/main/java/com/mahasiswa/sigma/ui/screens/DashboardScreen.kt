@@ -192,13 +192,27 @@ fun DashboardContent(
                     val severeWeatherCodes = listOf(65, 67, 75, 77, 82, 86, 95, 96, 99)
                     val activeBmkg = uiState.bmkgWarnings.firstOrNull()
                     val isSevereWeather = uiState.weatherInfo?.weatherCode in severeWeatherCodes
+                    val localAlert = uiState.localDisasterAlert
 
                     AnimatedVisibility(
                         visible = uiState.showNotification,
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut()
                     ) {
-                        if (activeBmkg != null) {
+                        if (localAlert != null) {
+                            val alertColor = when (localAlert.status.uppercase()) {
+                                "AWAS" -> EmergencyRed
+                                "SIAGA_1", "SIAGA 1" -> WarningOrange
+                                else -> WarningOrange
+                            }
+                            EmergencyAlertCard(
+                                title = "LAPORAN BENCANA DI WILAYAH ANDA",
+                                message = "${localAlert.title} - ${localAlert.location.take(60)}",
+                                alertColor = alertColor,
+                                onDismiss = onDismissNotification,
+                                isDark = isDark
+                            )
+                        } else if (activeBmkg != null) {
                             val alertColor = when (activeBmkg.severity) {
                                 com.mahasiswa.sigma.data.model.WarningSeverity.DANGER -> EmergencyRed
                                 com.mahasiswa.sigma.data.model.WarningSeverity.WARNING -> WarningOrange
@@ -244,7 +258,8 @@ fun DashboardContent(
                         isLoading = uiState.isNewsLoading,
                         error = uiState.newsError,
                         isDark = isDark,
-                        onRetry = onRetryNews
+                        onRetry = onRetryNews,
+                        onViewAll = { onFeatureClick(13) }
                     )
                 }
             }
@@ -928,14 +943,16 @@ fun NewsCarouselSection(
     isLoading: Boolean,
     error: String?,
     isDark: Boolean,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onViewAll: () -> Unit = {}
 ) {
     Column {
         SectionHeader(
             title = "Berita Terkini",
             subtitle = "Informasi bencana & kedaruratan real-time",
             isDark = isDark,
-            actionText = if (newsItems.isNotEmpty()) "Lihat Semua" else null
+            actionText = if (newsItems.isNotEmpty()) "Lihat Semua" else null,
+            onAction = onViewAll
         )
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -1452,7 +1469,8 @@ fun SectionHeader(
     title: String,
     subtitle: String? = null,
     isDark: Boolean,
-    actionText: String? = null
+    actionText: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
         Row(
@@ -1470,7 +1488,7 @@ fun SectionHeader(
                     text = actionText,
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { }
+                    modifier = Modifier.clickable { onAction?.invoke() }
                 )
             }
         }

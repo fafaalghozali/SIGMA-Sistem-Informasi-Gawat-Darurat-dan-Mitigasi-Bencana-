@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -72,13 +71,14 @@ class NewsViewModel @Inject constructor(
         viewModelScope.launch {
             _isProcessing.value = true
             val dto = NewsDto(
-                id = UUID.randomUUID().toString(),
+                id = null,
                 title = title,
                 summary = summary.ifBlank { null },
                 imageUrl = imageUrl.ifBlank { null },
                 source = source.ifBlank { null },
                 url = url.ifBlank { null },
-                publishedAt = System.currentTimeMillis()
+                publishedAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                    .format(java.util.Date())
             )
             newsRepository.createNews(dto)
                 .onSuccess {

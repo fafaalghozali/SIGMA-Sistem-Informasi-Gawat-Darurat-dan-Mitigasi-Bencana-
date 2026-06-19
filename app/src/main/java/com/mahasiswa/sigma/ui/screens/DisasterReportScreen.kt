@@ -218,9 +218,11 @@ fun DisasterReportContent(
     onStatusUpdate: (LocalDisasterReport) -> Unit,
     onRetryLocation: () -> Unit
 ) {
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            modifier = Modifier.blur(if (showIncompleteDialog || showPhotoSourceSheet) 10.dp else 0.dp),
+            modifier = Modifier.blur(if (showIncompleteDialog || showPhotoSourceSheet || showConfirmDialog) 10.dp else 0.dp),
             topBar = {
                 val topBarTitle = if (userRole == UserRole.RELAWAN) "Laporan Tugas Relawan" else "Lapor Kejadian"
                 TopAppBar(
@@ -247,123 +249,204 @@ fun DisasterReportContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 16.dp)
             ) {
+                // Form Card
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onRetryLocation() },
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                        )
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Lokasi Terdeteksi", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
-                                Text(
-                                    text = locationAddress,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    maxLines = 2,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                            }
-                            if (locationAddress == "Mendeteksi lokasi...") {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                            } else {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            // Header
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Retry",
-                                    modifier = Modifier.size(20.dp),
-                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                    Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
                                 )
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text("Formulir Laporan Baru", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                    Text("Lengkapi semua kolom yang diperlukan", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                }
 
-                item {
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = onTitleChange,
-                        label = { Text("Jenis Bencana / Judul") },
-                        placeholder = { Text("Contoh: Banjir Bandang") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = onDescriptionChange,
-                        label = { Text("Deskripsi Kejadian") },
-                        placeholder = { Text("Ceritakan detail kejadian...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+                            Spacer(Modifier.height(20.dp))
 
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { onImageClick() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (imageBitmap != null) {
-                            Image(
-                                bitmap = imageBitmap.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                            // Judul Laporan
+                            Text("JUDUL LAPORAN *", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = title,
+                                onValueChange = onTitleChange,
+                                placeholder = { Text("Contoh: Banjir bandang di kawasan Perumahan Indah", fontSize = 14.sp) },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp)
                             )
-                        } else {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(32.dp))
-                                Text("Tambah Foto Kejadian", fontSize = 12.sp)
+
+                            Spacer(Modifier.height(16.dp))
+
+                            // Deskripsi
+                            Text("DESKRIPSI LENGKAP *", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = description,
+                                onValueChange = onDescriptionChange,
+                                placeholder = { Text("Ceritakan detail kejadian secara kronologis...", fontSize = 14.sp) },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 4,
+                                shape = RoundedCornerShape(10.dp)
+                            )
+
+                            Spacer(Modifier.height(16.dp))
+
+                            // Lokasi di Peta
+                            Text("PILIH LOKASI DI PETA *", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(6.dp))
+
+                            // Gunakan Lokasi Saya button
+                            Button(
+                                onClick = onRetryLocation,
+                                modifier = Modifier.fillMaxWidth().height(44.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0))
+                            ) {
+                                Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Gunakan Lokasi Saya", fontWeight = FontWeight.SemiBold)
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            // Location address display
+                            if (locationAddress.isNotBlank() && locationAddress != "Mendeteksi lokasi...") {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.LocationOn,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            locationAddress,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 2,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            } else if (locationAddress == "Mendeteksi lokasi...") {
+                                Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Mendeteksi lokasi...", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+
+                            Spacer(Modifier.height(16.dp))
+
+                            // Dokumentasi Foto
+                            Text("DOKUMENTASI FOTO *", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.height(6.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .clickable { onImageClick() },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (imageBitmap != null) {
+                                    Image(
+                                        bitmap = imageBitmap.asImageBitmap(),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            Icons.Default.CameraAlt,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(36.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(Modifier.height(6.dp))
+                                        Text("Tambah Foto Kejadian", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                        Text("Maksimal 3 foto, Total ukuran maks 25MB", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "ⓘ Pilih berkas foto dokumentasi kejadian yang valid",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(Modifier.height(20.dp))
+
+                            // Action buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(onClick = onBack) {
+                                    Text("Batal", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Button(
+                                    onClick = {
+                                        if (title.isBlank() || description.isBlank()) {
+                                            onSendClick()  // This triggers showIncompleteDialog
+                                        } else {
+                                            showConfirmDialog = true
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    enabled = !isLoading,
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0))
+                                ) {
+                                    if (isLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                                    } else {
+                                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("Kirim Laporan", fontWeight = FontWeight.Bold)
+                                    }
+                                }
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
-                item {
-                    Button(
-                        onClick = onSendClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = !isLoading
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                        } else {
-                            Icon(Icons.AutoMirrored.Filled.Send, null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Kirim Laporan", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(40.dp))
-                }
-
+                // Riwayat Laporan Anda
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.History, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Riwayat Laporan Anda", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
 
                 if (reportsList.isEmpty()) {
@@ -388,7 +471,7 @@ fun DisasterReportContent(
                     }
                 }
 
-                item { Spacer(modifier = Modifier.height(32.dp)) }
+                item { Spacer(modifier = Modifier.height(100.dp)) }
             }
           }
         }
@@ -447,6 +530,61 @@ fun DisasterReportContent(
                 },
                 shape = RoundedCornerShape(24.dp),
                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                tonalElevation = 8.dp
+            )
+        }
+
+        if (showConfirmDialog) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f))
+                    .clickable(enabled = false) {}
+            )
+            AlertDialog(
+                onDismissRequest = { showConfirmDialog = false },
+                title = {
+                    Text(
+                        "Konfirmasi Laporan",
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                text = {
+                    Column {
+                        Text("Pastikan data laporan sudah benar sebelum dikirim:", fontSize = 14.sp)
+                        Spacer(Modifier.height(12.dp))
+                        Text("Judul: $title", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text("Deskripsi: $description", fontSize = 13.sp, maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Spacer(Modifier.height(4.dp))
+                        Text("Lokasi: $locationAddress", fontSize = 13.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Spacer(Modifier.height(12.dp))
+                        Text("Apakah data di atas sudah benar?", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showConfirmDialog = false
+                            onSendClick()
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0))
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Ya, Kirim Laporan", fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showConfirmDialog = false }) {
+                        Text("Periksa Lagi", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                },
+                shape = RoundedCornerShape(20.dp),
+                containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             )
         }

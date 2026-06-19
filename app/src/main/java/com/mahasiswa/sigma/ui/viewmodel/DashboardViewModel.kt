@@ -3,18 +3,23 @@ package com.mahasiswa.sigma.ui.viewmodel
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.model.BmkgWarning
 import com.mahasiswa.sigma.data.model.DashboardMenuModel
+import com.mahasiswa.sigma.data.model.DisasterReportDto
 import com.mahasiswa.sigma.data.model.EarthquakeInfo
+import com.mahasiswa.sigma.data.model.NewsDto
 import com.mahasiswa.sigma.data.model.NewsItem
+import com.mahasiswa.sigma.data.model.NewsSeverity
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.data.model.WeatherInfo
 import com.mahasiswa.sigma.data.repository.DashboardRepository
-import com.mahasiswa.sigma.data.repository.NewsRepository
+import com.mahasiswa.sigma.data.repository.DisasterReportRepositoryRetrofit
+import com.mahasiswa.sigma.data.repository.NewsRepositoryRetrofit
 import com.mahasiswa.sigma.data.repository.WeatherRepository
 import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
@@ -27,6 +32,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 data class DashboardUiState(
@@ -35,6 +43,7 @@ data class DashboardUiState(
     val weatherInfo: WeatherInfo? = null,
     val earthquakeInfo: EarthquakeInfo? = null,
     val bmkgWarnings: List<BmkgWarning> = emptyList(),
+    val localDisasterAlert: DisasterReportDto? = null,
     val showNotification: Boolean = true,
     val isLoading: Boolean = false,
     val isWeatherLoading: Boolean = false,
@@ -55,7 +64,8 @@ class DashboardViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dashboardRepo: DashboardRepository,
     private val weatherRepo: WeatherRepository,
-    private val newsRepo: NewsRepository,
+    private val newsRepo: NewsRepositoryRetrofit,
+    private val disasterRepo: DisasterReportRepositoryRetrofit,
     private val volunteerRepo: VolunteerRepositoryRetrofit,
     private val authManager: AuthManager
 ) : ViewModel() {
@@ -110,16 +120,9 @@ class DashboardViewModel @Inject constructor(
                 isLoading = false
             )
 
-            val cached = newsRepo.getCachedNews(_uiState.value.userCityName)
-            if (cached.isNotEmpty()) {
-                _uiState.value = _uiState.value.copy(
-                    newsItems = cached,
-                    isNewsLoading = false
-                )
-            }
-
             loadEarthquake()
             loadBmkgWarnings()
+            loadLocalDisasterAlerts()
 
             loadFreshNews()
         }
@@ -164,15 +167,12 @@ class DashboardViewModel @Inject constructor(
                     .removePrefix("(Default)")
                     .trim()
 
-                val resorted = newsRepo.getCachedNews(cityName)
-
                 _uiState.value = _uiState.value.copy(
                     weatherInfo = weather,
                     isWeatherLoading = false,
                     weatherError = null,
                     lastUpdated = System.currentTimeMillis(),
-                    userCityName = cityName,
-                    newsItems = if (resorted.isNotEmpty()) resorted else _uiState.value.newsItems
+                    userCityName = cityName
                 )
 
                 loadEarthquake()
@@ -205,22 +205,63 @@ class DashboardViewModel @Inject constructor(
     private fun loadFreshNews() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isNewsLoading = true, newsError = null)
-            try {
-                val fresh = newsRepo.fetchFreshNews(_uiState.value.userCityName)
-                _uiState.value = _uiState.value.copy(
-                    newsItems = fresh,
-                    isNewsLoading = false,
-                    newsError = null,
-                    newsLastUpdated = System.currentTimeMillis()
-                )
-            } catch (e: Exception) {
-                val hasCached = _uiState.value.newsItems.isNotEmpty()
-                _uiState.value = _uiState.value.copy(
-                    isNewsLoading = false,
-                    newsError = if (hasCached) null else "Gagal memuat berita terkini"
-                )
-            }
+            newsRepo.getAllNews()
+                .onSuccess { newsList ->
+                    val items = newsList.map { it.toNewsItem() }
+                    _uiState.value = _uiState.value.copy(
+                        newsItems = items,
+                        isNewsLoading = false,
+                        newsError = null,
+                        newsLastUpdated = System.currentTimeMillis()
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isNewsLoading = false,
+                        newsError = if (_uiState.value.newsItems.isEmpty()) 
+                            (error.message ?: "Gagal memuat berita") else null
+                    )
+                }
         }
+    }
+
+    private fun NewsDto.toNewsItem(): NewsItem {
+        val timeStr = publishedAt?.let { ts ->
+            try {
+                val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                val date = sdf.parse(ts)
+                if (date != null) {
+                    val diff = System.currentTimeMillis() - date.time
+                    when {
+                        diff < 60_000 -> "Baru saja"
+                        diff < 3_600_000 -> "${diff / 60_000} mnt lalu"
+                        diff < 86_400_000 -> "${diff / 3_600_000} jam lalu"
+                        else -> SimpleDateFormat("dd MMM", Locale("id")).format(date)
+                    }
+                } else ts
+            } catch (_: Exception) { ts }
+        } ?: ""
+
+        val publishedAtMillis = publishedAt?.let { ts ->
+            try {
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).parse(ts)?.time ?: 0L
+            } catch (_: Exception) { 0L }
+        } ?: 0L
+
+        return NewsItem(
+            id = id?.toString() ?: title,
+            title = title,
+            time = timeStr,
+            publishedAt = publishedAtMillis,
+            category = "BERITA",
+            categoryColor = Color(0xFF1565C0),
+            imageUrl = imageUrl,
+            source = source ?: "SIGMA",
+            link = url ?: "",
+            severity = NewsSeverity.INFO,
+            isOfficial = true,
+            region = null
+        )
     }
 
     fun retryNews() {
@@ -282,6 +323,25 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    private fun loadLocalDisasterAlerts() {
+        viewModelScope.launch {
+            try {
+                disasterRepo.getAllDisasterReports().onSuccess { reports ->
+                    val userCity = _uiState.value.userCityName
+                    // Find active disaster reports (SIAGA_1 or AWAS) in user's area
+                    val activeStatuses = listOf("SIAGA_1", "SIAGA_2", "AWAS", "Siaga 1", "Siaga 2", "Awas")
+                    val localAlert = reports
+                        .filter { it.status in activeStatuses }
+                        .firstOrNull { report ->
+                            isEventRelevant(report.location, userCity) ||
+                            isEventRelevant(report.title, userCity)
+                        }
+                    _uiState.value = _uiState.value.copy(localDisasterAlert = localAlert)
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     private fun startAutoRefresh() {
         autoRefreshJob?.cancel()
         autoRefreshJob = viewModelScope.launch {
@@ -290,13 +350,7 @@ class DashboardViewModel @Inject constructor(
                 delay(NEWS_REFRESH_INTERVAL_MS)
                 tick++
 
-                try {
-                    val fresh = newsRepo.fetchFreshNews(_uiState.value.userCityName)
-                    _uiState.value = _uiState.value.copy(
-                        newsItems = fresh,
-                        newsLastUpdated = System.currentTimeMillis()
-                    )
-                } catch (_: Exception) {}
+                loadFreshNews()
 
                 if (tick % 2 != 0) {
                     try {

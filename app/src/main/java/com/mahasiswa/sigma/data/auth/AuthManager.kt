@@ -1,5 +1,6 @@
 package com.mahasiswa.sigma.data.auth
 
+import android.graphics.Bitmap
 import com.mahasiswa.sigma.data.model.UserRole
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
@@ -8,6 +9,7 @@ import io.github.jan.supabase.auth.exception.AuthSessionMissingException
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.exceptions.RestException
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.storage.storage
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,6 +19,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.mindrot.jbcrypt.BCrypt
+import java.io.ByteArrayOutputStream
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -258,6 +261,97 @@ class AuthManager @Inject constructor(
             Result.failure(Exception("Tidak ada koneksi internet. Periksa jaringan Anda."))
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Upload bitmap ke Supabase Storage bucket "Picture Profile"
+     * dan kembalikan public URL-nya.
+     */
+    suspend fun uploadProfilePhoto(bitmap: Bitmap): Result<String> {
+        return try {
+            val userId = getCurrentUserId()
+                ?: return Result.failure(Exception("Tidak ada pengguna yang sedang login."))
+
+            // Kompres bitmap ke JPEG bytes
+            val bytes = withContext(Dispatchers.Default) {
+                ByteArrayOutputStream().use { stream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+                    stream.toByteArray()
+                }
+            }
+
+            // Path file di bucket: avatars/<userId>.jpg
+            val filePath = "avatars/$userId.jpg"
+
+            // Upload ke bucket "Picture Profile" dengan upsert agar overwrite jika sudah ada
+            supabase.storage.from("Picture Profile").upload(
+                path = filePath,
+                data = bytes,
+                options = {
+                    upsert = true
+                    contentType = io.ktor.http.ContentType.Image.JPEG
+                }
+            )
+
+            // Ambil public URL
+            val publicUrl = supabase.storage.from("Picture Profile").publicUrl(filePath)
+
+            Result.success(publicUrl)
+        } catch (e: RestException) {
+            Result.failure(Exception("Gagal mengupload foto: ${e.message}"))
+        } catch (e: HttpRequestTimeoutException) {
+            Result.failure(Exception("Tidak ada koneksi internet. Periksa jaringan Anda."))
+        } catch (e: Exception) {
+            Result.failure(Exception("Gagal mengupload foto: ${e.message}"))
+        }
+    }
+
+    /**
+     * Simpan photo_url ke kolom photo_url di tabel profiles.
+     */
+    suspend fun updateProfilePhotoUrl(photoUrl: String): Result<Unit> {
+        return try {
+            val userId = getCurrentUserId()
+                ?: return Result.failure(Exception("Tidak ada pengguna yang sedang login."))
+
+            supabase.from("profiles").update(
+                mapOf("photo_url" to photoUrl)
+            ) {
+                filter {
+                    eq("id", userId)
+                }
+            }
+
+            Result.success(Unit)
+        } catch (e: RestException) {
+            Result.failure(Exception("Gagal menyimpan URL foto: ${e.message}"))
+        } catch (e: HttpRequestTimeoutException) {
+            Result.failure(Exception("Tidak ada koneksi internet. Periksa jaringan Anda."))
+        } catch (e: Exception) {
+            Result.failure(Exception("Gagal menyimpan URL foto: ${e.message}"))
+        }
+    }
+
+    /**
+     * Ambil photo_url milik user yang sedang login dari tabel profiles.
+     */
+    suspend fun getProfilePhotoUrl(): String? {
+        val userId = getCurrentUserId() ?: return null
+        return try {
+            val profiles = supabase.from("profiles")
+                .select {
+                    filter { eq("id", userId) }
+                    limit(1)
+                }
+                .decodeList<JsonObject>()
+
+            profiles.firstOrNull()
+                ?.get("photo_url")
+                ?.jsonPrimitive
+                ?.contentOrNull
+        } catch (e: Exception) {
+            null
         }
     }
 }

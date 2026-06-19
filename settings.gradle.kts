@@ -25,7 +25,4 @@ dependencyResolutionManagement {
 rootProject.name = "SIGMA"
 include(":app")
 
-gradle.beforeProject {
-    layout.buildDirectory.set(file("C:/Users/fandh/.gradle-builds/SIGMA/${name}"))
-}
  

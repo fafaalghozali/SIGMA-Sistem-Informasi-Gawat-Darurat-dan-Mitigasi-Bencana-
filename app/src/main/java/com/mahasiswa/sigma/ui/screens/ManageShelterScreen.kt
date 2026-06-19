@@ -10,6 +10,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
@@ -263,7 +265,21 @@ private fun ManageShelterCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// Status options – label shown to user and raw value stored to DB
+private data class StatusOption(val value: String, val label: String)
+private val shelterStatusOptions = listOf(
+    StatusOption("active", "Tersedia"),
+    StatusOption("full",   "Penuh"),
+    StatusOption("closed", "Tutup")
+)
+
+// Suggested logistics chips – admin can pick or type freely
+private val logisticsSuggestions = listOf(
+    "Makanan", "Air Minum", "Obat-obatan", "Pakaian", "Selimut",
+    "Tenda", "Peralatan Dapur", "Sanitasi", "Susu Bayi", "P3K"
+)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun ShelterEditorDialog(
     initial: ShelterDto?,
@@ -276,8 +292,17 @@ private fun ShelterEditorDialog(
     var longitude by remember { mutableStateOf(initial?.longitude?.toString() ?: "") }
     var capacityMax by remember { mutableStateOf(initial?.capacityMax?.toString() ?: "") }
     var capacityCurrent by remember { mutableStateOf(initial?.capacityCurrent?.toString() ?: "0") }
-    var status by remember { mutableStateOf(initial?.status ?: "active") }
-    var logisticsText by remember { mutableStateOf(initial?.logistics?.joinToString(", ") ?: "") }
+
+    // --- Status dropdown ---
+    val initialStatus = shelterStatusOptions.find { it.value == initial?.status } ?: shelterStatusOptions[0]
+    var selectedStatus by remember { mutableStateOf(initialStatus) }
+    var statusExpanded by remember { mutableStateOf(false) }
+
+    // --- Logistics: track as mutable set of selected items + free-text ---
+    val initialLogistics = initial?.logistics?.toMutableSet() ?: mutableSetOf()
+    val selectedLogistics = remember { mutableStateListOf<String>().apply { addAll(initialLogistics) } }
+    var logisticsCustomText by remember { mutableStateOf("") }
+
     var contactPhone by remember { mutableStateOf(initial?.contactPhone ?: "") }
     var photoUrl by remember { mutableStateOf(initial?.photoUrl ?: "") }
 
@@ -295,18 +320,21 @@ private fun ShelterEditorDialog(
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // Nama
                 OutlinedTextField(
                     value = name, onValueChange = { name = it },
                     label = { Text("Nama Posko") }, singleLine = true,
                     isError = !nameValid, modifier = Modifier.fillMaxWidth()
                 )
+                // Alamat
                 OutlinedTextField(
                     value = address, onValueChange = { address = it },
                     label = { Text("Alamat") }, isError = !addressValid,
                     modifier = Modifier.fillMaxWidth()
                 )
+                // Lat / Lng
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = latitude, onValueChange = { latitude = it },
@@ -323,6 +351,7 @@ private fun ShelterEditorDialog(
                         modifier = Modifier.weight(1f)
                     )
                 }
+                // Kapasitas
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = capacityCurrent, onValueChange = { capacityCurrent = it },
@@ -338,16 +367,117 @@ private fun ShelterEditorDialog(
                         modifier = Modifier.weight(1f)
                     )
                 }
-                OutlinedTextField(
-                    value = status, onValueChange = { status = it },
-                    label = { Text("Status (active/full/closed)") }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+
+                // --- Status dropdown (no more hardcoded free-text) ---
+                ExposedDropdownMenuBox(
+                    expanded = statusExpanded,
+                    onExpandedChange = { statusExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = selectedStatus.label,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Status Posko") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = statusExpanded,
+                        onDismissRequest = { statusExpanded = false }
+                    ) {
+                        shelterStatusOptions.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.label) },
+                                onClick = {
+                                    selectedStatus = option
+                                    statusExpanded = false
+                                },
+                                leadingIcon = {
+                                    if (selectedStatus == option) {
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // --- Logistics chips (suggestion + custom) ---
+                Text(
+                    "Kebutuhan Logistik",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                OutlinedTextField(
-                    value = logisticsText, onValueChange = { logisticsText = it },
-                    label = { Text("Logistik (pisah dengan koma)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    logisticsSuggestions.forEach { item ->
+                        val selected = selectedLogistics.contains(item)
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                if (selected) selectedLogistics.remove(item)
+                                else selectedLogistics.add(item)
+                            },
+                            label = { Text(item, fontSize = 12.sp) }
+                        )
+                    }
+                }
+                // Custom logistics (tambahan selain suggestion)
+                val customItems = selectedLogistics.filter { it !in logisticsSuggestions }
+                if (customItems.isNotEmpty()) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        customItems.forEach { item ->
+                            InputChip(
+                                selected = true,
+                                onClick = { selectedLogistics.remove(item) },
+                                label = { Text(item, fontSize = 12.sp) },
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.Default.Close,
+                                        contentDescription = "Hapus",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = logisticsCustomText,
+                        onValueChange = { logisticsCustomText = it },
+                        label = { Text("Tambah lainnya…") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = {
+                            val trimmed = logisticsCustomText.trim()
+                            if (trimmed.isNotBlank() && !selectedLogistics.contains(trimmed)) {
+                                selectedLogistics.add(trimmed)
+                            }
+                            logisticsCustomText = ""
+                        }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Tambah")
+                    }
+                }
+
+                // Kontak & Foto
                 OutlinedTextField(
                     value = contactPhone, onValueChange = { contactPhone = it },
                     label = { Text("Nomor Kontak") }, singleLine = true,
@@ -365,9 +495,6 @@ private fun ShelterEditorDialog(
             Button(
                 enabled = formValid,
                 onClick = {
-                    val logisticsList = logisticsText.split(",")
-                        .map { it.trim() }
-                        .filter { it.isNotBlank() }
                     onSubmit(
                         name.trim(),
                         address.trim(),
@@ -375,8 +502,8 @@ private fun ShelterEditorDialog(
                         longitude.toDoubleOrNull() ?: (initial?.longitude ?: 0.0),
                         capacityMax.toIntOrNull() ?: 0,
                         capacityCurrent.toIntOrNull() ?: 0,
-                        status.trim().ifBlank { "active" },
-                        logisticsList,
+                        selectedStatus.value,
+                        selectedLogistics.toList(),
                         contactPhone.trim(),
                         photoUrl.trim()
                     )

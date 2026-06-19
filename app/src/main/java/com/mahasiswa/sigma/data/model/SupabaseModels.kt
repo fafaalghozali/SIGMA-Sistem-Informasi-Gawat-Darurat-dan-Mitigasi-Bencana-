@@ -12,6 +12,7 @@ data class ProfileDto(
     val role: String,
     val password: String? = null,
     @SerialName("remember_token") @SerializedName("remember_token") val rememberToken: String? = null,
+    @SerialName("photo_url") @SerializedName("photo_url") val photoUrl: String? = null,
     @SerialName("created_at") @SerializedName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") @SerializedName("updated_at") val updatedAt: String? = null
 )
@@ -147,7 +148,8 @@ data class CreateVolunteerReportRequest(
 data class UpdateProfileRequest(
     @SerializedName("full_name") val fullName: String? = null,
     val email: String? = null,
-    val role: String? = null
+    val role: String? = null,
+    @SerializedName("photo_url") val photoUrl: String? = null
 )
 
 data class UpdateVolunteerRequest(

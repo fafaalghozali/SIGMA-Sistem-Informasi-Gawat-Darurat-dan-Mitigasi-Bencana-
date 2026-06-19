@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.ui.viewmodel.ProfileViewModel
 
@@ -42,9 +43,67 @@ fun ProfileScreen(
     val name = viewModel.name
     val email = viewModel.email
     val imageBitmap = viewModel.imageBitmap
+    val photoUrl = viewModel.photoUrl
     val showImageSheet = viewModel.showImageSheet
+    val isUploadingPhoto = viewModel.isUploadingPhoto
     val sheetState = rememberModalBottomSheetState()
     val scrollState = rememberScrollState()
+
+    // Dialog sukses upload foto
+    if (viewModel.isUploadPhotoSuccess) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDialogs() },
+            title = { Text("Berhasil") },
+            text = { Text("Foto profil berhasil diperbarui.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissDialogs() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Dialog error upload foto
+    if (viewModel.isUploadPhotoError) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDialogs() },
+            title = { Text("Gagal Upload Foto") },
+            text = { Text(viewModel.errorMessage) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissDialogs() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Dialog sukses update profil
+    if (viewModel.isUpdateSuccess) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDialogs() },
+            title = { Text("Berhasil") },
+            text = { Text("Profil berhasil diperbarui.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissDialogs() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Dialog error update profil
+    if (viewModel.isUpdateError) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissDialogs() },
+            title = { Text("Gagal") },
+            text = { Text(viewModel.errorMessage) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissDialogs() }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     if (showImageSheet) {
         ImagePickerBottomSheet(
@@ -71,38 +130,73 @@ fun ProfileScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Avatar
             Box(
                 modifier = Modifier
                     .size(120.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { viewModel.showImageSheet = true },
+                    .clickable(enabled = !isUploadingPhoto) { viewModel.showImageSheet = true },
                 contentAlignment = Alignment.Center
             ) {
-                if (imageBitmap != null) {
-                    Image(
-                        bitmap = imageBitmap.asImageBitmap(),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Default Profile",
-                        modifier = Modifier.size(80.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                when {
+                    // Prioritas 1: bitmap baru yang baru dipilih (sudah/sedang diupload)
+                    imageBitmap != null -> {
+                        Image(
+                            bitmap = imageBitmap.asImageBitmap(),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    // Prioritas 2: URL dari Supabase Storage
+                    !photoUrl.isNullOrBlank() -> {
+                        AsyncImage(
+                            model = photoUrl,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    // Fallback: ikon default
+                    else -> {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Default Profile",
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
 
+                // Overlay loading saat upload
+                if (isUploadingPhoto) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            strokeWidth = 3.dp
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
             Text(
-                text = "Ubah Foto Profil",
+                text = if (isUploadingPhoto) "Mengupload foto..." else "Ubah Foto Profil",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { viewModel.showImageSheet = true }
+                color = if (isUploadingPhoto)
+                    MaterialTheme.colorScheme.outline
+                else
+                    MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(enabled = !isUploadingPhoto) {
+                    viewModel.showImageSheet = true
+                }
             )
 
             Spacer(modifier = Modifier.height(32.dp))

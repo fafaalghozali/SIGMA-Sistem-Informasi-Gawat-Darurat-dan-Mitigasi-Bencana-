@@ -3,6 +3,7 @@ package com.mahasiswa.sigma.data.repository
 import android.util.Log
 import com.mahasiswa.sigma.data.local.NewsDao
 import com.mahasiswa.sigma.data.local.NewsEntity
+import com.mahasiswa.sigma.data.model.NewsDto
 import com.mahasiswa.sigma.data.model.NewsItem
 import com.mahasiswa.sigma.data.model.NewsSeverity
 import com.mahasiswa.sigma.data.model.RawRssItem
@@ -19,26 +20,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
-
-@Serializable
-data class NewsDto(
-    val id: String,
-    val title: String,
-    val summary: String? = null,
-    @SerialName("image_url") val imageUrl: String? = null,
-    val source: String? = null,
-    val url: String? = null,
-    @SerialName("published_at") val publishedAt: Long? = null
-)
 
 @Singleton
 class NewsRepository @Inject constructor(
     private val dao: NewsDao,
-    private val supabase: SupabaseClient
+    private val supabase: SupabaseClient,
+    private val bmkgNewsSource: BmkgNewsSource,
+    private val rssNewsSource: RssNewsSource
 ) {
 
     companion object {
@@ -60,14 +50,14 @@ class NewsRepository @Inject constructor(
 
             val (rssItems, bmkgItems, supabaseItems) = coroutineScope {
                 val rss = async {
-                    try { RssNewsSource.fetchAll() }
+                    try { rssNewsSource.fetchAll() }
                     catch (e: Exception) {
                         Log.w(TAG, "RSS fetch failed: ${e.message}")
                         emptyList()
                     }
                 }
                 val bmkg = async {
-                    try { BmkgNewsSource.fetchBmkgNews() }
+                    try { bmkgNewsSource.fetchBmkgNews() }
                     catch (e: Exception) {
                         Log.w(TAG, "BMKG fetch failed: ${e.message}")
                         emptyList()

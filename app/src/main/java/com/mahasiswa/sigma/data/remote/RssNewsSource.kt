@@ -4,52 +4,53 @@ import android.util.Log
 import android.util.Xml
 import com.mahasiswa.sigma.data.model.RawRssItem
 import com.mahasiswa.sigma.data.model.RssSource
-import kotlinx.coroutines.Dispatchers
+import com.mahasiswa.sigma.data.remote.api.RssApiService
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.xmlpull.v1.XmlPullParser
 import java.io.StringReader
-import java.net.HttpURLConnection
-import java.net.URL
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object RssNewsSource {
+@Singleton
+class RssNewsSource @Inject constructor(
+    private val rssApiService: RssApiService
+) {
 
-    private const val TAG = "RssNewsSource"
-    private const val CONNECT_TIMEOUT_MS = 8_000
-    private const val READ_TIMEOUT_MS = 10_000
-    private const val PER_SOURCE_TIMEOUT_MS = 15_000L
+    companion object {
+        private const val TAG = "RssNewsSource"
+        private const val PER_SOURCE_TIMEOUT_MS = 15_000L
 
-    val SOURCES = listOf(
-        RssSource(
-            name = "Antara News",
-            url = "https://www.antaranews.com/rss/terkini.rss",
-            isOfficial = false
-        ),
-        RssSource(
-            name = "Republika",
-            url = "https://www.republika.co.id/rss/nasional/umum",
-            isOfficial = false
-        ),
-        RssSource(
-            name = "Sindonews Nasional",
-            url = "https://nasional.sindonews.com/rss",
-            isOfficial = false
-        ),
-        RssSource(
-            name = "Liputan6",
-            url = "https://www.liputan6.com/rss/news",
-            isOfficial = false
-        ),
-        RssSource(
-            name = "Detik News",
-            url = "https://news.detik.com/rss",
-            isOfficial = false
-        ),
-
-    )
+        val SOURCES = listOf(
+            RssSource(
+                name = "Antara News",
+                url = "https://www.antaranews.com/rss/terkini.rss",
+                isOfficial = false
+            ),
+            RssSource(
+                name = "Republika",
+                url = "https://www.republika.co.id/rss/nasional/umum",
+                isOfficial = false
+            ),
+            RssSource(
+                name = "Sindonews Nasional",
+                url = "https://nasional.sindonews.com/rss",
+                isOfficial = false
+            ),
+            RssSource(
+                name = "Liputan6",
+                url = "https://www.liputan6.com/rss/news",
+                isOfficial = false
+            ),
+            RssSource(
+                name = "Detik News",
+                url = "https://news.detik.com/rss",
+                isOfficial = false
+            ),
+        )
+    }
 
     suspend fun fetchAll(): List<RawRssItem> = coroutineScope {
         SOURCES.map { source ->
@@ -66,29 +67,10 @@ object RssNewsSource {
         }.awaitAll().flatten()
     }
 
-    private suspend fun fetchSource(source: RssSource): List<RawRssItem> =
-        withContext(Dispatchers.IO) {
-            val xml = fetchRawXml(source.url)
-            parseRss(xml, source)
-        }
-
-    private fun fetchRawXml(urlString: String): String {
-        val conn = URL(urlString).openConnection() as HttpURLConnection
-        return try {
-            conn.connectTimeout = CONNECT_TIMEOUT_MS
-            conn.readTimeout = READ_TIMEOUT_MS
-            conn.requestMethod = "GET"
-            conn.setRequestProperty("User-Agent",
-                "Mozilla/5.0 SIGMA-DisasterApp/1.0 (Android; disaster monitoring)")
-            conn.setRequestProperty("Accept", "application/rss+xml, application/xml, text/xml")
-            conn.connect()
-            if (conn.responseCode != HttpURLConnection.HTTP_OK) {
-                throw Exception("HTTP ${conn.responseCode} for $urlString")
-            }
-            conn.inputStream.bufferedReader(Charsets.UTF_8).readText()
-        } finally {
-            conn.disconnect()
-        }
+    private suspend fun fetchSource(source: RssSource): List<RawRssItem> {
+        val responseBody = rssApiService.fetchRssFeed(source.url)
+        val xml = responseBody.string()
+        return parseRss(xml, source)
     }
 
     private fun parseRss(xml: String, source: RssSource): List<RawRssItem> {
@@ -147,7 +129,6 @@ object RssNewsSource {
                             "${source.name}-${title.hashCode()}"
                         }
                         if (title.isNotBlank()) {
-
                             val extractedImage = imageUrl
                                 ?: extractImageFromHtml(description)
 

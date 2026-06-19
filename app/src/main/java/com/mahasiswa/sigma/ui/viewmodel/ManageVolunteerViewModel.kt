@@ -2,8 +2,9 @@ package com.mahasiswa.sigma.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mahasiswa.sigma.data.repository.VolunteerDto
-import com.mahasiswa.sigma.data.repository.VolunteerRepository
+import com.mahasiswa.sigma.data.model.VolunteerDto
+import com.mahasiswa.sigma.data.model.UpdateVolunteerRequest
+import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ManageVolunteerViewModel @Inject constructor(
-    private val volunteerRepository: VolunteerRepository
+    private val volunteerRepository: VolunteerRepositoryRetrofit
 ) : ViewModel() {
 
     private val _registrations = MutableStateFlow<List<VolunteerDto>>(emptyList())
@@ -33,7 +34,7 @@ class ManageVolunteerViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            val result = volunteerRepository.getAllRegistrations()
+            val result = volunteerRepository.getAllVolunteers()
             result.fold(
                 onSuccess = { _registrations.value = it },
                 onFailure = { _errorMessage.value = it.message }
@@ -44,14 +45,16 @@ class ManageVolunteerViewModel @Inject constructor(
 
     fun approveVolunteer(volunteerId: String) {
         viewModelScope.launch {
-            volunteerRepository.updateVolunteerStatusById(volunteerId, "Accepted")
+            val request = UpdateVolunteerRequest(status = "Accepted")
+            volunteerRepository.updateVolunteer(volunteerId, request)
             loadRegistrations()
         }
     }
 
     fun rejectVolunteer(volunteerId: String) {
         viewModelScope.launch {
-            volunteerRepository.updateVolunteerStatusById(volunteerId, "Declined")
+            val request = UpdateVolunteerRequest(status = "Declined")
+            volunteerRepository.updateVolunteer(volunteerId, request)
             loadRegistrations()
         }
     }

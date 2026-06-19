@@ -5,8 +5,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.data.model.CreateVolunteerRequest
 import com.mahasiswa.sigma.data.model.VolunteerRegistrationData
-import com.mahasiswa.sigma.data.repository.VolunteerRepository
+import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -14,7 +16,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class VolunteerRegistrationViewModel @Inject constructor(
-    private val volunteerRepository: VolunteerRepository
+    private val volunteerRepository: VolunteerRepositoryRetrofit,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     private var currentUserEmail: String = ""
@@ -35,10 +38,23 @@ class VolunteerRegistrationViewModel @Inject constructor(
     fun loadRegistrationData(email: String) {
         currentUserEmail = email
         viewModelScope.launch {
-            val savedData = volunteerRepository.getRegistration(email)
-            if (savedData != null) {
-                registeredData = savedData
-                isRegistered = true
+            val userId = authManager.getCurrentUserId() ?: return@launch
+            val result = volunteerRepository.getVolunteerByUserId(userId)
+            result.onSuccess { volunteerDto ->
+                if (volunteerDto != null) {
+                    registeredData = VolunteerRegistrationData(
+                        name = volunteerDto.name,
+                        skill = try { 
+                            SkillsVolunteer.valueOf(volunteerDto.skill.uppercase()) 
+                        } catch (_: Exception) { 
+                            SkillsVolunteer.MEDIS 
+                        },
+                        address = volunteerDto.address,
+                        phoneNumber = volunteerDto.phoneNumber,
+                        status = volunteerDto.status
+                    )
+                    isRegistered = true
+                }
             }
         }
     }
@@ -81,29 +97,51 @@ class VolunteerRegistrationViewModel @Inject constructor(
     }
 
     fun submitRegistration() {
-        val data = VolunteerRegistrationData(
-            name = name,
-            skill = selectedSkill,
-            address = address,
-            phoneNumber = phoneNumber,
-            status = "Pending"
-        )
-
         viewModelScope.launch {
-            volunteerRepository.saveRegistration(currentUserEmail, data)
-            registeredData = data
-            isRegistered = true
+            val userId = authManager.getCurrentUserId() ?: return@launch
+            
+            val request = CreateVolunteerRequest(
+                userId = userId,
+                name = name,
+                skill = selectedSkill.name,
+                address = address,
+                phoneNumber = phoneNumber,
+                status = "pending"
+            )
 
-            name = ""
-            address = ""
-            phoneNumber = ""
-            showConfirmDialog = false
+            val result = volunteerRepository.createVolunteer(request)
+            result.onSuccess { volunteerDto ->
+                registeredData = VolunteerRegistrationData(
+                    name = volunteerDto.name,
+                    skill = selectedSkill,
+                    address = volunteerDto.address,
+                    phoneNumber = volunteerDto.phoneNumber,
+                    status = volunteerDto.status
+                )
+                isRegistered = true
+                
+                // Clear form
+                name = ""
+                address = ""
+                phoneNumber = ""
+                showConfirmDialog = false
+            }
+            result.onFailure {
+                // Handle error - could add error state here
+                showConfirmDialog = false
+            }
         }
     }
 
     fun resetRegistration() {
         viewModelScope.launch {
-            volunteerRepository.clearRegistration(currentUserEmail)
+            val userId = authManager.getCurrentUserId() ?: return@launch
+            val result = volunteerRepository.getVolunteerByUserId(userId)
+            result.onSuccess { volunteerDto ->
+                volunteerDto?.id?.let { volunteerId ->
+                    volunteerRepository.deleteVolunteer(volunteerId)
+                }
+            }
             isRegistered = false
             registeredData = null
         }

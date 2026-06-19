@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.model.BmkgWarning
 import com.mahasiswa.sigma.data.model.DashboardMenuModel
 import com.mahasiswa.sigma.data.model.EarthquakeInfo
@@ -15,7 +16,7 @@ import com.mahasiswa.sigma.data.model.WeatherInfo
 import com.mahasiswa.sigma.data.repository.DashboardRepository
 import com.mahasiswa.sigma.data.repository.NewsRepository
 import com.mahasiswa.sigma.data.repository.WeatherRepository
-import com.mahasiswa.sigma.data.repository.VolunteerRepository
+import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -55,7 +56,8 @@ class DashboardViewModel @Inject constructor(
     private val dashboardRepo: DashboardRepository,
     private val weatherRepo: WeatherRepository,
     private val newsRepo: NewsRepository,
-    private val volunteerRepo: VolunteerRepository
+    private val volunteerRepo: VolunteerRepositoryRetrofit,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -65,20 +67,36 @@ class DashboardViewModel @Inject constructor(
 
     fun loadVolunteerStatus(email: String) {
         viewModelScope.launch {
-            val registration = volunteerRepo.getRegistration(email)
-            if (registration != null) {
-                _uiState.value = _uiState.value.copy(
-                    volunteerStatus = registration.status,
-                    volunteerSkill = registration.skill
-                )
+            val userId = authManager.getCurrentUserId() ?: return@launch
+            val result = volunteerRepo.getVolunteerByUserId(userId)
+            result.onSuccess { volunteerDto ->
+                if (volunteerDto != null) {
+                    _uiState.value = _uiState.value.copy(
+                        volunteerStatus = volunteerDto.status,
+                        volunteerSkill = try {
+                            SkillsVolunteer.valueOf(volunteerDto.skill.uppercase())
+                        } catch (_: Exception) {
+                            SkillsVolunteer.MEDIS
+                        }
+                    )
+                }
             }
         }
     }
 
     fun updateVolunteerAvailability(email: String, newStatus: String) {
         viewModelScope.launch {
-            volunteerRepo.updateVolunteerStatus(email, newStatus)
-            _uiState.value = _uiState.value.copy(volunteerStatus = newStatus)
+            val userId = authManager.getCurrentUserId() ?: return@launch
+            val result = volunteerRepo.getVolunteerByUserId(userId)
+            result.onSuccess { volunteerDto ->
+                volunteerDto?.id?.let { volunteerId ->
+                    val request = com.mahasiswa.sigma.data.model.UpdateVolunteerRequest(
+                        status = newStatus
+                    )
+                    volunteerRepo.updateVolunteer(volunteerId, request)
+                    _uiState.value = _uiState.value.copy(volunteerStatus = newStatus)
+                }
+            }
         }
     }
 

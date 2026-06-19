@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
-import com.mahasiswa.sigma.data.model.ShelterMock
-import com.mahasiswa.sigma.data.repository.ReportRepository
+import com.mahasiswa.sigma.data.model.ShelterDto
+import com.mahasiswa.sigma.data.model.ShelterMapItem
+import com.mahasiswa.sigma.data.repository.DisasterReportRepositoryRetrofit
+import com.mahasiswa.sigma.data.repository.ShelterRepositoryRetrofit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,10 +17,10 @@ import javax.inject.Inject
 
 data class MapUiState(
     val verifiedReports: List<LocalDisasterReport> = emptyList(),
-    val shelters: List<ShelterMock> = emptyList(),
+    val shelters: List<ShelterMapItem> = emptyList(),
     val isLoading: Boolean = false,
     val selectedReport: LocalDisasterReport? = null,
-    val selectedShelter: ShelterMock? = null,
+    val selectedShelter: ShelterMapItem? = null,
     val showReportLayer: Boolean = true,
     val showShelterLayer: Boolean = true,
     val cameraTarget: LatLng = LatLng(-7.5569, 110.8581)
@@ -26,21 +28,28 @@ data class MapUiState(
 
 @HiltViewModel
 class MapViewModel @Inject constructor(
-    private val reportRepository: ReportRepository
+    private val reportRepository: DisasterReportRepositoryRetrofit,
+    private val shelterRepository: ShelterRepositoryRetrofit
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MapUiState())
     val uiState: StateFlow<MapUiState> = _uiState.asStateFlow()
 
-    private val shelterData: List<ShelterMock> = listOf(
-        ShelterMock("Stadion UNS", "1.2 km", "80/100", "Tersedia", -7.556303, 110.8580877, listOf("Sembako", "Air Mineral", "Selimut")),
-        ShelterMock("Taman Cerdas Jebres", "1.5 km", "50/50", "Penuh", -7.5541321, 110.8536159, listOf("Popok Bayi", "Susu Formula", "Obat-obatan")),
-        ShelterMock("Solo Techno Park", "2.2 km", "30/200", "Tersedia", -7.5560692, 110.8538666, listOf("Pakaian Layak Pakai", "Alat Mandi")),
-        ShelterMock("SAR UNS", "0.8 km", "10/40", "Tersedia", -7.5615699, 110.8594894, listOf("Makanan Instan", "Tikar")),
-        ShelterMock("Javanologi UNS", "0.7 km", "127/250", "Tersedia", -7.556998, 110.8598277, listOf("Makanan Instan", "Alat Mandi", "Pakaian Layak Pakai")),
-        ShelterMock("UNS Tower", "0.45 km", "45/125", "Tersedia", -7.5638533, 110.8555975, listOf("Susu Formula", "Obat-obatan", "Selimut")),
-        ShelterMock("Asrama Mahasiswa UNS", "2.4 km", "300/300", "Penuh", -7.554193, 110.865799, listOf("Alat Mandi", "Sembako", "Sleeping Bag")),
-        ShelterMock("Sekolah Vokasi UNS", "2.6 km", "145/340", "Tersedia", -7.559502, 110.8383739, listOf("Makanan Instan", "Obat-obatan", "Air Mineral"))
+    private fun ShelterDto.toMapItem(): ShelterMapItem = ShelterMapItem(
+        id = id,
+        name = name,
+        address = address,
+        capacity = "$capacityCurrent/$capacityMax",
+        status = when (status.lowercase()) {
+            "active", "tersedia", "available" -> "Tersedia"
+            "full", "penuh" -> "Penuh"
+            else -> status.replaceFirstChar { it.uppercase() }
+        },
+        latitude = latitude,
+        longitude = longitude,
+        logistics = logistics ?: emptyList(),
+        contactPhone = contactPhone,
+        photoUrl = photoUrl
     )
 
     init {
@@ -50,16 +59,43 @@ class MapViewModel @Inject constructor(
     fun loadData() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-            val allReports = reportRepository.getAllReports()
-            val verified = allReports.filter { report ->
-                report.status in listOf("Verified", "Siaga 1", "Siaga 2", "Awas", "Resolved")
-                    && report.latitude != 0.0 && report.longitude != 0.0
+
+            val shelters = shelterRepository.getAllShelters()
+                .map { list -> list.map { it.toMapItem() } }
+                .getOrDefault(emptyList())
+
+            val result = reportRepository.getAllDisasterReports()
+            result.onSuccess { reports ->
+                val verified = reports
+                    .filter { report ->
+                        report.status in listOf("Verified", "Siaga 1", "Siaga 2", "Awas", "Resolved", "siaga_1", "siaga_2", "awas", "resolved")
+                            && report.latitude != 0.0 && report.longitude != 0.0
+                    }
+                    .map { dto ->
+                        LocalDisasterReport(
+                            id = dto.id ?: "",
+                            title = dto.title,
+                            description = dto.description,
+                            location = dto.location,
+                            reporter = dto.reporterName,
+                            status = dto.status,
+                            latitude = dto.latitude,
+                            longitude = dto.longitude
+                        )
+                    }
+                _uiState.value = _uiState.value.copy(
+                    verifiedReports = verified,
+                    shelters = shelters,
+                    isLoading = false
+                )
             }
-            _uiState.value = _uiState.value.copy(
-                verifiedReports = verified,
-                shelters = shelterData,
-                isLoading = false
-            )
+            result.onFailure {
+                _uiState.value = _uiState.value.copy(
+                    verifiedReports = emptyList(),
+                    shelters = shelters,
+                    isLoading = false
+                )
+            }
         }
     }
 
@@ -67,7 +103,7 @@ class MapViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(selectedReport = report, selectedShelter = null)
     }
 
-    fun selectShelter(shelter: ShelterMock?) {
+    fun selectShelter(shelter: ShelterMapItem?) {
         _uiState.value = _uiState.value.copy(selectedShelter = shelter, selectedReport = null)
     }
 

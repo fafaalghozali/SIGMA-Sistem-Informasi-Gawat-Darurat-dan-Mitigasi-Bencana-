@@ -41,8 +41,9 @@ fun RegisterScreen(
     val name = viewModel.name
     val email = viewModel.email
     val password = viewModel.password
+    val confirmPassword = viewModel.confirmPassword
     val passwordVisible = viewModel.passwordVisible
-    val selectedRole = viewModel.selectedRole
+    val confirmPasswordVisible = viewModel.confirmPasswordVisible
     val showDialog = viewModel.showDialog
     val registrationSuccess = viewModel.registrationSuccess
     val dialogMessage = viewModel.dialogMessage
@@ -157,31 +158,34 @@ fun RegisterScreen(
                 )
 
                 OutlinedTextField(
-                    value = selectedRole.displayName,
-                    onValueChange = {},
-                    readOnly = true,
-                    enabled = false,
-                    label = { Text("Role Anda") },
+                    value = confirmPassword,
+                    onValueChange = { if (!it.contains("\n")) viewModel.confirmPassword = it },
+                    label = { Text("Konfirmasi Password") },
                     leadingIcon = {
                         Icon(
-                            Icons.Default.AccountCircle,
+                            Icons.Default.Lock,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
+                    visualTransformation = if (confirmPasswordVisible)
+                        VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { viewModel.confirmPasswordVisible = !viewModel.confirmPasswordVisible }) {
+                            Icon(
+                                imageVector = if (confirmPasswordVisible)
+                                    Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (confirmPasswordVisible)
+                                    "Sembunyikan konfirmasi password" else "Tampilkan konfirmasi password",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    },
                     colors = OutlinedTextFieldDefaults.colors(
-                        disabledTextColor = if (isDark) Color.LightGray
-                            else MaterialTheme.colorScheme.onSurface,
-                        disabledBorderColor = if (isDark) Color.White.copy(alpha = 0.12f)
-                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                        disabledLabelColor = if (isDark) Color.Gray
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledLeadingIconColor = if (isDark) Color.Gray
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledContainerColor = if (isDark)
-                            DarkElevatedSurface else Color(0xFFF5F5F5),
+                        focusedContainerColor = cardColor,
+                        unfocusedContainerColor = cardColor,
                     )
                 )
             }

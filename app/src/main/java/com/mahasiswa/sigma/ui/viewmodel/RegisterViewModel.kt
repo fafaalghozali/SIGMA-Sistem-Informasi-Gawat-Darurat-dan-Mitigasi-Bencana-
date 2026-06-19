@@ -18,7 +18,9 @@ class RegisterViewModel @Inject constructor(
     var name by mutableStateOf("")
     var email by mutableStateOf("")
     var password by mutableStateOf("")
+    var confirmPassword by mutableStateOf("")
     var passwordVisible by mutableStateOf(false)
+    var confirmPasswordVisible by mutableStateOf(false)
     val selectedRole = UserRole.MASYARAKAT
 
     var showDialog by mutableStateOf(false)
@@ -34,8 +36,14 @@ class RegisterViewModel @Inject constructor(
     }
 
     fun register(onNavigateToLogin: () -> Unit) {
-        if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
+        if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty()) {
             if (isEmailValid(email)) {
+                if (password != confirmPassword) {
+                    registrationSuccess = false
+                    dialogMessage = "Password dan Konfirmasi Password tidak cocok. Silakan periksa kembali."
+                    showDialog = true
+                    return
+                }
                 viewModelScope.launch {
                     val result = authManager.registerUser(email, password, selectedRole, name)
                     if (result.isSuccess) {

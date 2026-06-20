@@ -45,7 +45,7 @@ class VolunteerReportViewModel @Inject constructor(
         if (currentVolunteerId != null) return currentVolunteerId
         val userId = authManager.getCurrentUserId() ?: return null
         volunteerRepository.getVolunteerByUserId(userId).onSuccess {
-            currentVolunteerId = it?.id
+            currentVolunteerId = it?.id?.toString()
         }
         return currentVolunteerId
     }

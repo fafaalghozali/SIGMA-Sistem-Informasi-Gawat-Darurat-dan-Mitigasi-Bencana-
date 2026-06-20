@@ -204,16 +204,19 @@ class VolunteerRepositoryRetrofit @Inject constructor(
     // ==================== ERROR HANDLING ====================
 
     private fun <T> handleHttpException(e: HttpException, operation: String): Result<T> {
+        // Baca response body asli dari Supabase untuk debug
+        val rawBody = try { e.response()?.errorBody()?.string() } catch (_: Exception) { null }
+        Log.e(TAG, "$operation HTTP ${e.code()} body: $rawBody", e)
+
         val errorMessage = when (e.code()) {
-            400 -> "Bad request: Invalid data"
+            400 -> "Bad request (400): ${rawBody ?: "Invalid data"}"
             401 -> "Unauthorized: Invalid API key or token"
             403 -> "Forbidden: Insufficient permissions"
             404 -> "Not found"
-            409 -> "Conflict: Resource already exists"
-            422 -> "Unprocessable entity: Validation failed"
-            else -> "HTTP error: ${e.message()}"
+            409 -> "Conflict: ${rawBody ?: "Resource already exists"}"
+            422 -> "Unprocessable: ${rawBody ?: "Validation failed"}"
+            else -> "HTTP ${e.code()}: ${rawBody ?: e.message()}"
         }
-        Log.e(TAG, "$operation HttpException: $errorMessage", e)
         return Result.failure(Exception(errorMessage))
     }
 

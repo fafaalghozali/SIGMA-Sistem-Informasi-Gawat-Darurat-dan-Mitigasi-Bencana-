@@ -1,6 +1,8 @@
 package com.mahasiswa.sigma.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,448 +10,644 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AssignmentInd
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mahasiswa.sigma.data.model.SkillsVolunteer
 import com.mahasiswa.sigma.data.model.VolunteerRegistrationData
 import com.mahasiswa.sigma.ui.viewmodel.VolunteerRegistrationViewModel
 
+// ── Skill metadata ────────────────────────────────────────────────────────────
+private data class SkillInfo(
+    val skill: SkillsVolunteer,
+    val label: String,
+    val description: String,
+    val icon: ImageVector,
+    val color: Color
+)
+
+private val skillInfoList = listOf(
+    SkillInfo(SkillsVolunteer.MEDIS,       "Medis",       "Pertolongan pertama & kesehatan", Icons.Default.Favorite,   Color(0xFFE53935)),
+    SkillInfo(SkillsVolunteer.SAR,         "SAR",         "Pencarian & penyelamatan korban", Icons.Default.Shield,     Color(0xFF1E88E5)),
+    SkillInfo(SkillsVolunteer.LOGISTIK,    "Logistik",    "Distribusi bantuan & kebutuhan",  Icons.Default.Inventory,  Color(0xFFFB8C00)),
+    SkillInfo(SkillsVolunteer.KONSUMSI,    "Konsumsi",    "Penyediaan makanan & minuman",    Icons.Default.Restaurant, Color(0xFF43A047)),
+    SkillInfo(SkillsVolunteer.PSIKOSOSIAL, "Psikososial", "Dukungan mental & konseling",     Icons.Default.Psychology, Color(0xFF8E24AA)),
+    SkillInfo(SkillsVolunteer.PENDIDIKAN,  "Pendidikan",  "Edukasi & penyuluhan bencana",    Icons.Default.MenuBook,   Color(0xFF00897B)),
+)
+
+// ── Main Screen ───────────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VolunteerRegistrationScreen(
     userEmail: String,
+    userName: String = "",
     onBack: () -> Unit,
     viewModel: VolunteerRegistrationViewModel = hiltViewModel()
 ) {
     LaunchedEffect(userEmail) {
-        viewModel.loadRegistrationData(userEmail)
+        viewModel.loadRegistrationData(userEmail, userName)
     }
 
-    val name = viewModel.name
-    val address = viewModel.address
-    val phoneNumber = viewModel.phoneNumber
-    val showConfirmDialog = viewModel.showConfirmDialog
-    val showIncompleteDialog = viewModel.showIncompleteDialog
-    val skillOptions = viewModel.skillOptions
-    val selectedSkill = viewModel.selectedSkill
-    val skillExpanded = viewModel.skillExpanded
-
-    val isRegistered = viewModel.isRegistered
+    val currentStep    = viewModel.currentStep
+    val isRegistered   = viewModel.isRegistered
     val registeredData = viewModel.registeredData
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            modifier = Modifier.blur(if (showConfirmDialog || showIncompleteDialog) 10.dp else 0.dp),
-            topBar = {
-                TopAppBar(
-                    title = { Text("Pendaftaran Relawan", fontWeight = FontWeight.Bold) },
-                    navigationIcon = {
-                        TextButton(onClick = onBack) {
-                            Text("Kembali", color = MaterialTheme.colorScheme.primary)
-                        }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Daftar Relawan", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        if (currentStep > 1 && !isRegistered) viewModel.goToPreviousStep()
+                        else onBack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
                 )
-            }
-        ) { padding ->
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        if (isRegistered && registeredData != null) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(24.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                if (isRegistered && registeredData != null) {
-                    RegistrationStatusBox(
-                        data = registeredData,
-                        onReRegister = { viewModel.resetRegistration() }
-                    )
-                } else {
-                    Text("Lengkapi Data Relawan", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { viewModel.onNameChange(it) },
-                        label = { Text("Nama Lengkap") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    ExposedDropdownMenuBox(
-                        expanded = skillExpanded,
-                        onExpandedChange = { viewModel.toggleSkillExpanded() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = selectedSkill.name,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Keahlian / Spesialisasi") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = skillExpanded) },
-                            modifier = Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = skillExpanded,
-                            onDismissRequest = { viewModel.toggleSkillExpanded() }
-                        ) {
-                            skillOptions.forEach { skill ->
-                                DropdownMenuItem(
-                                    text = { Text(skill.name) },
-                                    onClick = {
-                                        viewModel.onSkillSelected(skill)
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = address,
-                        onValueChange = { viewModel.onAddressChange(it) },
-                        label = { Text("Alamat Domisili") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = phoneNumber,
-                        onValueChange = { viewModel.onPhoneNumberChange(it) },
-                        label = { Text("Nomor Telepon") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        onClick = { viewModel.onRegisterClick() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Kirim Pendaftaran", fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        "Relawan yang terdaftar akan diverifikasi oleh BNPB sebelum mendapatkan penugasan resmi di lapangan.",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.secondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                RegistrationStatusBox(
+                    data = registeredData,
+                    onReRegister = { viewModel.resetRegistration() }
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Spacer(Modifier.height(4.dp))
+                StepperIndicator(currentStep = currentStep)
+                Spacer(Modifier.height(4.dp))
+                StepContent(viewModel = viewModel, currentStep = currentStep)
+                AboutVolunteerPanel()
+                Spacer(Modifier.height(24.dp))
             }
         }
+    }
 
-        if (showIncompleteDialog) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f))
-                    .clickable(enabled = false) {}
-            )
-            AlertDialog(
-                onDismissRequest = { viewModel.showIncompleteDialog = false },
-                icon = {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.errorContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                },
-                title = {
-                    Text(
-                        text = "Data Belum Lengkap",
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Harap isi semua bidang dan pastikan nomor telepon valid (minimal 10 digit angka) sebelum mengirim pendaftaran.",
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                confirmButton = {
-                    Button(
-                        onClick = { viewModel.showIncompleteDialog = false },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
+    // Dialogs
+    if (viewModel.showIncompleteDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.showIncompleteDialog = false },
+            icon = {
+                Icon(Icons.Default.ErrorOutline, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(36.dp))
+            },
+            title = { Text("Data Belum Lengkap", fontWeight = FontWeight.Bold) },
+            text = { Text("Pastikan semua kolom terisi dan nomor telepon minimal 10 digit angka.") },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.showIncompleteDialog = false },
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Mengerti") }
+            },
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    if (viewModel.submitError != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.submitError = null },
+            icon = {
+                Icon(Icons.Default.ErrorOutline, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(36.dp))
+            },
+            title = { Text("Pendaftaran Gagal", fontWeight = FontWeight.Bold) },
+            text = { Text(viewModel.submitError ?: "") },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.submitError = null },
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Tutup") }
+            },
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+}
+
+// ── Stepper ───────────────────────────────────────────────────────────────────
+@Composable
+private fun StepperIndicator(currentStep: Int) {
+    val steps = listOf("Data Diri", "Keahlian", "Konfirmasi")
+    val primary = MaterialTheme.colorScheme.primary
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        steps.forEachIndexed { index, label ->
+            val num      = index + 1
+            val isDone   = num < currentStep
+            val isActive = num == currentStep
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when {
+                                isDone || isActive -> primary
+                                else -> MaterialTheme.colorScheme.surfaceVariant
+                            }
                         ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Mengerti", fontWeight = FontWeight.Bold)
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isDone) {
+                        Icon(Icons.Default.Check, contentDescription = null,
+                            tint = Color.White, modifier = Modifier.size(17.dp))
+                    } else {
+                        Text("$num", color = if (isActive) Color.White
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     }
-                },
-                shape = RoundedCornerShape(24.dp),
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                tonalElevation = 8.dp
-            )
-        }
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = label,
+                    fontSize = 11.sp,
+                    fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isActive || isDone) primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-        if (showConfirmDialog) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f))
-                    .clickable(enabled = false) {}
-            )
-            AlertDialog(
-                onDismissRequest = { viewModel.showConfirmDialog = false },
-                icon = {
-                    Box(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AssignmentInd,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-                },
-                title = {
-                    Text(
-                        text = "Konfirmasi Pendaftaran",
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                text = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Apakah Anda yakin ingin mendaftar sebagai relawan SIGMA?",
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Surface(
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f),
-                            shape = RoundedCornerShape(12.dp),
-                            border = androidx.compose.foundation.BorderStroke(
-                                1.dp,
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Text(
-                                text = "Wajib menjalankan tugas sampai selesai setelah menerima penugasan resmi.",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            viewModel.submitRegistration()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Ya, Saya Yakin", fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(
-                        onClick = { viewModel.showConfirmDialog = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            "Batal",
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                shape = RoundedCornerShape(24.dp),
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-                tonalElevation = 8.dp
-            )
+            if (index < steps.lastIndex) {
+                HorizontalDivider(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 6.dp)
+                        .padding(bottom = 18.dp),
+                    color = if (isDone) primary else MaterialTheme.colorScheme.outlineVariant,
+                    thickness = 1.5.dp
+                )
+            }
         }
     }
 }
 
+// ── Step Content wrapper ──────────────────────────────────────────────────────
 @Composable
-fun RegistrationStatusBox(
-    data: VolunteerRegistrationData,
-    onReRegister: () -> Unit
-) {
-    val statusColor = when (data.status) {
-        "Accepted" -> Color(0xFF2E7D32)
-        "Declined" -> Color(0xFFD32F2F)
-        else -> Color(0xFFE65100)
-    }
-
-    val statusBgColor = when (data.status) {
-        "Accepted" -> Color(0xFFE8F5E9)
-        "Declined" -> Color(0xFFFFEBEE)
-        else -> Color(0xFFFFF3E0)
-    }
-
-    val statusIcon = when (data.status) {
-        "Accepted" -> Icons.Default.CheckCircle
-        "Declined" -> Icons.Default.Cancel
-        else -> Icons.Default.Info
-    }
-
+private fun StepContent(viewModel: VolunteerRegistrationViewModel, currentStep: Int) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = statusIcon,
-                    contentDescription = null,
-                    tint = statusColor,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = if (data.status == "Accepted") "Pendaftaran Diterima"
-                           else if (data.status == "Declined") "Pendaftaran Ditolak"
-                           else "Pendaftaran Terkirim",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+            when (currentStep) {
+                1 -> Step1DataDiri(viewModel)
+                2 -> Step2Keahlian(viewModel)
+                3 -> Step3Konfirmasi(viewModel)
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Surface(
-                color = statusBgColor,
-                shape = RoundedCornerShape(8.dp)
+// ── Tombol navigasi bawah (reusable) ──────────────────────────────────────────
+@Composable
+private fun NavButtons(
+    onBack: (() -> Unit)? = null,
+    onNext: () -> Unit,
+    nextLabel: String = "Selanjutnya",
+    nextIcon: ImageVector = Icons.AutoMirrored.Filled.ArrowForward,
+    isLoading: Boolean = false
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 24.dp),
+        horizontalArrangement = if (onBack != null) Arrangement.SpaceBetween else Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (onBack != null) {
+            OutlinedButton(
+                onClick = onBack,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(48.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(statusIcon, null, modifier = Modifier.size(14.dp), tint = statusColor)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = data.status,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = statusColor
-                    )
-                }
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null,
+                    modifier = Modifier.size(17.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Kembali", fontWeight = FontWeight.Medium)
+            }
+        }
+
+        Button(
+            onClick = onNext,
+            enabled = !isLoading,
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.height(48.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp)
+        ) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(17.dp),
+                    strokeWidth = 2.dp,
+                    color = Color.White
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Mengirim...")
+            } else {
+                Text(nextLabel, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.width(6.dp))
+                Icon(nextIcon, contentDescription = null, modifier = Modifier.size(17.dp))
+            }
+        }
+    }
+}
+
+// ── Step 1 — Data Diri ────────────────────────────────────────────────────────
+@Composable
+private fun Step1DataDiri(viewModel: VolunteerRegistrationViewModel) {
+    Column {
+        Text("Data Diri", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text("Lengkapi informasi pribadi Anda", fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        Spacer(Modifier.height(20.dp))
+
+        OutlinedTextField(
+            value = viewModel.name,
+            onValueChange = { viewModel.onNameChange(it) },
+            label = { Text("Nama Lengkap") },
+            placeholder = { Text("Masukkan nama lengkap") },
+            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true
+        )
+
+        Spacer(Modifier.height(14.dp))
+
+        OutlinedTextField(
+            value = viewModel.address,
+            onValueChange = { viewModel.onAddressChange(it) },
+            label = { Text("Alamat Domisili") },
+            placeholder = { Text("Masukkan alamat tempat tinggal") },
+            leadingIcon = { Icon(Icons.Default.Home, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 100.dp),
+            shape = RoundedCornerShape(12.dp),
+            maxLines = 4
+        )
+
+        Spacer(Modifier.height(14.dp))
+
+        OutlinedTextField(
+            value = viewModel.phoneNumber,
+            onValueChange = { viewModel.onPhoneNumberChange(it) },
+            label = { Text("Nomor Telepon") },
+            placeholder = { Text("08xxxxxxxxxx") },
+            leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            singleLine = true
+        )
+
+        NavButtons(onNext = { viewModel.goToNextStep() })
+    }
+}
+
+// ── Step 2 — Keahlian ─────────────────────────────────────────────────────────
+@Composable
+private fun Step2Keahlian(viewModel: VolunteerRegistrationViewModel) {
+    Column {
+        Text("Pilih Keahlian", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text("Pilih bidang yang paling sesuai dengan kemampuan Anda",
+            fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        Spacer(Modifier.height(16.dp))
+
+        skillInfoList.forEach { info ->
+            SkillCard(
+                info = info,
+                isSelected = viewModel.selectedSkill == info.skill,
+                onClick = { viewModel.onSkillSelected(info.skill) }
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+
+        NavButtons(
+            onBack = { viewModel.goToPreviousStep() },
+            onNext = { viewModel.goToNextStep() }
+        )
+    }
+}
+
+@Composable
+private fun SkillCard(info: SkillInfo, isSelected: Boolean, onClick: () -> Unit) {
+    val primary = MaterialTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isSelected) primary.copy(alpha = 0.07f)
+                else MaterialTheme.colorScheme.surface
+            )
+            .border(
+                BorderStroke(if (isSelected) 2.dp else 1.dp,
+                    if (isSelected) primary else MaterialTheme.colorScheme.outlineVariant),
+                RoundedCornerShape(12.dp)
+            )
+            .clickable { onClick() }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(info.color.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(info.icon, contentDescription = null,
+                tint = info.color, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(info.label, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(info.description, fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        RadioButton(
+            selected = isSelected,
+            onClick = { onClick() },
+            colors = RadioButtonDefaults.colors(selectedColor = primary)
+        )
+    }
+}
+
+// ── Step 3 — Konfirmasi ───────────────────────────────────────────────────────
+@Composable
+private fun Step3Konfirmasi(viewModel: VolunteerRegistrationViewModel) {
+    Column {
+        Text("Konfirmasi", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text("Periksa kembali data sebelum mengirim",
+            fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        Spacer(Modifier.height(20.dp))
+
+        // Ringkasan data
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                ConfirmRow(Icons.Default.Person,    "Nama",      viewModel.name)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ConfirmRow(Icons.Default.Home,      "Alamat",    viewModel.address)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ConfirmRow(Icons.Default.Phone,     "Telepon",   viewModel.phoneNumber)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ConfirmRow(Icons.Default.Star,      "Keahlian",  viewModel.selectedSkill.name)
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        // Banner peringatan
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+        ) {
+            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+                Icon(Icons.Default.Info, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(16.dp).padding(top = 1.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Setelah mendaftar, Anda wajib menjalankan tugas sampai selesai bila mendapat penugasan resmi.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.error,
+                    lineHeight = 18.sp
+                )
+            }
+        }
+
+        NavButtons(
+            onBack = { viewModel.goToPreviousStep() },
+            onNext = { viewModel.submitRegistration() },
+            nextLabel = "Kirim",
+            nextIcon = Icons.Default.Send,
+            isLoading = viewModel.isSubmitting
+        )
+    }
+}
+
+@Composable
+private fun ConfirmRow(icon: ImageVector, label: String, value: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(label, fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(72.dp))
+        Text(value, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f))
+    }
+}
+
+// ── Panel info bawah ──────────────────────────────────────────────────────────
+@Composable
+private fun AboutVolunteerPanel() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Groups, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Tentang Relawan SIGMA",
+                    fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("Detail Pendaftaran:", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Spacer(modifier = Modifier.height(12.dp))
-
-            InfoRow(label = "Nama", value = data.name)
-            InfoRow(label = "Spesialisasi", value = data.skill.name)
-            InfoRow(label = "Alamat", value = data.address)
-            InfoRow(label = "Kontak", value = data.phoneNumber)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            val footerText = when (data.status) {
-                "Accepted" -> "Selamat! Anda telah resmi terdaftar sebagai relawan SIGMA. Silakan cek menu penugasan secara berkala."
-                "Declined" -> "Mohon maaf, pendaftaran Anda belum dapat kami setujui saat ini karena kualifikasi yang belum terpenuhi."
-                else -> "Tim BNPB akan segera meninjau kualifikasi Anda. Mohon tunggu notifikasi selanjutnya melalui aplikasi atau kontak yang terdaftar."
-            }
+            Spacer(Modifier.height(10.dp))
 
             Text(
-                text = footerText,
+                "Relawan SIGMA membantu masyarakat terdampak bencana di lapangan. " +
+                "Data Anda akan diverifikasi Admin sebelum mendapat penugasan.",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 18.sp
             )
 
-            if (data.status == "Declined") {
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = onReRegister,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Daftar Kembali", fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(16.dp))
+
+            listOf(
+                Triple(1, "Daftar",     "Isi formulir pendaftaran"),
+                Triple(2, "Verifikasi", "Admin meninjau data Anda"),
+                Triple(3, "Penugasan",  "Ditugaskan ke lokasi bencana")
+            ).forEach { (num, title, sub) ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 10.dp)) {
+                    Box(
+                        modifier = Modifier.size(24.dp).clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("$num", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text(sub, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
     }
 }
 
+// ── Status setelah terdaftar ──────────────────────────────────────────────────
+@Composable
+fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> Unit) {
+    val (statusColor, statusBg, statusIcon) = when (data.status.uppercase()) {
+        "ACCEPTED" -> Triple(Color(0xFF2E7D32), Color(0xFFE8F5E9), Icons.Default.CheckCircle)
+        "DECLINED" -> Triple(Color(0xFFD32F2F), Color(0xFFFFEBEE), Icons.Default.Cancel)
+        else       -> Triple(Color(0xFFE65100), Color(0xFFFFF3E0), Icons.Default.HourglassTop)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            // Status header
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = statusBg,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(statusIcon, contentDescription = null,
+                        tint = statusColor, modifier = Modifier.size(28.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = when (data.status.uppercase()) {
+                                "ACCEPTED" -> "Pendaftaran Diterima"
+                                "DECLINED" -> "Pendaftaran Ditolak"
+                                else       -> "Menunggu Verifikasi"
+                            },
+                            fontWeight = FontWeight.Bold, fontSize = 16.sp, color = statusColor
+                        )
+                        Text(
+                            text = when (data.status.uppercase()) {
+                                "ACCEPTED" -> "Anda sudah menjadi relawan SIGMA"
+                                "DECLINED" -> "Kualifikasi belum terpenuhi"
+                                else       -> "Admin sedang meninjau data Anda"
+                            },
+                            fontSize = 12.sp, color = statusColor.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+            Text("Detail Pendaftaran", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Spacer(Modifier.height(12.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Column(modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    InfoRow("Nama",        data.name)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    InfoRow("Keahlian",    data.skill.name)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    InfoRow("Alamat",      data.address)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    InfoRow("Telepon",     data.phoneNumber)
+                }
+            }
+
+            if (data.status.uppercase() == "DECLINED") {
+                Spacer(Modifier.height(20.dp))
+                Button(
+                    onClick = onReRegister,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null,
+                        modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Daftar Ulang", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+    }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 @Composable
 fun InfoRow(label: String, value: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End, modifier = Modifier.weight(1f, fill = false))
     }
 }
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun VolunteerRegistrationScreenPreview() {
-    VolunteerRegistrationScreen(userEmail = "test@gmail.com", onBack = {})
+    MaterialTheme {
+        VolunteerRegistrationScreen(userEmail = "test@gmail.com", userName = "Budi Santoso", onBack = {})
+    }
 }

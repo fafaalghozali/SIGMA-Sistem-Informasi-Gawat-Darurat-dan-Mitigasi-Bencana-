@@ -44,9 +44,9 @@ fun ManageVolunteerScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val pendingList  = registrations.filter { it.status == "pending"  || it.status.isBlank() }
-    val acceptedList = registrations.filter { it.status == "Accepted" || it.status == "Tersedia" || it.status == "Tidak Tersedia" }
-    val declinedList = registrations.filter { it.status == "Declined" }
+    val pendingList  = registrations.filter { it.status.equals("PENDING", ignoreCase = true) || it.status.isBlank() }
+    val acceptedList = registrations.filter { it.status.equals("ACCEPTED", ignoreCase = true) || it.status.equals("Tersedia", ignoreCase = true) || it.status.equals("Tidak Tersedia", ignoreCase = true) }
+    val declinedList = registrations.filter { it.status.equals("DECLINED", ignoreCase = true) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -195,18 +195,18 @@ fun ManageVolunteerScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(currentList, key = { it.id ?: it.userId ?: it.name }) { volunteer ->
+                    items(currentList, key = { it.id?.toString() ?: it.userId ?: it.name }) { volunteer ->
                         VolunteerCardItem(
                             volunteer = volunteer,
                             onApprove = {
-                                val id = volunteer.id ?: return@VolunteerCardItem
+                                val id = volunteer.id?.toString() ?: return@VolunteerCardItem
                                 viewModel.approveVolunteer(id)
                                 scope.launch {
                                     snackbarHostState.showSnackbar("Pendaftaran ${volunteer.name} disetujui.")
                                 }
                             },
                             onReject = {
-                                val id = volunteer.id ?: return@VolunteerCardItem
+                                val id = volunteer.id?.toString() ?: return@VolunteerCardItem
                                 viewModel.rejectVolunteer(id)
                                 scope.launch {
                                     snackbarHostState.showSnackbar("Pendaftaran ${volunteer.name} ditolak.")
@@ -341,14 +341,14 @@ fun VolunteerCardItem(
                 )
             }
 
-            if (volunteer.status != "pending" && volunteer.status.isNotBlank()) {
+            if (volunteer.status.uppercase() != "PENDING" && volunteer.status.isNotBlank()) {
                 Spacer(modifier = Modifier.height(14.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
                         .background(
-                            if (volunteer.status == "Declined")
+                            if (volunteer.status.uppercase() == "DECLINED")
                                 MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
                             else
                                 MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
@@ -357,10 +357,10 @@ fun VolunteerCardItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = if (volunteer.status == "Declined") Icons.Default.Cancel else Icons.Default.CheckCircle,
+                        imageVector = if (volunteer.status.uppercase() == "DECLINED") Icons.Default.Cancel else Icons.Default.CheckCircle,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = if (volunteer.status == "Declined")
+                        tint = if (volunteer.status.uppercase() == "DECLINED")
                             MaterialTheme.colorScheme.error
                         else
                             MaterialTheme.colorScheme.primary
@@ -370,7 +370,7 @@ fun VolunteerCardItem(
                         text = "Status: ${volunteer.status}",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (volunteer.status == "Declined")
+                        color = if (volunteer.status.uppercase() == "DECLINED")
                             MaterialTheme.colorScheme.onErrorContainer
                         else
                             MaterialTheme.colorScheme.onPrimaryContainer
@@ -378,13 +378,13 @@ fun VolunteerCardItem(
                 }
             }
 
-            if (volunteer.status == "pending" || volunteer.status.isBlank() || volunteer.status == "Declined") {
+            if (volunteer.status.equals("PENDING", ignoreCase = true) || volunteer.status.isBlank() || volunteer.status.equals("DECLINED", ignoreCase = true)) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (volunteer.status == "Declined") {
+                    if (volunteer.status.equals("DECLINED", ignoreCase = true)) {
                         Button(
                             onClick = onApprove,
                             colors = ButtonDefaults.buttonColors(

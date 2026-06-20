@@ -7,7 +7,14 @@ enum class UserRole(val displayName: String) {
 
     companion object {
         fun fromString(value: String?): UserRole {
-            return entries.find { it.displayName == value || it.name == value } ?: MASYARAKAT
+            if (value == null) return MASYARAKAT
+            val trimmed = value.trim()
+            return when {
+                trimmed.equals("Masyarakat", ignoreCase = true) || trimmed.equals("MASYARAKAT", ignoreCase = true) -> MASYARAKAT
+                trimmed.equals("Relawan", ignoreCase = true) || trimmed.equals("RELAWAN", ignoreCase = true) -> RELAWAN
+                trimmed.equals("Admin", ignoreCase = true) || trimmed.equals("ADMIN", ignoreCase = true) || trimmed.equals("BNPB", ignoreCase = true) -> BNPB
+                else -> entries.find { it.displayName.equals(trimmed, ignoreCase = true) || it.name.equals(trimmed, ignoreCase = true) } ?: MASYARAKAT
+            }
         }
     }
 }

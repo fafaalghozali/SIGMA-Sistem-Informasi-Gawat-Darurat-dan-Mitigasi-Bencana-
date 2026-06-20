@@ -110,7 +110,7 @@ fun SigmaNavigation() {
                                     7 -> backStack.add(Route.SearchDisaster)
                                     10 -> PdfUtils.openPdfFromAssets(context)
                                     5 -> backStack.add(Route.VolunteerRegistration(route.email))
-                                    6 -> backStack.add(Route.AdminVerification)
+                                    6 -> backStack.add(Route.ManageReport)
                                     11 -> backStack.add(Route.ManageShelter)
                                     12 -> backStack.add(Route.ManageVolunteer)
                                     13 -> backStack.add(Route.NewsList)
@@ -220,7 +220,7 @@ fun SigmaNavigation() {
                         userEmail = route.email,
                         onBack = { backStack.removeAt(backStack.lastIndex) }
                     )
-                    is Route.AdminVerification -> AdminVerificationScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
+                    is Route.ManageReport -> ManageReportScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
                     is Route.ManageShelter -> ManageShelterScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
                     is Route.ManageVolunteer -> ManageVolunteerScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
                     is Route.NewsList -> NewsListScreen(

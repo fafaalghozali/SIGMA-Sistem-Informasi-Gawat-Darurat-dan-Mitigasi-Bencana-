@@ -1,5 +1,6 @@
 package com.mahasiswa.sigma.di
 
+import com.google.gson.GsonBuilder
 import com.mahasiswa.sigma.BuildConfig
 import com.mahasiswa.sigma.data.remote.api.BmkgApiService
 import com.mahasiswa.sigma.data.remote.api.OpenMeteoApiService
@@ -138,11 +139,15 @@ object NetworkModule {
     fun provideSupabaseRetrofit(@Named("supabase") okHttpClient: OkHttpClient): Retrofit {
         // Supabase PostgREST endpoint is at /rest/v1/
         val supabaseRestUrl = "${BuildConfig.SUPABASE_URL}/rest/v1/"
-        
+
+        // Gson without serializeNulls — null fields won't be sent in PATCH requests
+        // This prevents "bad request: invalid data" from Supabase when null values hit constraints
+        val gson = GsonBuilder().create()
+
         return Retrofit.Builder()
             .baseUrl(supabaseRestUrl)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 

@@ -9,10 +9,14 @@ import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.model.CreateVolunteerRequest
 import com.mahasiswa.sigma.data.model.VolunteerRegistrationData
+import com.mahasiswa.sigma.data.model.UpdateVolunteerRequest
 import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -22,6 +26,7 @@ class VolunteerRegistrationViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var currentUserEmail: String = ""
+    private var registeredVolunteerId: Long? = null
 
     // Multi-step: 1 = Data Diri, 2 = Keahlian, 3 = Konfirmasi
     var currentStep by mutableIntStateOf(1)
@@ -39,9 +44,16 @@ class VolunteerRegistrationViewModel @Inject constructor(
     var registeredData by mutableStateOf<VolunteerRegistrationData?>(null)
     var isRegistered by mutableStateOf(false)
 
+    // State konfirmasi penugasan
+    var isConfirmingAssignment by mutableStateOf(false)
+    var confirmAssignmentError by mutableStateOf<String?>(null)
+    var confirmAssignmentSuccess by mutableStateOf(false)
+
+    private fun nowTimestamp(): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
+
     fun loadRegistrationData(email: String, userName: String = "") {
         currentUserEmail = email
-        // Auto-fill nama dari profil yang sudah login jika belum diisi
         if (name.isBlank() && userName.isNotBlank()) {
             name = userName
         }
@@ -50,6 +62,7 @@ class VolunteerRegistrationViewModel @Inject constructor(
             val result = volunteerRepository.getVolunteerByUserId(userId)
             result.onSuccess { volunteerDto ->
                 if (volunteerDto != null) {
+                    registeredVolunteerId = volunteerDto.id
                     registeredData = VolunteerRegistrationData(
                         name = volunteerDto.name,
                         skill = try {
@@ -59,9 +72,42 @@ class VolunteerRegistrationViewModel @Inject constructor(
                         },
                         address = volunteerDto.address,
                         phoneNumber = volunteerDto.phoneNumber,
-                        status = volunteerDto.status
+                        status = volunteerDto.status,
+                        assignment = volunteerDto.assignment,
+                        assignmentStatus = volunteerDto.assignmentStatus,
+                        disasterId = volunteerDto.disasterId,
+                        volunteerId = volunteerDto.id
                     )
                     isRegistered = true
+                }
+            }
+        }
+    }
+
+    fun refreshStatus() {
+        viewModelScope.launch {
+            val userId = authManager.getCurrentUserId() ?: return@launch
+            val result = volunteerRepository.getVolunteerByUserId(userId)
+            result.onSuccess { volunteerDto ->
+                if (volunteerDto != null) {
+                    registeredVolunteerId = volunteerDto.id
+                    registeredData = registeredData?.copy(
+                        status = volunteerDto.status,
+                        assignment = volunteerDto.assignment,
+                        assignmentStatus = volunteerDto.assignmentStatus,
+                        disasterId = volunteerDto.disasterId
+                    ) ?: VolunteerRegistrationData(
+                        name = volunteerDto.name,
+                        skill = try { SkillsVolunteer.valueOf(volunteerDto.skill.uppercase()) }
+                                catch (_: Exception) { SkillsVolunteer.MEDIS },
+                        address = volunteerDto.address,
+                        phoneNumber = volunteerDto.phoneNumber,
+                        status = volunteerDto.status,
+                        assignment = volunteerDto.assignment,
+                        assignmentStatus = volunteerDto.assignmentStatus,
+                        disasterId = volunteerDto.disasterId,
+                        volunteerId = volunteerDto.id
+                    )
                 }
             }
         }
@@ -70,36 +116,21 @@ class VolunteerRegistrationViewModel @Inject constructor(
     fun onNameChange(newValue: String) { name = newValue }
     fun onAddressChange(newValue: String) { address = newValue }
     fun onPhoneNumberChange(newValue: String) { phoneNumber = newValue }
+    fun onSkillSelected(skill: SkillsVolunteer) { selectedSkill = skill }
 
-    fun onSkillSelected(skill: SkillsVolunteer) {
-        selectedSkill = skill
-    }
-
-    // Navigasi antar step
     fun goToNextStep() {
         when (currentStep) {
-            1 -> {
-                if (isStep1Valid()) {
-                    currentStep = 2
-                } else {
-                    showIncompleteDialog = true
-                }
-            }
+            1 -> if (isStep1Valid()) currentStep = 2 else showIncompleteDialog = true
             2 -> currentStep = 3
         }
     }
 
-    fun goToPreviousStep() {
-        if (currentStep > 1) currentStep--
-    }
+    fun goToPreviousStep() { if (currentStep > 1) currentStep-- }
 
-    private fun isStep1Valid(): Boolean {
-        return name.isNotBlank() &&
-               address.isNotBlank() &&
-               phoneNumber.isNotBlank() &&
-               phoneNumber.length >= 10 &&
-               phoneNumber.all { it.isDigit() }
-    }
+    private fun isStep1Valid(): Boolean =
+        name.isNotBlank() && address.isNotBlank() &&
+        phoneNumber.isNotBlank() && phoneNumber.length >= 10 &&
+        phoneNumber.all { it.isDigit() }
 
     fun submitRegistration() {
         viewModelScope.launch {
@@ -111,29 +142,32 @@ class VolunteerRegistrationViewModel @Inject constructor(
                 return@launch
             }
 
+            val now = nowTimestamp()
             val request = CreateVolunteerRequest(
                 userId = userId,
                 name = name,
                 skill = selectedSkill.name,
                 address = address,
                 phoneNumber = phoneNumber,
-                status = "PENDING"
+                availability = "available",
+                status = "PENDING",
+                createdAt = now,
+                updatedAt = now
             )
 
             val result = volunteerRepository.createVolunteer(request)
             result.onSuccess { volunteerDto ->
+                registeredVolunteerId = volunteerDto.id
                 registeredData = VolunteerRegistrationData(
                     name = volunteerDto.name,
                     skill = selectedSkill,
                     address = volunteerDto.address,
                     phoneNumber = volunteerDto.phoneNumber,
-                    status = volunteerDto.status
+                    status = volunteerDto.status,
+                    volunteerId = volunteerDto.id
                 )
                 isRegistered = true
-                // Reset form & step
-                name = ""
-                address = ""
-                phoneNumber = ""
+                name = ""; address = ""; phoneNumber = ""
                 currentStep = 1
             }
             result.onFailure { e ->
@@ -143,17 +177,44 @@ class VolunteerRegistrationViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Relawan konfirmasi bersedia / tidak bersedia setelah admin menugaskan.
+     * assignment_status: "accepted" = bersedia, "rejected" = tidak bersedia
+     */
+    fun confirmAssignment(accept: Boolean) {
+        val vid = registeredVolunteerId ?: return
+        viewModelScope.launch {
+            isConfirmingAssignment = true
+            confirmAssignmentError = null
+            val request = UpdateVolunteerRequest(
+                assignmentStatus = if (accept) "accepted" else "rejected",
+                updatedAt = nowTimestamp()
+            )
+            val result = volunteerRepository.updateVolunteer(vid.toString(), request)
+            result.onSuccess {
+                confirmAssignmentSuccess = true
+                refreshStatus()
+            }
+            result.onFailure { e ->
+                confirmAssignmentError = e.message ?: "Gagal mengonfirmasi. Coba lagi."
+            }
+            isConfirmingAssignment = false
+        }
+    }
+
+    fun dismissConfirmSuccess() { confirmAssignmentSuccess = false }
+    fun dismissConfirmError() { confirmAssignmentError = null }
+
     fun resetRegistration() {
         viewModelScope.launch {
             val userId = authManager.getCurrentUserId() ?: return@launch
             val result = volunteerRepository.getVolunteerByUserId(userId)
             result.onSuccess { volunteerDto ->
-                volunteerDto?.id?.let { volunteerId ->
-                    volunteerRepository.deleteVolunteer(volunteerId.toString())
-                }
+                volunteerDto?.id?.let { volunteerRepository.deleteVolunteer(it.toString()) }
             }
             isRegistered = false
             registeredData = null
+            registeredVolunteerId = null
             currentStep = 1
         }
     }

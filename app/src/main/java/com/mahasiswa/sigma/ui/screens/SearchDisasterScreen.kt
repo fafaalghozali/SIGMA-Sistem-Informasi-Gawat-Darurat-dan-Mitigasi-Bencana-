@@ -71,6 +71,8 @@ private fun statusBorderColor(status: String): Color = when (status.uppercase())
 @Composable
 fun SearchDisasterScreen(
     onBack: () -> Unit,
+    initialQuery: String? = null,
+    initialStatus: String? = null,
     viewModel: SearchDisasterViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -78,6 +80,11 @@ fun SearchDisasterScreen(
     val selectedStatus by viewModel.selectedStatus.collectAsState()
 
     val statusFilters = listOf("Semua", "Awas", "Siaga 1", "Siaga 2", "Pending", "Resolved")
+
+    LaunchedEffect(initialQuery, initialStatus) {
+        viewModel.onSearchQueryChange(initialQuery ?: "")
+        viewModel.onStatusFilterChange(initialStatus ?: "Semua")
+    }
 
     Scaffold(
         topBar = {

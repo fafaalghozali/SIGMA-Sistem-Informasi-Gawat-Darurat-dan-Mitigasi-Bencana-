@@ -8,6 +8,10 @@ plugins {
     alias(libs.plugins.hilt.android)
 }
 
+hilt {
+    enableAggregatingTask = true
+}
+
 android {
     namespace = "com.mahasiswa.sigma"
     compileSdk = 35
@@ -28,8 +32,8 @@ android {
         }
         manifestPlaceholders["MAPS_API_KEY"] = localProps.getProperty("MAPS_API_KEY", "")
 
-        buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("SUPABASE_URL") ?: error("SUPABASE_URL not set in local.properties")}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("SUPABASE_ANON_KEY") ?: error("SUPABASE_ANON_KEY not set in local.properties")}\"")
+        buildConfigField("String", "SUPABASE_URL", "\"${localProps.getProperty("SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProps.getProperty("SUPABASE_ANON_KEY") ?: ""}\"")
     }
 
     java {

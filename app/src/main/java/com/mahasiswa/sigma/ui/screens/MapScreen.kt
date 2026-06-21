@@ -6,12 +6,14 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.animation.animateContentSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -123,6 +125,15 @@ private fun shelterMarkerBitmap(fillColor: Int, isSelected: Boolean): BitmapDesc
     return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
 
+private fun formatStatus(status: String): String = when (status.uppercase()) {
+    "AWAS" -> "Awas"
+    "SIAGA_1", "SIAGA 1" -> "Siaga 1"
+    "SIAGA_2", "SIAGA 2" -> "Siaga 2"
+    "PENDING" -> "Pending"
+    "RESOLVED" -> "Resolved"
+    else -> status.replaceFirstChar { if (it.isLowerCase()) it.uppercase() else it.toString() }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
@@ -192,16 +203,18 @@ fun MapScreen(
             if (uiState.showReportLayer) {
                 uiState.verifiedReports.forEach { report ->
                     val isSelected = uiState.selectedReport?.id == report.id
-                    val hue = when (report.status) {
-                        "Awas"    -> BitmapDescriptorFactory.HUE_RED
-                        "Siaga 1" -> BitmapDescriptorFactory.HUE_ORANGE
-                        "Siaga 2" -> BitmapDescriptorFactory.HUE_YELLOW
-                        else      -> BitmapDescriptorFactory.HUE_GREEN
+                    val hue = when (report.status.uppercase()) {
+                        "AWAS" -> BitmapDescriptorFactory.HUE_RED
+                        "SIAGA_1", "SIAGA 1" -> BitmapDescriptorFactory.HUE_ORANGE
+                        "SIAGA_2", "SIAGA 2" -> BitmapDescriptorFactory.HUE_YELLOW
+                        "RESOLVED" -> BitmapDescriptorFactory.HUE_GREEN
+                        "PENDING" -> BitmapDescriptorFactory.HUE_BLUE
+                        else -> BitmapDescriptorFactory.HUE_AZURE
                     }
                     Marker(
                         state = MarkerState(position = LatLng(report.latitude, report.longitude)),
                         title = report.title,
-                        snippet = "Status: ${report.status}",
+                        snippet = "Status: ${formatStatus(report.status)}",
                         icon = BitmapDescriptorFactory.defaultMarker(
                             if (isSelected) BitmapDescriptorFactory.HUE_MAGENTA else hue
                         ),
@@ -270,7 +283,8 @@ fun MapScreen(
         MapLegend(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 12.dp, bottom = 16.dp)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(start = 12.dp, bottom = 96.dp)
         )
 
         if (uiState.isLoading) {
@@ -350,20 +364,61 @@ private fun LayerToggleButton(
 
 @Composable
 private fun MapLegend(modifier: Modifier = Modifier) {
+    var isExpanded by remember { mutableStateOf(false) }
+
     Surface(
-        modifier = modifier,
+        modifier = modifier.animateContentSize(),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-        tonalElevation = 2.dp
+        tonalElevation = 4.dp,
+        shadowElevation = 4.dp
     ) {
-        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Keterangan", fontWeight = FontWeight.Bold, fontSize = 11.sp)
-            LegendItem(color = Color(0xFF1565C0), label = "Posko Tersedia", isHouse = true)
-            LegendItem(color = Color(0xFFB71C1C), label = "Posko Penuh", isHouse = true)
-            LegendItem(color = Color(0xFFB71C1C), label = "Laporan Awas")
-            LegendItem(color = Color(0xFFE65100), label = "Laporan Siaga 1")
-            LegendItem(color = Color(0xFFF9A825), label = "Laporan Siaga 2")
-            LegendItem(color = Color(0xFF2E7D32), label = "Laporan Terverifikasi")
+        Column(
+            modifier = Modifier
+                .clickable { isExpanded = !isExpanded }
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Keterangan",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (isExpanded) {
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    LegendItem(color = Color(0xFF1565C0), label = "Posko Tersedia", isHouse = true)
+                    LegendItem(color = Color(0xFFB71C1C), label = "Posko Penuh", isHouse = true)
+                    LegendItem(color = Color(0xFFB71C1C), label = "Laporan Awas")
+                    LegendItem(color = Color(0xFFE65100), label = "Laporan Siaga 1")
+                    LegendItem(color = Color(0xFFF9A825), label = "Laporan Siaga 2")
+                    LegendItem(color = Color(0xFF1565C0), label = "Laporan Pending")
+                    LegendItem(color = Color(0xFF2E7D32), label = "Laporan Resolved")
+                }
+            }
         }
     }
 }
@@ -399,12 +454,13 @@ private fun ReportInfoSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val statusColor = when (report.status) {
-        "Awas"     -> Color(0xFFB71C1C)
-        "Siaga 1"  -> Color(0xFFE65100)
-        "Siaga 2"  -> Color(0xFFF9A825)
-        "Resolved" -> Color(0xFF2E7D32)
-        else       -> Color(0xFF1565C0)
+    val statusColor = when (report.status.uppercase()) {
+        "AWAS" -> Color(0xFFB71C1C)
+        "SIAGA_1", "SIAGA 1" -> Color(0xFFE65100)
+        "SIAGA_2", "SIAGA 2" -> Color(0xFFF9A825)
+        "RESOLVED" -> Color(0xFF2E7D32)
+        "PENDING" -> Color(0xFF1565C0)
+        else -> Color(0xFF78909C)
     }
 
     Surface(
@@ -434,7 +490,7 @@ private fun ReportInfoSheet(
             Text(report.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(4.dp))
             Surface(shape = RoundedCornerShape(6.dp), color = statusColor.copy(alpha = 0.15f)) {
-                Text(report.status, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp), color = statusColor, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text(formatStatus(report.status), modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp), color = statusColor, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(report.description, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), maxLines = 3)

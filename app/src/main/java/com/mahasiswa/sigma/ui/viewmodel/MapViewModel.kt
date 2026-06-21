@@ -68,10 +68,17 @@ class MapViewModel @Inject constructor(
             result.onSuccess { reports ->
                 val verified = reports
                     .filter { report ->
-                        report.status in listOf("Verified", "Siaga 1", "Siaga 2", "Awas", "Resolved", "siaga_1", "siaga_2", "awas", "resolved")
-                            && report.latitude != 0.0 && report.longitude != 0.0
+                        report.latitude != 0.0 && report.longitude != 0.0
                     }
                     .map { dto ->
+                        val timestamp = try {
+                            dto.createdAt?.let {
+                                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                                sdf.parse(it)?.time
+                            } ?: System.currentTimeMillis()
+                        } catch (_: Exception) {
+                            System.currentTimeMillis()
+                        }
                         LocalDisasterReport(
                             id = dto.id?.toString() ?: "",
                             title = dto.title,
@@ -80,7 +87,8 @@ class MapViewModel @Inject constructor(
                             reporter = dto.reporterName,
                             status = dto.status,
                             latitude = dto.latitude,
-                            longitude = dto.longitude
+                            longitude = dto.longitude,
+                            timestamp = timestamp
                         )
                     }
                 _uiState.value = _uiState.value.copy(

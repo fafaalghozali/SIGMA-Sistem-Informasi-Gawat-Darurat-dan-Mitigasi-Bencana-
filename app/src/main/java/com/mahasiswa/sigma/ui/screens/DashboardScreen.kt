@@ -66,6 +66,7 @@ fun DashboardScreen(
     userEmail: String = "",
     onFeatureClick: (Int) -> Unit,
     @Suppress("UNUSED_PARAMETER") onNavigateToProfile: () -> Unit,
+    onNavigateToSearchDisaster: (String?, String?) -> Unit = { _, _ -> },
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -108,6 +109,7 @@ fun DashboardScreen(
             viewModel.updateVolunteerAvailability(userEmail, newStatus)
         },
         onFeatureClick = onFeatureClick,
+        onNavigateToSearchDisaster = onNavigateToSearchDisaster,
         onDismissNotification = { viewModel.dismissNotification() },
         onRetryLocation = {
             viewModel.onPermissionRequested()
@@ -138,6 +140,7 @@ fun DashboardContent(
     userEmail: String,
     onVolunteerStatusChange: (String) -> Unit,
     onFeatureClick: (Int) -> Unit,
+    onNavigateToSearchDisaster: (String?, String?) -> Unit,
     onDismissNotification: () -> Unit,
     onRetryLocation: () -> Unit,
     onRetryNews: () -> Unit,
@@ -203,13 +206,25 @@ fun DashboardContent(
                             val alertColor = when (localAlert.status.uppercase()) {
                                 "AWAS" -> EmergencyRed
                                 "SIAGA_1", "SIAGA 1" -> WarningOrange
+                                "SIAGA_2", "SIAGA 2" -> WarningOrange
                                 else -> WarningOrange
+                            }
+                            val displayStatus = when (localAlert.status.uppercase()) {
+                                "AWAS" -> "Awas"
+                                "SIAGA_1", "SIAGA 1" -> "Siaga 1"
+                                "SIAGA_2", "SIAGA 2" -> "Siaga 2"
+                                "PENDING" -> "Pending"
+                                "RESOLVED" -> "Resolved"
+                                else -> localAlert.status
                             }
                             EmergencyAlertCard(
                                 title = "LAPORAN BENCANA DI WILAYAH ANDA",
                                 message = "${localAlert.title} - ${localAlert.location.take(60)}",
                                 alertColor = alertColor,
                                 onDismiss = onDismissNotification,
+                                onClick = {
+                                    onNavigateToSearchDisaster(localAlert.title, displayStatus)
+                                },
                                 isDark = isDark
                             )
                         } else if (activeBmkg != null) {
@@ -223,6 +238,9 @@ fun DashboardContent(
                                 message = activeBmkg.message,
                                 alertColor = alertColor,
                                 onDismiss = onDismissNotification,
+                                onClick = {
+                                    onNavigateToSearchDisaster(uiState.userCityName.ifBlank { null }, "Semua")
+                                },
                                 isDark = isDark
                             )
                         } else if (isSevereWeather) {
@@ -231,10 +249,19 @@ fun DashboardContent(
                                 message = "Potensi cuaca buruk: ${uiState.weatherInfo?.condition} di wilayah Anda.",
                                 alertColor = WarningOrange,
                                 onDismiss = onDismissNotification,
+                                onClick = {
+                                    onNavigateToSearchDisaster(uiState.userCityName.ifBlank { null }, "Semua")
+                                },
                                 isDark = isDark
                             )
                         } else {
-                            SafeStateCard(onDismiss = onDismissNotification, isDark = isDark)
+                            SafeStateCard(
+                                onDismiss = onDismissNotification,
+                                onClick = {
+                                    onNavigateToSearchDisaster(null, "Semua")
+                                },
+                                isDark = isDark
+                            )
                         }
                     }
                 }
@@ -720,10 +747,13 @@ fun EmergencyAlertCard(
     message: String,
     alertColor: Color,
     onDismiss: () -> Unit,
+    onClick: () -> Unit,
     isDark: Boolean
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDark) alertColor.copy(alpha = 0.15f) else alertColor.copy(alpha = 0.08f)
@@ -1339,9 +1369,11 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun SafeStateCard(onDismiss: () -> Unit, isDark: Boolean) {
+fun SafeStateCard(onDismiss: () -> Unit, onClick: () -> Unit, isDark: Boolean) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDark) Color(0xFF1B2E20) else Color(0xFFE8F5E9)
@@ -1603,6 +1635,7 @@ fun DashboardPreview() {
         userEmail = "",
         onVolunteerStatusChange = {},
         onFeatureClick = {},
+        onNavigateToSearchDisaster = { _, _ -> },
         onDismissNotification = {},
         onRetryLocation = {},
         onRetryNews = {},

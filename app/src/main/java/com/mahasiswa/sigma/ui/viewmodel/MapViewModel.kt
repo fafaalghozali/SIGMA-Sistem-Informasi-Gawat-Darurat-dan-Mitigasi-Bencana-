@@ -88,7 +88,8 @@ class MapViewModel @Inject constructor(
                             status = dto.status,
                             latitude = dto.latitude,
                             longitude = dto.longitude,
-                            timestamp = timestamp
+                            timestamp = timestamp,
+                            photoUrl = dto.photoUrl
                         )
                     }
                 _uiState.value = _uiState.value.copy(

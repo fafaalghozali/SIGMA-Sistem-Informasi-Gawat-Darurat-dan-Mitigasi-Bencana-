@@ -101,7 +101,8 @@ class ManageReportViewModel @Inject constructor(
             val shouldIncludeVerifier = uppercaseStatus != "PENDING" && uppercaseStatus != "DECLINE" && !userId.isNullOrBlank()
             val request = UpdateDisasterReportRequest(
                 status = uppercaseStatus,
-                verifiedBy = if (shouldIncludeVerifier) userId else null
+                verifiedBy = if (shouldIncludeVerifier) userId else null,
+                disasterType = disasterType
             )
             val result = repository.updateDisasterReport(reportId, request)
             result.onSuccess {

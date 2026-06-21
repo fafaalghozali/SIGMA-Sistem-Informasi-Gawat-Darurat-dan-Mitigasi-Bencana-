@@ -46,7 +46,8 @@ class AdminVerificationViewModel @Inject constructor(
                         reporter = dto.reporterName,
                         status = dto.status,
                         latitude = dto.latitude,
-                        longitude = dto.longitude
+                        longitude = dto.longitude,
+                        photoUrl = dto.photoUrl
                     )
                 }
             }

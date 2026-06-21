@@ -23,6 +23,7 @@ import com.mahasiswa.sigma.data.repository.NewsRepositoryRetrofit
 import com.mahasiswa.sigma.data.repository.WeatherRepository
 import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
+import com.mahasiswa.sigma.data.model.VolunteerDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -56,7 +57,10 @@ data class DashboardUiState(
     val userCityName: String = "",
     val isAwaitingPermission: Boolean = false,
     val volunteerStatus: String = "Pending",
-    val volunteerSkill: SkillsVolunteer? = null
+    val volunteerSkill: SkillsVolunteer? = null,
+    val allReports: List<DisasterReportDto> = emptyList(),
+    val allVolunteers: List<VolunteerDto> = emptyList(),
+    val isAdminDataLoading: Boolean = false
 )
 
 @HiltViewModel
@@ -125,6 +129,27 @@ class DashboardViewModel @Inject constructor(
             loadLocalDisasterAlerts()
 
             loadFreshNews()
+
+            if (userRole == UserRole.BNPB) {
+                loadAdminStatistics()
+            }
+        }
+    }
+
+    fun loadAdminStatistics() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isAdminDataLoading = true)
+            val reportsResult = disasterRepo.getAllDisasterReports()
+            val volunteersResult = volunteerRepo.getAllVolunteers()
+
+            val reports = reportsResult.getOrDefault(emptyList())
+            val volunteers = volunteersResult.getOrDefault(emptyList())
+
+            _uiState.value = _uiState.value.copy(
+                allReports = reports,
+                allVolunteers = volunteers,
+                isAdminDataLoading = false
+            )
         }
     }
 

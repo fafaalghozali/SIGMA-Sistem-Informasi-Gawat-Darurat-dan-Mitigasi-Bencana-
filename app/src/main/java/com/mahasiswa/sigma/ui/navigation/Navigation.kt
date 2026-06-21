@@ -27,6 +27,7 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import com.mahasiswa.sigma.PdfUtils
 import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.ui.components.SigmaBottomBar
 import com.mahasiswa.sigma.ui.screen.ProfileListScreen
 import com.mahasiswa.sigma.ui.screens.*
@@ -127,6 +128,9 @@ fun SigmaNavigation() {
                             },
                             onNavigateToSearchDisaster = { query, status ->
                                 backStack.add(Route.SearchDisaster(query, status))
+                            },
+                            onNavigateToReportDetail = { report ->
+                                backStack.add(Route.ReportDetail(report))
                             }
                         )
                     }
@@ -141,6 +145,7 @@ fun SigmaNavigation() {
                     )
                     is Route.ReportDetail -> ReportDetailScreen(
                         report = route.report,
+                        userRole = userRole,
                         onBack = { backStack.removeAt(backStack.lastIndex) }
                     )
                     is Route.ShelterInfo -> ShelterInfoScreen(onBack = { backStack.removeAt(backStack.lastIndex) })

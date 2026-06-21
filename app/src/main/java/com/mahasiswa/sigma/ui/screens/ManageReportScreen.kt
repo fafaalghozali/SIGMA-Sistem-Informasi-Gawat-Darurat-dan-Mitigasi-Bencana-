@@ -123,8 +123,8 @@ fun ManageReportScreen(
                 selectedReport?.let { report ->
                     ReportDetailContent(
                         report = report,
-                        onStatusChange = { newStatus ->
-                            viewModel.updateReportStatus(report.id.toString(), newStatus)
+                        onStatusChange = { newStatus, disasterType ->
+                            viewModel.updateReportStatus(report.id.toString(), newStatus, disasterType)
                         },
                         onMarkCompleted = {
                             viewModel.markAsCompleted(report.id.toString())
@@ -331,7 +331,7 @@ private fun ReportListItem(
 @Composable
 private fun ReportDetailContent(
     report: DisasterReportDto,
-    onStatusChange: (String) -> Unit,
+    onStatusChange: (String, String?) -> Unit,
     onMarkCompleted: () -> Unit
 ) {
     var selectedStatus by remember(report.id) { mutableStateOf(report.status) }
@@ -383,7 +383,7 @@ private fun ReportDetailContent(
                 Button(
                     onClick = {
                         showSaveConfirmDialog = false
-                        onStatusChange(selectedStatus)
+                        onStatusChange(selectedStatus, selectedDisasterType)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0)),
                     shape = RoundedCornerShape(10.dp)

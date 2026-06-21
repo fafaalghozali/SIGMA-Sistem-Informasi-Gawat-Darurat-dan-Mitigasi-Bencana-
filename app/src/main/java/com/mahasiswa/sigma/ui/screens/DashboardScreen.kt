@@ -33,6 +33,9 @@ import androidx.compose.material3.*
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -67,6 +70,7 @@ fun DashboardScreen(
     onFeatureClick: (Int) -> Unit,
     @Suppress("UNUSED_PARAMETER") onNavigateToProfile: () -> Unit,
     onNavigateToSearchDisaster: (String?, String?) -> Unit = { _, _ -> },
+    onNavigateToReportDetail: (LocalDisasterReport) -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -110,6 +114,7 @@ fun DashboardScreen(
         },
         onFeatureClick = onFeatureClick,
         onNavigateToSearchDisaster = onNavigateToSearchDisaster,
+        onNavigateToReportDetail = onNavigateToReportDetail,
         onDismissNotification = { viewModel.dismissNotification() },
         onRetryLocation = {
             viewModel.onPermissionRequested()
@@ -141,6 +146,7 @@ fun DashboardContent(
     onVolunteerStatusChange: (String) -> Unit,
     onFeatureClick: (Int) -> Unit,
     onNavigateToSearchDisaster: (String?, String?) -> Unit,
+    onNavigateToReportDetail: (LocalDisasterReport) -> Unit,
     onDismissNotification: () -> Unit,
     onRetryLocation: () -> Unit,
     onRetryNews: () -> Unit,
@@ -156,138 +162,150 @@ fun DashboardContent(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(
-                    start = 16.dp, end = 16.dp, top = 16.dp,
-                    bottom = 160.dp
-                ),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                item(span = { GridItemSpan(2) }) {
-                    StatusCard(
-                        weather = uiState.weatherInfo,
-                        isLoading = uiState.isWeatherLoading,
-                        error = uiState.weatherError,
-                        isDark = isDark,
-                        permissionDenied = uiState.locationPermissionDenied,
-                        lastUpdated = uiState.lastUpdated,
-                        onRetry = onRetryLocation,
-                        onOpenSettings = onOpenSettings
-                    )
-                }
-
-                if (userRole == UserRole.RELAWAN) {
+            if (userRole == UserRole.BNPB) {
+                AdminDashboardContent(
+                    userName = userName,
+                    uiState = uiState,
+                    isDark = isDark,
+                    onFeatureClick = onFeatureClick,
+                    onNavigateToSearchDisaster = onNavigateToSearchDisaster,
+                    onNavigateToReportDetail = onNavigateToReportDetail,
+                    padding = padding
+                )
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentPadding = PaddingValues(
+                        start = 16.dp, end = 16.dp, top = 16.dp,
+                        bottom = 160.dp
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     item(span = { GridItemSpan(2) }) {
-                        AvailabilityStatusCard(
-                            currentStatus = uiState.volunteerStatus,
-                            onStatusChange = onVolunteerStatusChange,
-                            isDark = isDark
+                        StatusCard(
+                            weather = uiState.weatherInfo,
+                            isLoading = uiState.isWeatherLoading,
+                            error = uiState.weatherError,
+                            isDark = isDark,
+                            permissionDenied = uiState.locationPermissionDenied,
+                            lastUpdated = uiState.lastUpdated,
+                            onRetry = onRetryLocation,
+                            onOpenSettings = onOpenSettings
                         )
                     }
-                }
 
-                item(span = { GridItemSpan(2) }) {
-                    val severeWeatherCodes = listOf(65, 67, 75, 77, 82, 86, 95, 96, 99)
-                    val activeBmkg = uiState.bmkgWarnings.firstOrNull()
-                    val isSevereWeather = uiState.weatherInfo?.weatherCode in severeWeatherCodes
-                    val localAlert = uiState.localDisasterAlert
-
-                    AnimatedVisibility(
-                        visible = uiState.showNotification,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut()
-                    ) {
-                        if (localAlert != null) {
-                            val alertColor = when (localAlert.status.uppercase()) {
-                                "AWAS" -> EmergencyRed
-                                "SIAGA_1", "SIAGA 1" -> WarningOrange
-                                "SIAGA_2", "SIAGA 2" -> WarningOrange
-                                else -> WarningOrange
-                            }
-                            val displayStatus = when (localAlert.status.uppercase()) {
-                                "AWAS" -> "Awas"
-                                "SIAGA_1", "SIAGA 1" -> "Siaga 1"
-                                "SIAGA_2", "SIAGA 2" -> "Siaga 2"
-                                "PENDING" -> "Pending"
-                                "RESOLVED" -> "Resolved"
-                                else -> localAlert.status
-                            }
-                            EmergencyAlertCard(
-                                title = "LAPORAN BENCANA DI WILAYAH ANDA",
-                                message = "${localAlert.title} - ${localAlert.location.take(60)}",
-                                alertColor = alertColor,
-                                onDismiss = onDismissNotification,
-                                onClick = {
-                                    onNavigateToSearchDisaster(localAlert.title, displayStatus)
-                                },
-                                isDark = isDark
-                            )
-                        } else if (activeBmkg != null) {
-                            val alertColor = when (activeBmkg.severity) {
-                                com.mahasiswa.sigma.data.model.WarningSeverity.DANGER -> EmergencyRed
-                                com.mahasiswa.sigma.data.model.WarningSeverity.WARNING -> WarningOrange
-                                else -> MitigationBlue
-                            }
-                            EmergencyAlertCard(
-                                title = "PERINGATAN BMKG",
-                                message = activeBmkg.message,
-                                alertColor = alertColor,
-                                onDismiss = onDismissNotification,
-                                onClick = {
-                                    onNavigateToSearchDisaster(uiState.userCityName.ifBlank { null }, "Semua")
-                                },
-                                isDark = isDark
-                            )
-                        } else if (isSevereWeather) {
-                            EmergencyAlertCard(
-                                title = "CUACA EKSTREM",
-                                message = "Potensi cuaca buruk: ${uiState.weatherInfo?.condition} di wilayah Anda.",
-                                alertColor = WarningOrange,
-                                onDismiss = onDismissNotification,
-                                onClick = {
-                                    onNavigateToSearchDisaster(uiState.userCityName.ifBlank { null }, "Semua")
-                                },
-                                isDark = isDark
-                            )
-                        } else {
-                            SafeStateCard(
-                                onDismiss = onDismissNotification,
-                                onClick = {
-                                    onNavigateToSearchDisaster(null, "Semua")
-                                },
+                    if (userRole == UserRole.RELAWAN) {
+                        item(span = { GridItemSpan(2) }) {
+                            AvailabilityStatusCard(
+                                currentStatus = uiState.volunteerStatus,
+                                onStatusChange = onVolunteerStatusChange,
                                 isDark = isDark
                             )
                         }
                     }
-                }
 
-                item(span = { GridItemSpan(2) }) {
-                    SectionHeader(
-                        title = "Layanan Utama",
-                        subtitle = "Fitur darurat & bantuan mitigasi",
-                        isDark = isDark
-                    )
-                }
+                    item(span = { GridItemSpan(2) }) {
+                        val severeWeatherCodes = listOf(65, 67, 75, 77, 82, 86, 95, 96, 99)
+                        val activeBmkg = uiState.bmkgWarnings.firstOrNull()
+                        val isSevereWeather = uiState.weatherInfo?.weatherCode in severeWeatherCodes
+                        val localAlert = uiState.localDisasterAlert
 
-                items(uiState.menuItems) { item ->
-                    ServiceMenuCard(item, isDark) { onFeatureClick(item.id) }
-                }
+                        AnimatedVisibility(
+                            visible = uiState.showNotification,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            if (localAlert != null) {
+                                val alertColor = when (localAlert.status.uppercase()) {
+                                    "AWAS" -> EmergencyRed
+                                    "SIAGA_1", "SIAGA 1" -> WarningOrange
+                                    "SIAGA_2", "SIAGA 2" -> WarningOrange
+                                    else -> WarningOrange
+                                }
+                                val displayStatus = when (localAlert.status.uppercase()) {
+                                    "AWAS" -> "Awas"
+                                    "SIAGA_1", "SIAGA 1" -> "Siaga 1"
+                                    "SIAGA_2", "SIAGA 2" -> "Siaga 2"
+                                    "PENDING" -> "Pending"
+                                    "RESOLVED" -> "Resolved"
+                                    else -> localAlert.status
+                                }
+                                EmergencyAlertCard(
+                                    title = "LAPORAN BENCANA DI WILAYAH ANDA",
+                                    message = "${localAlert.title} - ${localAlert.location.take(60)}",
+                                    alertColor = alertColor,
+                                    onDismiss = onDismissNotification,
+                                    onClick = {
+                                        onNavigateToSearchDisaster(localAlert.title, displayStatus)
+                                    },
+                                    isDark = isDark
+                                )
+                            } else if (activeBmkg != null) {
+                                val alertColor = when (activeBmkg.severity) {
+                                    com.mahasiswa.sigma.data.model.WarningSeverity.DANGER -> EmergencyRed
+                                    com.mahasiswa.sigma.data.model.WarningSeverity.WARNING -> WarningOrange
+                                    else -> MitigationBlue
+                                }
+                                EmergencyAlertCard(
+                                    title = "PERINGATAN BMKG",
+                                    message = activeBmkg.message,
+                                    alertColor = alertColor,
+                                    onDismiss = onDismissNotification,
+                                    onClick = {
+                                        onNavigateToSearchDisaster(uiState.userCityName.ifBlank { null }, "Semua")
+                                    },
+                                    isDark = isDark
+                                )
+                            } else if (isSevereWeather) {
+                                EmergencyAlertCard(
+                                    title = "CUACA EKSTREM",
+                                    message = "Potensi cuaca buruk: ${uiState.weatherInfo?.condition} di wilayah Anda.",
+                                    alertColor = WarningOrange,
+                                    onDismiss = onDismissNotification,
+                                    onClick = {
+                                        onNavigateToSearchDisaster(uiState.userCityName.ifBlank { null }, "Semua")
+                                    },
+                                    isDark = isDark
+                                )
+                            } else {
+                                SafeStateCard(
+                                    onDismiss = onDismissNotification,
+                                    onClick = {
+                                        onNavigateToSearchDisaster(null, "Semua")
+                                    },
+                                    isDark = isDark
+                                )
+                            }
+                        }
+                    }
 
-                item(span = { GridItemSpan(2) }) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    NewsCarouselSection(
-                        newsItems = uiState.newsItems,
-                        isLoading = uiState.isNewsLoading,
-                        error = uiState.newsError,
-                        isDark = isDark,
-                        onRetry = onRetryNews,
-                        onViewAll = { onFeatureClick(13) }
-                    )
+                    item(span = { GridItemSpan(2) }) {
+                        SectionHeader(
+                            title = "Layanan Utama",
+                            subtitle = "Fitur darurat & bantuan mitigasi",
+                            isDark = isDark
+                        )
+                    }
+
+                    items(uiState.menuItems) { item ->
+                        ServiceMenuCard(item, isDark) { onFeatureClick(item.id) }
+                    }
+
+                    item(span = { GridItemSpan(2) }) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        NewsCarouselSection(
+                            newsItems = uiState.newsItems,
+                            isLoading = uiState.isNewsLoading,
+                            error = uiState.newsError,
+                            isDark = isDark,
+                            onRetry = onRetryNews,
+                            onViewAll = { onFeatureClick(13) }
+                        )
+                    }
                 }
             }
 
@@ -753,6 +771,7 @@ fun EmergencyAlertCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -1183,6 +1202,7 @@ fun NewsCard(item: NewsItem, isDark: Boolean, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier
             .height(160.dp)
+            .clip(RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(),
@@ -1373,6 +1393,7 @@ fun SafeStateCard(onDismiss: () -> Unit, onClick: () -> Unit, isDark: Boolean) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -1443,6 +1464,7 @@ fun ServiceMenuCard(item: DashboardMenuModel, isDark: Boolean, onClick: () -> Un
         modifier = Modifier
             .fillMaxWidth()
             .height(132.dp)
+            .clip(RoundedCornerShape(20.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = ripple(),
@@ -1636,6 +1658,7 @@ fun DashboardPreview() {
         onVolunteerStatusChange = {},
         onFeatureClick = {},
         onNavigateToSearchDisaster = { _, _ -> },
+        onNavigateToReportDetail = {},
         onDismissNotification = {},
         onRetryLocation = {},
         onRetryNews = {},
@@ -1744,6 +1767,7 @@ fun AvailabilityStatusCard(
                 Surface(
                     modifier = Modifier
                         .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable { onStatusChange("Tersedia") },
                     shape = RoundedCornerShape(12.dp),
                     color = if (isAvailable) {
@@ -1784,6 +1808,7 @@ fun AvailabilityStatusCard(
                 Surface(
                     modifier = Modifier
                         .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable { onStatusChange("Tidak Tersedia") },
                     shape = RoundedCornerShape(12.dp),
                     color = if (!isAvailable) {
@@ -1804,7 +1829,7 @@ fun AvailabilityStatusCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (!isAvailable) {
                                 Icon(
-                                    imageVector = Icons.Default.Cancel,
+                                    imageVector = Icons.Default.Close,
                                     contentDescription = null,
                                     tint = Color(0xFFD32F2F),
                                     modifier = Modifier.size(16.dp)
@@ -1824,3 +1849,853 @@ fun AvailabilityStatusCard(
         }
     }
 }
+
+data class DayTrendData(
+    val label: String,
+    val total: Int,
+    val pending: Int,
+    val verified: Int
+)
+
+@Composable
+fun AdminDashboardContent(
+    userName: String,
+    uiState: DashboardUiState,
+    isDark: Boolean,
+    onFeatureClick: (Int) -> Unit,
+    onNavigateToSearchDisaster: (String?, String?) -> Unit,
+    onNavigateToReportDetail: (LocalDisasterReport) -> Unit,
+    padding: PaddingValues
+) {
+    var selectedTimeRange by remember { mutableStateOf("Semua") }
+    var isTotalReportsExpanded by remember { mutableStateOf(false) }
+
+    val filteredReports = remember(uiState.allReports, selectedTimeRange) {
+        val now = System.currentTimeMillis()
+        val sdfFull = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        uiState.allReports.filter { report ->
+            val reportTime = try {
+                report.createdAt?.let {
+                    val cleanDate = it.replace("T", " ")
+                    val parsedDate = if (cleanDate.contains(".")) cleanDate.substringBefore(".") else cleanDate
+                    sdfFull.parse(parsedDate)?.time
+                }
+            } catch (_: Exception) { null } ?: 0L
+
+            when (selectedTimeRange) {
+                "Hari ini" -> (now - reportTime) <= 24 * 60 * 60 * 1000L
+                "7 Hari" -> (now - reportTime) <= 7 * 24 * 60 * 60 * 1000L
+                "30 Hari" -> (now - reportTime) <= 30 * 24 * 60 * 60 * 1000L
+                else -> true
+            }
+        }
+    }
+
+    val pendingReports = remember(filteredReports) {
+        filteredReports.filter { it.status.uppercase() == "PENDING" }
+    }
+
+    val verifiedCount = remember(filteredReports) {
+        filteredReports.count { it.status.uppercase() in listOf("VERIFIED", "RESOLVED", "AWAS", "SIAGA_1", "SIAGA 1", "SIAGA_2", "SIAGA 2") }
+    }
+
+    val verifiedThisWeekCount = remember(uiState.allReports) {
+        val now = System.currentTimeMillis()
+        val sdfFull = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        uiState.allReports.count { report ->
+            val isVerified = report.status.uppercase() in listOf("VERIFIED", "RESOLVED", "AWAS", "SIAGA_1", "SIAGA 1", "SIAGA_2", "SIAGA 2")
+            if (!isVerified) return@count false
+            val reportTime = try {
+                report.createdAt?.let {
+                    val cleanDate = it.replace("T", " ")
+                    val parsedDate = if (cleanDate.contains(".")) cleanDate.substringBefore(".") else cleanDate
+                    sdfFull.parse(parsedDate)?.time
+                }
+            } catch (_: Exception) { null } ?: 0L
+            (now - reportTime) <= 7 * 24 * 60 * 60 * 1000L
+        }
+    }
+
+    val chartData = remember(filteredReports) {
+        val sdfDay = java.text.SimpleDateFormat("dd MMM", java.util.Locale("id"))
+        val sdfFull = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        val now = System.currentTimeMillis()
+
+        (6 downTo 0).map { i ->
+            val timeInMillis = now - i * 24 * 60 * 60 * 1000L
+            val dateObj = java.util.Date(timeInMillis)
+            val dayLabel = sdfDay.format(dateObj)
+
+            val cal = java.util.Calendar.getInstance()
+            cal.time = dateObj
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+            cal.set(java.util.Calendar.MINUTE, 0)
+            cal.set(java.util.Calendar.SECOND, 0)
+            cal.set(java.util.Calendar.MILLISECOND, 0)
+            val startOfDay = cal.timeInMillis
+
+            val reportsInDay = filteredReports.filter { r ->
+                val reportTime = try {
+                    r.createdAt?.let {
+                        val cleanDate = it.replace("T", " ")
+                        val parsedDate = if (cleanDate.contains(".")) cleanDate.substringBefore(".") else cleanDate
+                        sdfFull.parse(parsedDate)?.time
+                    }
+                } catch (_: Exception) { null } ?: 0L
+                reportTime in startOfDay..(startOfDay + 24 * 60 * 60 * 1000L - 1)
+            }
+
+            val total = reportsInDay.size
+            val pending = reportsInDay.count { it.status.uppercase() == "PENDING" }
+            val verified = reportsInDay.count { it.status.uppercase() in listOf("VERIFIED", "RESOLVED", "AWAS", "SIAGA_1", "SIAGA 1", "SIAGA_2", "SIAGA 2") }
+
+            DayTrendData(dayLabel, total, pending, verified)
+        }
+    }
+
+    val peakData = remember(chartData) {
+        chartData.maxByOrNull { it.total }
+    }
+    val peakText = if (peakData != null && peakData.total > 0) {
+        "Puncak: ${peakData.label} (${peakData.total} laporan)"
+    } else {
+        "Puncak: Tidak ada data"
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding),
+        contentPadding = PaddingValues(
+            start = 16.dp, end = 16.dp, top = 16.dp,
+            bottom = 160.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Section: Header Statistik
+        item {
+            Column {
+                Text(
+                    text = "Ringkasan Laporan",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDark) Color.White else Color(0xFF1A1A1A)
+                )
+                Text(
+                    text = "Statistik laporan bencana",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isDark) Color.Gray else Color(0xFF757575)
+                )
+            }
+        }
+
+        // Time Range Chips Row
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("Hari ini", "7 Hari", "30 Hari", "Semua").forEach { range ->
+                    val isSelected = selectedTimeRange == range
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { selectedTimeRange = range },
+                        label = { Text(range, fontSize = 12.sp) },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+        }
+
+        // TOTAL LAPORAN Card (Expandable)
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { isTotalReportsExpanded = !isTotalReportsExpanded }
+                    .animateContentSize(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isDark) DarkElevatedSurface else Color.White
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(
+                    0.5.dp,
+                    if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFE8ECF0)
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                "TOTAL LAPORAN",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = if (isDark) Color.LightGray else Color(0xFF757575)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "${filteredReports.size}",
+                                style = MaterialTheme.typography.headlineLarge.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 36.sp
+                                ),
+                                color = if (isDark) Color.White else Color(0xFF1A1A1A)
+                            )
+                        }
+                        Button(
+                            onClick = { onFeatureClick(6) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1565C0), // Sigma Blue
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Assignment,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Kelola Laporan",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "Seluruh laporan bencana masuk ke sistem (Ketuk detail)",
+                        fontSize = 11.sp,
+                        color = if (isDark) Color.Gray else Color(0xFF9E9E9E)
+                    )
+
+                    if (isTotalReportsExpanded) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        HorizontalDivider(color = if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFE8ECF0))
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Grid statistics breakdown
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                BreakdownItem(
+                                    modifier = Modifier.weight(1f),
+                                    label = "PENDING",
+                                    value = "${pendingReports.size}",
+                                    color = Color(0xFFE65100),
+                                    subtext = "Menunggu verifikasi"
+                                )
+                                BreakdownItem(
+                                    modifier = Modifier.weight(1f),
+                                    label = "VERIFIED",
+                                    value = "$verifiedCount",
+                                    color = Color(0xFF2E7D32),
+                                    subtext = "Sudah diverifikasi"
+                                )
+                            }
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                BreakdownItem(
+                                    modifier = Modifier.weight(1f),
+                                    label = "AWAS",
+                                    value = "${filteredReports.count { it.status.uppercase() == "AWAS" }}",
+                                    color = Color(0xFFB71C1C),
+                                    subtext = "Laporan aktif"
+                                )
+                                BreakdownItem(
+                                    modifier = Modifier.weight(1f),
+                                    label = "SIAGA 1",
+                                    value = "${filteredReports.count { it.status.uppercase() in listOf("SIAGA_1", "SIAGA 1") }}",
+                                    color = Color(0xFFE65100),
+                                    subtext = "Laporan aktif"
+                                )
+                            }
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                    BreakdownItem(
+                                        modifier = Modifier.weight(1f),
+                                        label = "SIAGA 2",
+                                        value = "${filteredReports.count { it.status.uppercase() in listOf("SIAGA_2", "SIAGA 2") }}",
+                                        color = Color(0xFFF9A825),
+                                        subtext = "Laporan aktif"
+                                    )
+                                    BreakdownItem(
+                                        modifier = Modifier.weight(1f),
+                                        label = "DITOLAK",
+                                        value = "${filteredReports.count { it.status.uppercase() in listOf("DECLINE", "DECLINED", "DITOLAK") }}",
+                                        color = Color(0xFF757575),
+                                        subtext = "Laporan ditolak"
+                                    )
+                                }
+                                Row(modifier = Modifier.fillMaxWidth()) {
+                                    BreakdownItem(
+                                        modifier = Modifier.weight(1f),
+                                        label = "RELAWAN",
+                                        value = "${uiState.allVolunteers.size} aktif",
+                                        color = Color(0xFF1565C0),
+                                        subtext = "${uiState.allVolunteers.count { it.status.uppercase() in listOf("ACCEPTED", "TERSEDIA", "ACCEPTED") }} tersedia · ${uiState.allVolunteers.count { it.status.uppercase() == "PENDING" }} pending"
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        // Section: Menunggu Verifikasi
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Menunggu Verifikasi",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDark) Color.White else Color(0xFF1A1A1A)
+                )
+                Text(
+                    text = "${pendingReports.size} laporan pending",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isDark) Color.Gray else Color(0xFF757575)
+                )
+            }
+        }
+
+        if (pendingReports.isEmpty()) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isDark) DarkElevatedSurface else Color.White
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            "Semua laporan sudah ditangani",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp,
+                            color = if (isDark) Color.Gray else Color(0xFF888888)
+                        )
+                    }
+                }
+            }
+        } else {
+            items(pendingReports.take(3), key = { it.id ?: 0 }) { report ->
+                val timestamp = try {
+                    report.createdAt?.let {
+                        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                        val cleanDate = it.replace("T", " ")
+                        val parsedDate = if (cleanDate.contains(".")) cleanDate.substringBefore(".") else cleanDate
+                        sdf.parse(parsedDate)?.time
+                    }
+                } catch (_: Exception) { null } ?: System.currentTimeMillis()
+
+                val localReport = LocalDisasterReport(
+                    id = report.id?.toString() ?: "",
+                    title = report.title,
+                    description = report.description,
+                    location = report.location,
+                    reporter = report.reporterName,
+                    status = report.status,
+                    latitude = report.latitude,
+                    longitude = report.longitude,
+                    timestamp = timestamp,
+                    photoUrl = report.photoUrl,
+                    disasterType = report.disasterType
+                )
+                PendingVerificationCard(
+                    report = report,
+                    isDark = isDark,
+                    onDetailClick = {
+                        onNavigateToReportDetail(localReport)
+                    }
+                )
+            }
+            if (pendingReports.size > 3) {
+                item {
+                    TextButton(
+                        onClick = { onFeatureClick(6) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Lihat ${pendingReports.size - 3} Laporan Pending Lainnya", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
+        // Verified summary labels
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF2E7D32),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        "$verifiedCount diverifikasi total",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color.LightGray else Color.DarkGray
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.TrendingUp,
+                        contentDescription = null,
+                        tint = Color(0xFF1565C0),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        "$verifiedThisWeekCount diverifikasi minggu ini",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color.LightGray else Color.DarkGray
+                    )
+                }
+            }
+        }
+
+        // Section: Tren Laporan
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Tren Laporan",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDark) Color.White else Color(0xFF1A1A1A)
+                )
+                Text(
+                    text = peakText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isDark) Color.Gray else Color(0xFF757575)
+                )
+            }
+        }
+
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isDark) DarkElevatedSurface else Color.White
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(
+                    0.5.dp,
+                    if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFE8ECF0)
+                )
+            ) {
+                Box(modifier = Modifier.padding(12.dp)) {
+                    ReportTrendChart(data = chartData, isDark = isDark)
+                }
+            }
+        }
+
+        // Section: Layanan Utama (Admin Menu Grid)
+        item {
+            Column(modifier = Modifier.padding(top = 8.dp)) {
+                Text(
+                    text = "Layanan Utama",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDark) Color.White else Color(0xFF1A1A1A)
+                )
+                Text(
+                    text = "Fitur darurat & bantuan mitigasi",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isDark) Color.Gray else Color(0xFF757575)
+                )
+            }
+        }
+
+        // Menu Grid items pair by pair
+        val menuChunks = uiState.menuItems.chunked(2)
+        items(menuChunks) { chunk ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                chunk.forEach { item ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        ServiceMenuCard(item, isDark) { onFeatureClick(item.id) }
+                    }
+                }
+                if (chunk.size < 2) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BreakdownItem(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    color: Color,
+    subtext: String
+) {
+    Card(
+        modifier = modifier.padding(4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.06f)
+        ),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(0.5.dp, color.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Text(
+                text = label,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtext,
+                fontSize = 9.sp,
+                color = Color.Gray,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+fun ReportTrendChart(
+    data: List<DayTrendData>,
+    isDark: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val maxVal = remember(data) {
+        val maxTotal = data.maxOfOrNull { it.total } ?: 0
+        val maxPending = data.maxOfOrNull { it.pending } ?: 0
+        val maxVerified = data.maxOfOrNull { it.verified } ?: 0
+        maxOf(maxTotal, maxPending, maxVerified, 5) // Minimum scale of 5 reports
+    }
+
+    val gridLineColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFE8ECF0)
+    val textPaintColor = if (isDark) android.graphics.Color.GRAY else android.graphics.Color.parseColor("#757575")
+
+    Column(modifier = modifier) {
+        // Legend row
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ChartLegendItem(color = Color(0xFF1565C0), label = "Total", isDashed = false)
+            Spacer(modifier = Modifier.width(12.dp))
+            ChartLegendItem(color = Color(0xFF2E7D32), label = "Verified", isDashed = false)
+            Spacer(modifier = Modifier.width(12.dp))
+            ChartLegendItem(color = Color(0xFFE65100), label = "Pending", isDashed = true)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .padding(horizontal = 8.dp)
+        ) {
+            val width = size.width
+            val height = size.height
+
+            val labelAreaWidth = 24.dp.toPx()
+            val xAxisHeight = 24.dp.toPx()
+
+            val graphWidth = width - labelAreaWidth
+            val graphHeight = height - xAxisHeight
+
+            // Draw Y Grid lines & Labels
+            val yLines = 5
+            for (i in 0..yLines) {
+                val ratio = i.toFloat() / yLines
+                val y = graphHeight * (1 - ratio)
+
+                // Grid line
+                drawLine(
+                    color = gridLineColor,
+                    start = Offset(labelAreaWidth, y),
+                    end = Offset(width, y),
+                    strokeWidth = 1.dp.toPx()
+                )
+
+                // Label
+                val labelVal = (maxVal * ratio).toInt()
+                drawContext.canvas.nativeCanvas.drawText(
+                    labelVal.toString(),
+                    8.dp.toPx(),
+                    y + 4.dp.toPx(),
+                    android.graphics.Paint().apply {
+                        color = textPaintColor
+                        textSize = 10.sp.toPx()
+                        textAlign = android.graphics.Paint.Align.LEFT
+                    }
+                )
+            }
+
+            if (data.isNotEmpty()) {
+                val stepX = graphWidth / (data.size - 1)
+
+                // Draw X Labels
+                data.forEachIndexed { idx, day ->
+                    val x = labelAreaWidth + idx * stepX
+                    drawContext.canvas.nativeCanvas.drawText(
+                        day.label,
+                        x,
+                        height - 4.dp.toPx(),
+                        android.graphics.Paint().apply {
+                            color = textPaintColor
+                            textSize = 9.sp.toPx()
+                            textAlign = android.graphics.Paint.Align.CENTER
+                        }
+                    )
+                }
+
+                // Draw Lines helper
+                fun drawTrendLine(
+                    color: Color,
+                    isDashed: Boolean,
+                    selector: (DayTrendData) -> Int
+                ) {
+                    val composePath = androidx.compose.ui.graphics.Path()
+                    data.forEachIndexed { idx, day ->
+                        val x = labelAreaWidth + idx * stepX
+                        val valRatio = selector(day).toFloat() / maxVal
+                        val y = graphHeight * (1 - valRatio)
+
+                        if (idx == 0) {
+                            composePath.moveTo(x, y)
+                        } else {
+                            composePath.lineTo(x, y)
+                        }
+                    }
+                    drawPath(
+                        path = composePath,
+                        color = color,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                            width = 2.dp.toPx(),
+                            pathEffect = if (isDashed) {
+                                androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                                    intervals = floatArrayOf(10f, 10f),
+                                    phase = 0f
+                                )
+                            } else null
+                        )
+                    )
+
+                    // Draw circles at data points
+                    data.forEachIndexed { idx, day ->
+                        val x = labelAreaWidth + idx * stepX
+                        val valRatio = selector(day).toFloat() / maxVal
+                        val y = graphHeight * (1 - valRatio)
+
+                        drawCircle(
+                            color = color,
+                            radius = 3.dp.toPx(),
+                            center = Offset(x, y)
+                        )
+                        drawCircle(
+                            color = if (isDark) DarkSurface else Color.White,
+                            radius = 1.5.dp.toPx(),
+                            center = Offset(x, y)
+                        )
+                    }
+                }
+
+                // Draw Total (Blue)
+                drawTrendLine(Color(0xFF1565C0), false) { it.total }
+
+                // Draw Verified (Green)
+                drawTrendLine(Color(0xFF2E7D32), false) { it.verified }
+
+                // Draw Pending (Orange dashed)
+                drawTrendLine(Color(0xFFE65100), true) { it.pending }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChartLegendItem(color: Color, label: String, isDashed: Boolean) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Canvas(modifier = Modifier.size(width = 16.dp, height = 4.dp)) {
+            drawLine(
+                color = color,
+                start = Offset(0f, size.height / 2),
+                end = Offset(size.width, size.height / 2),
+                strokeWidth = 2.dp.toPx(),
+                pathEffect = if (isDashed) {
+                    androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                        intervals = floatArrayOf(6f, 6f),
+                        phase = 0f
+                    )
+                } else null
+            )
+        }
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+fun PendingVerificationCard(
+    report: com.mahasiswa.sigma.data.model.DisasterReportDto,
+    isDark: Boolean,
+    onDetailClick: () -> Unit
+) {
+    val statusColor = Color(0xFFE65100) // Orange for Pending
+    val timeAgo = report.createdAt?.let { formatTimeAgo(it) } ?: ""
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDark) DarkElevatedSurface else Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(
+            0.5.dp,
+            if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFE8ECF0)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = report.title,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = if (isDark) Color.White else Color(0xFF1A1A1A)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = report.location,
+                            fontSize = 12.sp,
+                            color = if (isDark) Color.LightGray else Color.DarkGray,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = statusColor.copy(alpha = 0.15f)
+                ) {
+                    Text(
+                        text = "Pending",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        color = statusColor,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFE8ECF0))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = null,
+                        tint = if (isDark) Color.Gray else Color(0xFF888888),
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = timeAgo,
+                        fontSize = 12.sp,
+                        color = if (isDark) Color.Gray else Color(0xFF888888)
+                    )
+                }
+
+                Button(
+                    onClick = onDetailClick,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("Detail", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+private fun formatTimeAgo(dateStr: String): String {
+    return try {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        val cleanDate = dateStr.replace("T", " ")
+        val parsedDate = if (cleanDate.contains(".")) cleanDate.substringBefore(".") else cleanDate
+        val date = sdf.parse(parsedDate) ?: return dateStr
+        val now = System.currentTimeMillis()
+        val diff = now - date.time
+
+        val minutes = diff / (1000 * 60)
+        val hours = diff / (1000 * 60 * 60)
+        val days = diff / (1000 * 60 * 60 * 24)
+        val weeks = days / 7
+        val months = days / 30
+
+        when {
+            minutes < 1 -> "Baru saja"
+            minutes < 60 -> "$minutes menit yang lalu"
+            hours < 24 -> "$hours jam yang lalu"
+            days < 7 -> "$days hari yang lalu"
+            weeks < 4 -> "$weeks minggu yang lalu"
+            months < 12 -> "$months bulan yang lalu"
+            else -> java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale("id")).format(date)
+        }
+    } catch (e: Exception) {
+        dateStr
+    }
+}
+

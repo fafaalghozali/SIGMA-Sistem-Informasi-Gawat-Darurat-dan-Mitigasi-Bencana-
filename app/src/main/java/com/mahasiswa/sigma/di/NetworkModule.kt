@@ -140,9 +140,14 @@ object NetworkModule {
         // Supabase PostgREST endpoint is at /rest/v1/
         val supabaseRestUrl = "${BuildConfig.SUPABASE_URL}/rest/v1/"
 
-        // Gson without serializeNulls — null fields won't be sent in PATCH requests
-        // This prevents "bad request: invalid data" from Supabase when null values hit constraints
-        val gson = GsonBuilder().create()
+        // Gson with custom deserializer for VolunteerReportDto's report_data field
+        // which can be either a JSON string or a JSON object (jsonb column in Supabase)
+        val gson = GsonBuilder()
+            .registerTypeAdapter(
+                com.mahasiswa.sigma.data.model.VolunteerReportDto::class.java,
+                com.mahasiswa.sigma.data.model.VolunteerReportDtoDeserializer()
+            )
+            .create()
 
         return Retrofit.Builder()
             .baseUrl(supabaseRestUrl)

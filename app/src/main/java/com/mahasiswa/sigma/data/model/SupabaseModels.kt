@@ -165,7 +165,8 @@ data class UpdateDisasterReportRequest(
     @SerializedName("verified_by") val verifiedBy: String? = null,
     val title: String? = null,
     val description: String? = null,
-    val location: String? = null
+    val location: String? = null,
+    @SerializedName("disaster_type") val disasterType: String? = null
 )
 
 data class UpdateShelterRequest(

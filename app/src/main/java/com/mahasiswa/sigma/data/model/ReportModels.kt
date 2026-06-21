@@ -12,5 +12,7 @@ data class LocalDisasterReport(
     val status: String = "Pending",
     val timestamp: Long = System.currentTimeMillis(),
     val latitude: Double = 0.0,
-    val longitude: Double = 0.0
+    val longitude: Double = 0.0,
+    val photoUrl: String? = null,
+    val disasterType: String? = null
 ) : Serializable

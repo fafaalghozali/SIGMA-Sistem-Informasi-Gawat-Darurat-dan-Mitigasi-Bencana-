@@ -87,7 +87,9 @@ class DisasterReportViewModel @Inject constructor(
                             reporter = dto.reporterName,
                             status = dto.status,
                             latitude = dto.latitude,
-                            longitude = dto.longitude
+                            longitude = dto.longitude,
+                            photoUrl = dto.photoUrl,
+                            disasterType = dto.disasterType
                         )
                     }
             }
@@ -178,12 +180,13 @@ class DisasterReportViewModel @Inject constructor(
                 return@launch
             }
 
-            val reportData = "Terkait: $disasterTitle\n$dataLaporan"
+            val resolvedDisasterId = _reports.value.find { it.title == disasterTitle }?.id
+
             val request = com.mahasiswa.sigma.data.model.CreateVolunteerReportRequest(
                 volunteerId = resolvedVolunteerId,
-                disasterId = null,
+                disasterId = resolvedDisasterId,
                 skillType = volunteerSkill?.name,
-                reportData = reportData,
+                reportData = dataLaporan,
                 notes = catatanTambahan.ifBlank { null },
                 photoUrls = null
             )

@@ -141,6 +141,34 @@ class VolunteerRepositoryRetrofit @Inject constructor(
         }
     }
 
+    suspend fun getVolunteersByDisasterId(disasterId: String): Result<List<VolunteerDto>> {
+        return try {
+            val volunteers = supabaseApi.getVolunteersByDisasterId(disasterId = "eq.$disasterId")
+            Log.d(TAG, "Fetched ${volunteers.size} volunteers for disaster: $disasterId")
+            Result.success(volunteers)
+        } catch (e: HttpException) {
+            handleHttpException(e, "getVolunteersByDisasterId")
+        } catch (e: IOException) {
+            handleNetworkError(e, "getVolunteersByDisasterId")
+        } catch (e: Exception) {
+            handleGenericError(e, "getVolunteersByDisasterId")
+        }
+    }
+
+    suspend fun getVolunteerReportsByDisasterId(disasterId: String): Result<List<VolunteerReportDto>> {
+        return try {
+            val reports = supabaseApi.getVolunteerReportsByDisasterId(disasterId = "eq.$disasterId")
+            Log.d(TAG, "Fetched ${reports.size} reports for disaster: $disasterId")
+            Result.success(reports)
+        } catch (e: HttpException) {
+            handleHttpException(e, "getVolunteerReportsByDisasterId")
+        } catch (e: IOException) {
+            handleNetworkError(e, "getVolunteerReportsByDisasterId")
+        } catch (e: Exception) {
+            handleGenericError(e, "getVolunteerReportsByDisasterId")
+        }
+    }
+
     suspend fun getVolunteerReportsByVolunteerId(volunteerId: String): Result<List<VolunteerReportDto>> {
         return try {
             val reports = supabaseApi.getVolunteerReportsByVolunteerId(volunteerId = "eq.$volunteerId")

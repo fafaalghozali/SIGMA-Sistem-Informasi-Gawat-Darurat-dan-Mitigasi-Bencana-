@@ -57,6 +57,7 @@ import com.google.android.gms.tasks.CancellationTokenSource
 import com.mahasiswa.sigma.data.model.LocalDisasterReport
 import com.mahasiswa.sigma.data.model.UserRole
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
+import com.mahasiswa.sigma.data.model.VolunteerReportParser
 import com.mahasiswa.sigma.ui.viewmodel.DisasterReportViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -748,11 +749,18 @@ fun VolunteerReportLayout(
 ) {
     val isDark = isSystemInDarkTheme()
 
-    val disasterOptions = listOf(
-        "Banjir Bandang Surakarta (Mei 2026)",
-        "Gempa Bumi Yogyakarta (M 5.6)",
-        "Tanah Longsor Karanganyar (Sektor C)"
-    )
+    val disasterOptions = remember(reportsList) {
+        val list = reportsList.filter { it.status == "Accepted" || it.status == "Verified" || it.status == "Siaga 1" || it.status == "Awas" || it.status == "SIAGA_1" || it.status == "SIAGA_2" || it.status == "AWAS" }.map { it.title }
+        if (list.isEmpty()) {
+            listOf(
+                "Banjir Bandang Surakarta (Mei 2026)",
+                "Gempa Bumi Yogyakarta (M 5.6)",
+                "Tanah Longsor Karanganyar (Sektor C)"
+            )
+        } else {
+            list
+        }
+    }
     var selectedDisaster by remember { mutableStateOf("") }
     var disasterExpanded by remember { mutableStateOf(false) }
 
@@ -1086,8 +1094,7 @@ fun VolunteerReportLayout(
 
             Button(
                 onClick = {
-
-                    val dataBuilder = StringBuilder()
+                    val map = mutableMapOf<String, String>()
                     var isValid = true
 
                     if (selectedDisaster.isBlank()) isValid = false
@@ -1095,58 +1102,59 @@ fun VolunteerReportLayout(
                     when (volunteerSkill) {
                         SkillsVolunteer.PSIKOSOSIAL -> {
                             if (jumlahDidampingi.isBlank()) isValid = false
-                            dataBuilder.append("- Jumlah Didampingi: $jumlahDidampingi Jiwa\n")
-                            dataBuilder.append("- Kondisi Psikologis Umum: $kondisiPsikologis\n")
-                            dataBuilder.append("- Kasus Khusus: ${kasusKhusus.ifBlank { "-" }}\n")
-                            dataBuilder.append("- Rekomendasi: ${rekomendasi.ifBlank { "-" }}")
+                            map["jumlah_didampingi"] = jumlahDidampingi
+                            map["kondisi_psikologis"] = kondisiPsikologis
+                            map["kasus_khusus"] = kasusKhusus
+                            map["rekomendasi"] = rekomendasi
                         }
                         SkillsVolunteer.LOGISTIK -> {
                             if (jenisBantuan.isBlank() || jumlahDisalurkan.isBlank()) isValid = false
-                            dataBuilder.append("- Jenis Bantuan: $jenisBantuan\n")
-                            dataBuilder.append("- Jumlah Disalurkan: $jumlahDisalurkan Paket\n")
-                            dataBuilder.append("- Stok Tersisa: ${stokTersisa.ifBlank { "0" }} Paket\n")
-                            dataBuilder.append("- Kebutuhan Mendesak: ${kebutuhanMendesakLogistik.ifBlank { "-" }}")
+                            map["jenis_bantuan"] = jenisBantuan
+                            map["jumlah_disalurkan"] = jumlahDisalurkan
+                            map["stok_tersisa"] = stokTersisa
+                            map["kebutuhan_mendesak"] = kebutuhanMendesakLogistik
                         }
                         SkillsVolunteer.MEDIS -> {
                             if (totalKorban.isBlank()) isValid = false
-                            dataBuilder.append("- Total Korban: $totalKorban Jiwa\n")
-                            dataBuilder.append("- Selamat: ${selamat.ifBlank { "0" }}\n")
-                            dataBuilder.append("- Luka Ringan: ${lukaRingan.ifBlank { "0" }}\n")
-                            dataBuilder.append("- Luka Berat: ${lukaBerat.ifBlank { "0" }}\n")
-                            dataBuilder.append("- Kritis: ${kritis.ifBlank { "0" }}\n")
-                            dataBuilder.append("- Meninggal: ${meninggal.ifBlank { "0" }}\n")
-                            dataBuilder.append("- Kebutuhan Medis: ${kebutuhanMedis.ifBlank { "-" }}")
+                            map["total_korban"] = totalKorban
+                            map["selamat"] = selamat
+                            map["luka_ringan"] = lukaRingan
+                            map["luka_berat"] = lukaBerat
+                            map["kritis"] = kritis
+                            map["meninggal"] = meninggal
+                            map["kebutuhan_medis"] = kebutuhanMedis
                         }
                         SkillsVolunteer.SAR -> {
                             if (totalDievakuasi.isBlank() || lokasiEvakuasi.isBlank()) isValid = false
-                            dataBuilder.append("- Total Dievakuasi: $totalDievakuasi Jiwa\n")
-                            dataBuilder.append("- Masih Dicari: ${masihDicari.ifBlank { "0" }} Jiwa\n")
-                            dataBuilder.append("- Lokasi Evakuasi: $lokasiEvakuasi\n")
-                            dataBuilder.append("- Kendala di Lapangan: ${kendalaDiLapangan.ifBlank { "-" }}\n")
-                            dataBuilder.append("- Status Pencarian: $statusPencarian")
+                            map["total_dievakuasi"] = totalDievakuasi
+                            map["masih_dicari"] = masihDicari
+                            map["lokasi_evakuasi"] = lokasiEvakuasi
+                            map["kendala_di_lapangan"] = kendalaDiLapangan
+                            map["status_pencarian"] = statusPencarian
                         }
                         SkillsVolunteer.KONSUMSI -> {
                             if (jumlahPorsi.isBlank() || menuHariIni.isBlank()) isValid = false
-                            dataBuilder.append("- Jumlah Porsi: $jumlahPorsi Porsi\n")
-                            dataBuilder.append("- Menu Hari Ini: $menuHariIni\n")
-                            dataBuilder.append("- Pengungsi Dilayani: ${pengungsiDilayani.ifBlank { "0" }} Jiwa\n")
-                            dataBuilder.append("- Kebutuhan Bahan: ${kebutuhanBahan.ifBlank { "-" }}")
+                            map["jumlah_porsi"] = jumlahPorsi
+                            map["menu_hari_ini"] = menuHariIni
+                            map["pengungsi_dilayani"] = pengungsiDilayani
+                            map["kebutuhan_bahan"] = kebutuhanBahan
                         }
                         SkillsVolunteer.PENDIDIKAN -> {
                             if (jumlahSiswa.isBlank() || materiPembelajaran.isBlank()) isValid = false
-                            dataBuilder.append("- Jumlah Siswa: $jumlahSiswa Anak\n")
-                            dataBuilder.append("- Materi Pembelajaran: $materiPembelajaran\n")
-                            dataBuilder.append("- Kebutuhan Edu-Kits: ${kebutuhanEduKits.ifBlank { "-" }}")
+                            map["jumlah_siswa"] = jumlahSiswa
+                            map["materi_pembelajaran"] = materiPembelajaran
+                            map["kebutuhan_edu_kits"] = kebutuhanEduKits
                         }
                         else -> {
-                            dataBuilder.append("Laporan tugas operasional relawan lapangan.")
+                            map["catatan_pelaporan_lapangan"] = catatanTambahan
                         }
                     }
 
                     if (!isValid) {
                         showIncompleteDialog = true
                     } else {
-                        onSendReport(selectedDisaster, dataBuilder.toString(), catatanTambahan)
+                        val reportJson = VolunteerReportParser.toJson(map)
+                        onSendReport(selectedDisaster, reportJson, catatanTambahan)
                         onBack()
                     }
                 },

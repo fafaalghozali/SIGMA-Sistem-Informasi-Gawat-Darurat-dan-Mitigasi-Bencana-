@@ -147,10 +147,25 @@ interface SupabaseApiService {
         @Query("id") id: String
     )
 
+    // ==================== VOLUNTEERS (filtered) ====================
+
+    @GET("volunteers")
+    suspend fun getVolunteersByDisasterId(
+        @Query("disaster_id") disasterId: String,
+        @Query("select") select: String = "*"
+    ): List<VolunteerDto>
+
     // ==================== VOLUNTEER REPORTS ====================
     
     @GET("volunteer_reports")
     suspend fun getVolunteerReports(
+        @Query("select") select: String = "*",
+        @Query("order") order: String = "created_at.desc"
+    ): List<VolunteerReportDto>
+
+    @GET("volunteer_reports")
+    suspend fun getVolunteerReportsByDisasterId(
+        @Query("disaster_id") disasterId: String,
         @Query("select") select: String = "*",
         @Query("order") order: String = "created_at.desc"
     ): List<VolunteerReportDto>

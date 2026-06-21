@@ -1,5 +1,6 @@
 package com.mahasiswa.sigma.ui.screens
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -319,10 +321,25 @@ private fun Step1DataDiri(viewModel: VolunteerRegistrationViewModel) {
             onValueChange = { viewModel.onAddressChange(it) },
             label = { Text("Alamat Domisili") },
             placeholder = { Text("Masukkan alamat tempat tinggal") },
-            leadingIcon = { Icon(Icons.Default.Home, contentDescription = null) },
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 100.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 100.dp),
             shape = RoundedCornerShape(12.dp),
-            maxLines = 4
+            maxLines = 4,
+            leadingIcon = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(top = 16.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Icon(
+                        Icons.Default.Home,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
         )
 
         Spacer(Modifier.height(14.dp))
@@ -494,27 +511,44 @@ private fun AboutVolunteerPanel() {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Groups, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Tentang Relawan SIGMA",
-                    fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Groups,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Tentang Relawan SIGMA",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(Modifier.height(12.dp))
 
             Text(
                 "Relawan SIGMA membantu masyarakat terdampak bencana di lapangan. " +
                 "Data Anda akan diverifikasi Admin sebelum mendapat penugasan.",
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 18.sp
+                lineHeight = 20.sp
             )
 
             Spacer(Modifier.height(16.dp))
@@ -523,19 +557,45 @@ private fun AboutVolunteerPanel() {
                 Triple(1, "Daftar",     "Isi formulir pendaftaran"),
                 Triple(2, "Verifikasi", "Admin meninjau data Anda"),
                 Triple(3, "Penugasan",  "Ditugaskan ke lokasi bencana")
-            ).forEach { (num, title, sub) ->
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 10.dp)) {
+            ).forEachIndexed { index, (num, title, sub) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Box(
-                        modifier = Modifier.size(24.dp).clip(CircleShape)
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("$num", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            "$num",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-                    Spacer(Modifier.width(10.dp))
-                    Column {
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(title, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Text(sub, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            sub,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                if (index < 2) {
+                    Row(modifier = Modifier.padding(start = 13.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .height(16.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
+                        )
                     }
                 }
             }
@@ -546,88 +606,269 @@ private fun AboutVolunteerPanel() {
 // ── Status setelah terdaftar ──────────────────────────────────────────────────
 @Composable
 fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> Unit) {
-    val (statusColor, statusBg, statusIcon) = when (data.status.uppercase()) {
-        "ACCEPTED" -> Triple(Color(0xFF2E7D32), Color(0xFFE8F5E9), Icons.Default.CheckCircle)
-        "DECLINED" -> Triple(Color(0xFFD32F2F), Color(0xFFFFEBEE), Icons.Default.Cancel)
-        else       -> Triple(Color(0xFFE65100), Color(0xFFFFF3E0), Icons.Default.HourglassTop)
+
+    val isPending  = data.status.uppercase() == "PENDING"
+    val isAccepted = data.status.uppercase() == "ACCEPTED"
+    val isDeclined = data.status.uppercase() == "DECLINED"
+
+    // Kuning untuk pending, hijau untuk accepted, merah untuk declined
+    val statusColor = when {
+        isAccepted -> Color(0xFF16A34A)
+        isDeclined -> Color(0xFFDC2626)
+        else       -> Color(0xFFCA8A04)   // kuning amber
+    }
+    val statusBg = when {
+        isAccepted -> Color(0xFFF0FDF4)
+        isDeclined -> Color(0xFFFEF2F2)
+        else       -> Color(0xFFFFFBEB)   // kuning muda
+    }
+    val gradientColors = when {
+        isAccepted -> listOf(Color(0xFF16A34A), Color(0xFF15803D))           // hijau
+        isDeclined -> listOf(Color(0xFFDC2626), Color(0xFFB91C1C))           // merah
+        else       -> listOf(Color(0xFFF59E0B), Color(0xFFD97706))           // kuning
     }
 
-    Card(
+    // Pulse animation untuk pending
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue  = 0.7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.95f,
+        targetValue  = 1.05f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            // Status header
-            Surface(
-                shape = RoundedCornerShape(14.dp),
-                color = statusBg,
-                modifier = Modifier.fillMaxWidth()
+        // ── Hero card dengan gradient ─────────────────────────────────────
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(colors = gradientColors)
+                    )
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Ikon utama dengan efek pulse jika pending
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isPending) {
+                            // Ring pulse di belakang ikon
+                            Box(
+                                modifier = Modifier
+                                    .size((80 * pulseScale).dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = pulseAlpha * 0.2f))
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(72.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = when {
+                                    isAccepted -> Icons.Default.VerifiedUser
+                                    isDeclined -> Icons.Default.Cancel
+                                    else       -> Icons.Default.HourglassTop
+                                },
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Text(
+                        text = when {
+                            isAccepted -> "Selamat! Anda Diterima"
+                            isDeclined -> "Pendaftaran Ditolak"
+                            else       -> "Sedang Diproses"
+                        },
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(Modifier.height(6.dp))
+
+                    Text(
+                        text = when {
+                            isAccepted -> "Anda resmi bergabung sebagai relawan SIGMA"
+                            isDeclined -> "Kualifikasi Anda belum memenuhi syarat"
+                            else       -> "Tim Admin sedang meninjau data pendaftaran Anda"
+                        },
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 19.sp
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    // Badge status
+                    Surface(
+                        shape = RoundedCornerShape(50.dp),
+                        color = Color.White.copy(alpha = 0.2f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            if (isPending) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = pulseAlpha))
+                                )
+                                Spacer(Modifier.width(7.dp))
+                            }
+                            Text(
+                                text = when {
+                                    isAccepted -> "✓  DITERIMA"
+                                    isDeclined -> "✕  DITOLAK"
+                                    else       -> "● MENUNGGU VERIFIKASI"
+                                },
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Langkah selanjutnya (hanya untuk pending & accepted) ─────────
+        if (!isDeclined) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = statusBg),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                border = BorderStroke(1.dp, statusColor.copy(alpha = 0.2f))
             ) {
                 Row(
-                    modifier = Modifier.padding(14.dp),
+                    modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(statusIcon, contentDescription = null,
-                        tint = statusColor, modifier = Modifier.size(28.dp))
+                    Icon(
+                        imageVector = if (isPending) Icons.Default.NotificationsActive
+                                      else Icons.Default.AssignmentTurnedIn,
+                        contentDescription = null,
+                        tint = statusColor,
+                        modifier = Modifier.size(22.dp)
+                    )
                     Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = when (data.status.uppercase()) {
-                                "ACCEPTED" -> "Pendaftaran Diterima"
-                                "DECLINED" -> "Pendaftaran Ditolak"
-                                else       -> "Menunggu Verifikasi"
-                            },
-                            fontWeight = FontWeight.Bold, fontSize = 16.sp, color = statusColor
-                        )
-                        Text(
-                            text = when (data.status.uppercase()) {
-                                "ACCEPTED" -> "Anda sudah menjadi relawan SIGMA"
-                                "DECLINED" -> "Kualifikasi belum terpenuhi"
-                                else       -> "Admin sedang meninjau data Anda"
-                            },
-                            fontSize = 12.sp, color = statusColor.copy(alpha = 0.8f)
+                    Text(
+                        text = if (isPending)
+                            "Anda akan mendapat notifikasi setelah Admin memverifikasi data Anda."
+                        else
+                            "Pantau menu Penugasan secara berkala untuk mendapat penugasan dari Admin.",
+                        fontSize = 13.sp,
+                        color = statusColor,
+                        lineHeight = 19.sp
+                    )
+                }
+            }
+        }
+
+        // ── Detail data ───────────────────────────────────────────────────
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column(modifier = Modifier.padding(18.dp)) {
+                Text(
+                    "Detail Pendaftaran",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+                Spacer(Modifier.height(14.dp))
+
+                listOf(
+                    Triple(Icons.Default.Person,    "Nama",     data.name),
+                    Triple(Icons.Default.Star,       "Keahlian", data.skill.name),
+                    Triple(Icons.Default.Home,       "Alamat",   data.address),
+                    Triple(Icons.Default.Phone,      "Telepon",  data.phoneNumber),
+                ).forEachIndexed { index, (icon, label, value) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(statusColor.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(icon, contentDescription = null,
+                                tint = statusColor,
+                                modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(label, fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    if (index < 3) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            color = statusColor.copy(alpha = 0.12f)
                         )
                     }
                 }
             }
+        }
 
-            Spacer(Modifier.height(20.dp))
-            Text("Detail Pendaftaran", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Spacer(Modifier.height(12.dp))
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        // ── Tombol daftar ulang jika ditolak ─────────────────────────────
+        if (isDeclined) {
+            Button(
+                onClick = onReRegister,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = statusColor)
             ) {
-                Column(modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    InfoRow("Nama",        data.name)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    InfoRow("Keahlian",    data.skill.name)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    InfoRow("Alamat",      data.address)
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    InfoRow("Telepon",     data.phoneNumber)
-                }
-            }
-
-            if (data.status.uppercase() == "DECLINED") {
-                Spacer(Modifier.height(20.dp))
-                Button(
-                    onClick = onReRegister,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null,
-                        modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Daftar Ulang", fontWeight = FontWeight.SemiBold)
-                }
+                Icon(Icons.Default.Refresh, contentDescription = null,
+                    modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Ajukan Pendaftaran Ulang", fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
         }
+
+        Spacer(Modifier.height(8.dp))
     }
 }
 

@@ -2,6 +2,7 @@ package com.mahasiswa.sigma.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mahasiswa.sigma.data.auth.AuthManager
 import com.mahasiswa.sigma.data.model.DisasterReportDto
 import com.mahasiswa.sigma.data.model.VolunteerDto
 import com.mahasiswa.sigma.data.model.UpdateVolunteerRequest
@@ -20,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ManageVolunteerViewModel @Inject constructor(
     private val volunteerRepository: VolunteerRepositoryRetrofit,
-    private val disasterRepository: DisasterReportRepositoryRetrofit
+    private val disasterRepository: DisasterReportRepositoryRetrofit,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     private val _registrations = MutableStateFlow<List<VolunteerDto>>(emptyList())
@@ -73,23 +75,45 @@ class ManageVolunteerViewModel @Inject constructor(
                 status = "APPROVED",
                 updatedAt = nowTimestamp()
             )
-            volunteerRepository.updateVolunteer(volunteerId, request)
-            loadRegistrations()
+            val result = volunteerRepository.updateVolunteer(volunteerId, request)
+            result.onSuccess {
+                // Cari userId dari volunteer yang diapprove, lalu update role di profiles
+                val volunteer = _registrations.value.find { it.id?.toString() == volunteerId }
+                val userId = volunteer?.userId
+                if (!userId.isNullOrBlank()) {
+                    authManager.updateUserRole(userId, com.mahasiswa.sigma.data.model.UserRole.RELAWAN)
+                }
+                loadRegistrations()
+            }
+            result.onFailure {
+                _errorMessage.value = "Gagal menyetujui: ${it.message}"
+            }
         }
     }
 
     fun rejectVolunteer(volunteerId: String) {
         viewModelScope.launch {
             val request = UpdateVolunteerRequest(
-                status = "DECLINED",
+                status = "REJECTED",
                 updatedAt = nowTimestamp()
             )
-            volunteerRepository.updateVolunteer(volunteerId, request)
-            loadRegistrations()
+            val result = volunteerRepository.updateVolunteer(volunteerId, request)
+            result.onSuccess {
+                // Kembalikan role ke Masyarakat
+                val volunteer = _registrations.value.find { it.id?.toString() == volunteerId }
+                val userId = volunteer?.userId
+                if (!userId.isNullOrBlank()) {
+                    authManager.updateUserRole(userId, com.mahasiswa.sigma.data.model.UserRole.MASYARAKAT)
+                }
+                loadRegistrations()
+            }
+            result.onFailure {
+                _errorMessage.value = "Gagal menolak: ${it.message}"
+            }
         }
     }
 
-    /**
+  /**  
      * Admin assign relawan ke bencana + lokasi posko.
      * Status relawan → APPROVED, assignment_status → "pending" (menunggu konfirmasi dari relawan).
      */

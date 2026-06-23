@@ -42,13 +42,19 @@ import java.util.Locale
 fun VolunteerReportScreen(
     userRole: UserRole,
     onBack: () -> Unit,
+    onNavigateToCreateReport: () -> Unit = {},
     viewModel: VolunteerReportViewModel = hiltViewModel()
 ) {
     LaunchedEffect(Unit) { viewModel.load(userRole) }
     if (userRole == UserRole.BNPB) {
         BnpbVolunteerReportScreen(viewModel = viewModel, onBack = onBack)
     } else {
-        RelawanVolunteerReportScreen(userRole = userRole, viewModel = viewModel, onBack = onBack)
+        RelawanVolunteerReportScreen(
+            userRole = userRole,
+            viewModel = viewModel,
+            onBack = onBack,
+            onNavigateToCreateReport = onNavigateToCreateReport
+        )
     }
 }
 
@@ -249,7 +255,12 @@ private fun BnpbStatsGrid(skillEnum: SkillsVolunteer?, m: Map<String, String>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RelawanVolunteerReportScreen(userRole: UserRole, viewModel: VolunteerReportViewModel, onBack: () -> Unit) {
+private fun RelawanVolunteerReportScreen(
+    userRole: UserRole,
+    viewModel: VolunteerReportViewModel,
+    onBack: () -> Unit,
+    onNavigateToCreateReport: () -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
     val operationMessage by viewModel.operationMessage.collectAsState()
     val currentVolunteer by viewModel.currentVolunteer.collectAsState()
@@ -266,7 +277,14 @@ private fun RelawanVolunteerReportScreen(userRole: UserRole, viewModel: Voluntee
         topBar = { TopAppBar(title = { Text("Riwayat Laporan Tugas", fontWeight = FontWeight.Bold) },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali") } },
             actions = { IconButton(onClick = { viewModel.load(userRole) }) { Icon(Icons.Default.Refresh, "Segarkan") } }) },
-        floatingActionButton = { FloatingActionButton(onClick = { editing = null; showEditor = true }, Modifier.padding(bottom = 80.dp)) { Icon(Icons.Default.Add, "Buat Laporan") } }
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onNavigateToCreateReport,
+                modifier = Modifier.padding(bottom = 80.dp),
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("Kirim Laporan", fontWeight = FontWeight.SemiBold) }
+            )
+        }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (val state = uiState) {

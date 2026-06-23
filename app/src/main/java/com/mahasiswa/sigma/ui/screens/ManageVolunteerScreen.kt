@@ -33,13 +33,13 @@ import kotlinx.coroutines.launch
 // ── Warna per status ──────────────────────────────────────────────────────────
 private fun volunteerStatusColor(status: String): Color = when (status.uppercase()) {
     "APPROVED"  -> Color(0xFF16A34A)
-    "DECLINED"  -> Color(0xFFDC2626)
+    "REJECTED"  -> Color(0xFFDC2626)
     "PENDING"   -> Color(0xFFCA8A04)
     else        -> Color(0xFF6B7280)
 }
 private fun volunteerStatusLabel(status: String): String = when (status.uppercase()) {
     "APPROVED" -> "Disetujui"
-    "DECLINED" -> "Ditolak"
+    "REJECTED" -> "Ditolak"
     "PENDING"  -> "Menunggu"
     else       -> status
 }
@@ -65,7 +65,7 @@ fun ManageVolunteerScreen(
 
     val pendingList  = registrations.filter { it.status.equals("PENDING",  ignoreCase = true) || it.status.isBlank() }
     val approvedList = registrations.filter { it.status.equals("APPROVED", ignoreCase = true) }
-    val declinedList = registrations.filter { it.status.equals("DECLINED", ignoreCase = true) }
+    val rejectedList = registrations.filter { it.status.equals("REJECTED", ignoreCase = true) }
 
     // Tampilkan snackbar saat assign selesai
     LaunchedEffect(assignResult) {
@@ -113,7 +113,7 @@ fun ManageVolunteerScreen(
                 listOf(
                     Triple("Tertunda",  pendingList.size,  MaterialTheme.colorScheme.error),
                     Triple("Disetujui", approvedList.size, MaterialTheme.colorScheme.primary),
-                    Triple("Ditolak",   declinedList.size, MaterialTheme.colorScheme.outline)
+                    Triple("Ditolak",   rejectedList.size, MaterialTheme.colorScheme.outline)
                 ).forEachIndexed { i, (label, count, badgeColor) ->
                     Tab(
                         selected = selectedTab == i,
@@ -140,7 +140,7 @@ fun ManageVolunteerScreen(
                 return@Column
             }
 
-            val currentList = when (selectedTab) { 0 -> pendingList; 1 -> approvedList; else -> declinedList }
+            val currentList = when (selectedTab) { 0 -> pendingList; 1 -> approvedList; else -> rejectedList }
 
             if (currentList.isEmpty()) {
                 Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -557,7 +557,7 @@ fun VolunteerCardItem(
                     }
                 }
                 // Tab DECLINED: Setujui ulang
-                volunteer.status.equals("DECLINED", ignoreCase = true) -> {
+                volunteer.status.equals("REJECTED", ignoreCase = true) -> {
                     Button(
                         onClick = onApprove,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),

@@ -57,10 +57,19 @@ fun VolunteerRegistrationScreen(
     userEmail: String,
     userName: String = "",
     onBack: () -> Unit,
+    onRelogin: () -> Unit = {},
     viewModel: VolunteerRegistrationViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(userEmail) {
+    LaunchedEffect(Unit) {
         viewModel.loadRegistrationData(userEmail, userName)
+    }
+
+    // Saat needsRelogin = true (user terima penugasan), trigger force relogin
+    LaunchedEffect(viewModel.needsRelogin) {
+        if (viewModel.needsRelogin) {
+            viewModel.dismissRelogin()
+            onRelogin()
+        }
     }
 
     val currentStep    = viewModel.currentStep
@@ -96,7 +105,10 @@ fun VolunteerRegistrationScreen(
             ) {
                 RegistrationStatusBox(
                     data = registeredData,
-                    onReRegister = { viewModel.resetRegistration() }
+                    onReRegister = { viewModel.resetRegistration() },
+                    onAcceptAssignment = { viewModel.confirmAssignment(true) },
+                    onRejectAssignment = { viewModel.confirmAssignment(false) },
+                    isConfirmingAssignment = viewModel.isConfirmingAssignment
                 )
             }
         } else {
@@ -605,27 +617,32 @@ private fun AboutVolunteerPanel() {
 
 // ── Status setelah terdaftar ──────────────────────────────────────────────────
 @Composable
-fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> Unit) {
+fun RegistrationStatusBox(
+    data: VolunteerRegistrationData,
+    onReRegister: () -> Unit,
+    onAcceptAssignment: () -> Unit = {},
+    onRejectAssignment: () -> Unit = {},
+    isConfirmingAssignment: Boolean = false
+) {
 
     val isPending  = data.status.uppercase() == "PENDING"
-    val isAccepted = data.status.uppercase() == "ACCEPTED"
-    val isDeclined = data.status.uppercase() == "DECLINED"
+    val isApproved = data.status.uppercase() == "APPROVED" || data.status.uppercase() == "ACCEPTED"
+    val isRejected = data.status.uppercase() == "REJECTED" || data.status.uppercase() == "DECLINED"
 
-    // Kuning untuk pending, hijau untuk accepted, merah untuk declined
     val statusColor = when {
-        isAccepted -> Color(0xFF16A34A)
-        isDeclined -> Color(0xFFDC2626)
-        else       -> Color(0xFFCA8A04)   // kuning amber
+        isApproved -> Color(0xFF16A34A)
+        isRejected -> Color(0xFFDC2626)
+        else       -> Color(0xFFCA8A04)
     }
     val statusBg = when {
-        isAccepted -> Color(0xFFF0FDF4)
-        isDeclined -> Color(0xFFFEF2F2)
-        else       -> Color(0xFFFFFBEB)   // kuning muda
+        isApproved -> Color(0xFFF0FDF4)
+        isRejected -> Color(0xFFFEF2F2)
+        else       -> Color(0xFFFFFBEB)
     }
     val gradientColors = when {
-        isAccepted -> listOf(Color(0xFF16A34A), Color(0xFF15803D))           // hijau
-        isDeclined -> listOf(Color(0xFFDC2626), Color(0xFFB91C1C))           // merah
-        else       -> listOf(Color(0xFFF59E0B), Color(0xFFD97706))           // kuning
+        isApproved -> listOf(Color(0xFF16A34A), Color(0xFF15803D))
+        isRejected -> listOf(Color(0xFFDC2626), Color(0xFFB91C1C))
+        else       -> listOf(Color(0xFFF59E0B), Color(0xFFD97706))
     }
 
     // Pulse animation untuk pending
@@ -689,8 +706,8 @@ fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> U
                         ) {
                             Icon(
                                 imageVector = when {
-                                    isAccepted -> Icons.Default.VerifiedUser
-                                    isDeclined -> Icons.Default.Cancel
+                                    isApproved -> Icons.Default.VerifiedUser
+                                    isRejected -> Icons.Default.Cancel
                                     else       -> Icons.Default.HourglassTop
                                 },
                                 contentDescription = null,
@@ -704,8 +721,8 @@ fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> U
 
                     Text(
                         text = when {
-                            isAccepted -> "Selamat! Anda Diterima"
-                            isDeclined -> "Pendaftaran Ditolak"
+                            isApproved -> "Selamat! Anda Diterima"
+                            isRejected -> "Pendaftaran Ditolak"
                             else       -> "Sedang Diproses"
                         },
                         color = Color.White,
@@ -718,8 +735,8 @@ fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> U
 
                     Text(
                         text = when {
-                            isAccepted -> "Anda resmi bergabung sebagai relawan SIGMA"
-                            isDeclined -> "Kualifikasi Anda belum memenuhi syarat"
+                            isApproved -> "Anda resmi bergabung sebagai relawan SIGMA"
+                            isRejected -> "Kualifikasi Anda belum memenuhi syarat"
                             else       -> "Tim Admin sedang meninjau data pendaftaran Anda"
                         },
                         color = Color.White.copy(alpha = 0.85f),
@@ -751,8 +768,8 @@ fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> U
                             }
                             Text(
                                 text = when {
-                                    isAccepted -> "✓  DITERIMA"
-                                    isDeclined -> "✕  DITOLAK"
+                                    isApproved -> "✓  DITERIMA"
+                                    isRejected -> "✕  DITOLAK"
                                     else       -> "● MENUNGGU VERIFIKASI"
                                 },
                                 color = Color.White,
@@ -766,8 +783,115 @@ fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> U
             }
         }
 
-        // ── Langkah selanjutnya (hanya untuk pending & accepted) ─────────
-        if (!isDeclined) {
+        // ── Card konfirmasi penugasan — muncul saat APPROVED & belum dikonfirmasi ──
+        if (isApproved && (data.assignmentStatus.isNullOrBlank() || data.assignmentStatus.equals("pending", ignoreCase = true))) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(1.5.dp, Color(0xFF16A34A).copy(alpha = 0.4f))
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF16A34A).copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.NotificationsActive, null,
+                                tint = Color(0xFF16A34A), modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("Konfirmasi Penugasan",
+                                fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Admin telah menugaskan Anda",
+                                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+
+                    if (!data.assignment.isNullOrBlank()) {
+                        Spacer(Modifier.height(14.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.LocationOn, null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text("Lokasi Penugasan", fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(data.assignment, fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFFFBEB),
+                        border = BorderStroke(1.dp, Color(0xFFFCD34D))
+                    ) {
+                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.Top) {
+                            Icon(Icons.Default.Info, null,
+                                tint = Color(0xFFD97706), modifier = Modifier.size(15.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Jika Anda menerima, akun akan diupgrade menjadi Relawan. Jika menolak, status kembali ke pending.",
+                                fontSize = 11.sp, color = Color(0xFF92400E), lineHeight = 16.sp
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedButton(
+                            onClick = onRejectAssignment,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            enabled = !isConfirmingAssignment
+                        ) {
+                            Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Tolak", fontWeight = FontWeight.SemiBold)
+                        }
+                        Button(
+                            onClick = onAcceptAssignment,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                            modifier = Modifier.weight(1f).height(46.dp),
+                            enabled = !isConfirmingAssignment
+                        ) {
+                            if (isConfirmingAssignment) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp, color = Color.White)
+                            } else {
+                                Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Terima", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Langkah selanjutnya (hanya untuk pending & accepted yg sudah dikonfirmasi) ─────────
+        if (!isRejected) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -799,8 +923,6 @@ fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> U
                 }
             }
         }
-
-        // ── Detail data ───────────────────────────────────────────────────
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
@@ -854,7 +976,7 @@ fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> U
         }
 
         // ── Tombol daftar ulang jika ditolak ─────────────────────────────
-        if (isDeclined) {
+        if (isRejected) {
             Button(
                 onClick = onReRegister,
                 modifier = Modifier.fillMaxWidth().height(52.dp),

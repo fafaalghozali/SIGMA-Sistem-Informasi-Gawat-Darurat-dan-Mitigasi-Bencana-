@@ -2141,7 +2141,7 @@ fun AdminDashboardContent(
                                         label = "RELAWAN",
                                         value = "${uiState.allVolunteers.size} aktif",
                                         color = Color(0xFF1565C0),
-                                        subtext = "${uiState.allVolunteers.count { it.status.uppercase() in listOf("ACCEPTED", "TERSEDIA", "ACCEPTED") }} tersedia · ${uiState.allVolunteers.count { it.status.uppercase() == "PENDING" }} pending"
+                                        subtext = "${uiState.allVolunteers.count { it.status.uppercase() in listOf("ACCEPTED", "APPROVED", "TERSEDIA") }} tersedia · ${uiState.allVolunteers.count { it.status.uppercase() == "PENDING" }} pending"
                                     )
                                 }
                             }

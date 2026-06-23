@@ -83,18 +83,34 @@ class VolunteerRepositoryRetrofit @Inject constructor(
     }
 
     suspend fun updateVolunteer(id: String, request: UpdateVolunteerRequest): Result<VolunteerDto> {
+         return try {
+             val volunteers = supabaseApi.updateVolunteer(id = "eq.$id", updates = request)
+             val volunteer = volunteers.firstOrNull()
+                 ?: throw Exception("Volunteer update did not return data")
+             Log.d(TAG, "Updated volunteer: ${volunteer.name}")
+             Result.success(volunteer)
+         } catch (e: HttpException) {
+             handleHttpException(e, "updateVolunteer")
+         } catch (e: IOException) {
+             handleNetworkError(e, "updateVolunteer")
+         } catch (e: Exception) {
+             handleGenericError(e, "updateVolunteer")
+         }
+     }
+
+    suspend fun updateVolunteerMap(id: String, updates: Map<String, Any?>): Result<VolunteerDto> {
         return try {
-            val volunteers = supabaseApi.updateVolunteer(id = "eq.$id", updates = request)
+            val volunteers = supabaseApi.updateVolunteerMap(id = "eq.$id", updates = updates)
             val volunteer = volunteers.firstOrNull()
-                ?: throw Exception("Volunteer update did not return data")
-            Log.d(TAG, "Updated volunteer: ${volunteer.name}")
+                ?: throw Exception("Volunteer update map did not return data")
+            Log.d(TAG, "Updated volunteer map: ${volunteer.name}")
             Result.success(volunteer)
         } catch (e: HttpException) {
-            handleHttpException(e, "updateVolunteer")
+            handleHttpException(e, "updateVolunteerMap")
         } catch (e: IOException) {
-            handleNetworkError(e, "updateVolunteer")
+            handleNetworkError(e, "updateVolunteerMap")
         } catch (e: Exception) {
-            handleGenericError(e, "updateVolunteer")
+            handleGenericError(e, "updateVolunteerMap")
         }
     }
 

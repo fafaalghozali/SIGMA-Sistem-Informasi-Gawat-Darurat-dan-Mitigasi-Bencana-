@@ -220,6 +220,13 @@ fun SigmaNavigation() {
                             onBack = { backStack.removeAt(backStack.lastIndex) },
                             onLogout = {
                                 showLogoutDialog = true
+                            },
+                            onProfileUpdated = { newName, newEmail ->
+                                val index = backStack.indexOfFirst { it is Route.Dashboard }
+                                if (index != -1) {
+                                    val oldDash = backStack[index] as Route.Dashboard
+                                    backStack[index] = Route.Dashboard(oldDash.role, newEmail, newName)
+                                }
                             }
                         )
                     }

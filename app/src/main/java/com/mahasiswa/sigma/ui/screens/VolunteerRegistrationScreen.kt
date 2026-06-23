@@ -608,8 +608,8 @@ private fun AboutVolunteerPanel() {
 fun RegistrationStatusBox(data: VolunteerRegistrationData, onReRegister: () -> Unit) {
 
     val isPending  = data.status.uppercase() == "PENDING"
-    val isAccepted = data.status.uppercase() == "ACCEPTED"
-    val isDeclined = data.status.uppercase() == "DECLINED"
+    val isAccepted = data.status.uppercase() == "ACCEPTED" || data.status.uppercase() == "APPROVED"
+    val isDeclined = data.status.uppercase() == "DECLINED" || data.status.uppercase() == "REJECTED"
 
     // Kuning untuk pending, hijau untuk accepted, merah untuk declined
     val statusColor = when {

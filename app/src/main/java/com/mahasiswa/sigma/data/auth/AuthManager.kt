@@ -240,9 +240,14 @@ class AuthManager @Inject constructor(
             val userId = getCurrentUserId()
                 ?: return Result.failure(Exception("Tidak ada pengguna yang sedang login."))
 
-            supabase.from("profiles").update(
-                mapOf("full_name" to newName)
-            ) {
+            val updates = mutableMapOf<String, Any>(
+                "full_name" to newName
+            )
+            if (newEmail.isNotBlank()) {
+                updates["email"] = newEmail
+            }
+
+            supabase.from("profiles").update(updates) {
                 filter {
                     eq("id", userId)
                 }

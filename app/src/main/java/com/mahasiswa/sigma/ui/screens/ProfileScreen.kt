@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.mahasiswa.sigma.data.model.UserRole
+import com.mahasiswa.sigma.data.model.SkillsVolunteer
 import com.mahasiswa.sigma.ui.viewmodel.ProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,10 +35,11 @@ fun ProfileScreen(
     userEmail: String,
     @Suppress("UNUSED_PARAMETER") onBack: () -> Unit,
     onLogout: () -> Unit,
+    onProfileUpdated: (String, String) -> Unit = { _, _ -> },
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(userName, userEmail) {
-        viewModel.initData(userName, userEmail)
+    LaunchedEffect(userName, userEmail, userRole) {
+        viewModel.initData(userName, userEmail, userRole)
     }
 
     val name = viewModel.name
@@ -80,11 +82,17 @@ fun ProfileScreen(
     // Dialog sukses update profil
     if (viewModel.isUpdateSuccess) {
         AlertDialog(
-            onDismissRequest = { viewModel.dismissDialogs() },
+            onDismissRequest = {
+                viewModel.dismissDialogs()
+                onProfileUpdated(viewModel.name, viewModel.email)
+            },
             title = { Text("Berhasil") },
             text = { Text("Profil berhasil diperbarui.") },
             confirmButton = {
-                TextButton(onClick = { viewModel.dismissDialogs() }) {
+                TextButton(onClick = {
+                    viewModel.dismissDialogs()
+                    onProfileUpdated(viewModel.name, viewModel.email)
+                }) {
                     Text("OK")
                 }
             }
@@ -218,6 +226,62 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium
             )
+
+            if (userRole == UserRole.RELAWAN) {
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = viewModel.address,
+                    onValueChange = { viewModel.address = it },
+                    label = { Text("Alamat Domisili") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = viewModel.phoneNumber,
+                    onValueChange = { viewModel.phoneNumber = it },
+                    label = { Text("Nomor Telepon") },
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+                var skillExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = skillExpanded,
+                    onExpandedChange = { skillExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = viewModel.selectedSkill.name,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Keahlian / Skill") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = skillExpanded) },
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = skillExpanded,
+                        onDismissRequest = { skillExpanded = false }
+                    ) {
+                        SkillsVolunteer.entries.forEach { skillOption ->
+                            DropdownMenuItem(
+                                text = { Text(skillOption.name) },
+                                onClick = {
+                                    viewModel.selectedSkill = skillOption
+                                    skillExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

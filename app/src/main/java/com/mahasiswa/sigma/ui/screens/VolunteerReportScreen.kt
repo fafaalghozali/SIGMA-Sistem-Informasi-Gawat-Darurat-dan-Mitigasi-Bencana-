@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -165,39 +166,88 @@ private fun BnpbReportCard(r: VolunteerReportWithDetails) {
         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(Modifier.padding(14.dp)) {
+            // Header Row: Avatar & Name on Left, Badges (Posko & Disaster) on Right
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                Box(Modifier.size(36.dp).clip(CircleShape).background(skillColor.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                    Text(r.volunteerName.firstOrNull()?.uppercase() ?: "G", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = skillColor)
+                // Left: Avatar
+                Box(Modifier.size(40.dp).clip(CircleShape).background(skillColor.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                    Text(r.volunteerName.firstOrNull()?.uppercase() ?: "G", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = skillColor)
                 }
                 Spacer(Modifier.width(10.dp))
+
+                // Middle: Name & Skill details (expandable width)
                 Column(Modifier.weight(1f)) {
-                    Text(r.volunteerName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(r.volunteerName, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(report.skillType ?: "UMUM", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = skillColor)
                         Text(" · ${formatTimestamp(report.createdAt)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                     }
                 }
-                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Spacer(Modifier.width(8.dp))
+
+                // Right: Posko & Disaster Badges (limited to max 130.dp to avoid squeezing name columns)
+                Column(
+                    modifier = Modifier.widthIn(max = 130.dp),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     if (r.poskoName != "-") {
-                        Surface(color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f), shape = RoundedCornerShape(6.dp)) {
-                            Row(Modifier.padding(horizontal = 6.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Home, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Home,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(10.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                                 Spacer(Modifier.width(3.dp))
-                                Text(r.poskoName, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 1)
+                                Text(
+                                    r.poskoName,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
                     if (r.disasterTitle != "-") {
-                        Surface(color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f), shape = RoundedCornerShape(6.dp)) {
-                            Row(Modifier.padding(horizontal = 6.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Warning, null, Modifier.size(10.dp), tint = MaterialTheme.colorScheme.onErrorContainer)
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(10.dp),
+                                    tint = MaterialTheme.colorScheme.onErrorContainer
+                                )
                                 Spacer(Modifier.width(3.dp))
-                                Text(r.disasterTitle, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onErrorContainer, maxLines = 1)
+                                Text(
+                                    r.disasterTitle,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
                 }
             }
+
             Spacer(Modifier.height(12.dp))
             BnpbStatsGrid(skillEnum, reportMap)
             if (!report.notes.isNullOrBlank()) {
@@ -391,8 +441,27 @@ private fun RelawanStatsSection(skillEnum: SkillsVolunteer?, reportMap: Map<Stri
 
 @Composable
 private fun MetricItem(label: String, value: String, modifier: Modifier = Modifier) {
-    Box(modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)).padding(8.dp)) {
-        Column { Text(label, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Column {
+            Text(
+                text = label.uppercase(),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+            )
+            Spacer(Modifier.height(1.dp))
+            Text(
+                text = value,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 

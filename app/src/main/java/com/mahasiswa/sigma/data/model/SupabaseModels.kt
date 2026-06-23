@@ -31,7 +31,11 @@ data class VolunteerDto(
     @SerialName("assignment_status") @SerializedName("assignment_status") val assignmentStatus: String? = null,
     @SerialName("disaster_id") @SerializedName("disaster_id") val disasterId: Long? = null,
     @SerialName("created_at") @SerializedName("created_at") val createdAt: String? = null,
-    @SerialName("updated_at") @SerializedName("updated_at") val updatedAt: String? = null
+    @SerialName("updated_at") @SerializedName("updated_at") val updatedAt: String? = null,
+    @SerialName("assignment_notified_at") @SerializedName("assignment_notified_at") val assignmentNotifiedAt: String? = null,
+    @SerialName("volunteer_code") @SerializedName("volunteer_code") val volunteerCode: String? = null,
+    @SerialName("assignment_rejection_reason") @SerializedName("assignment_rejection_reason") val assignmentRejectionReason: String? = null,
+    @SerialName("assigned_by") @SerializedName("assigned_by") val assignedBy: String? = null
 )
 
 @Serializable
@@ -162,7 +166,11 @@ data class UpdateVolunteerRequest(
     @SerializedName("assignment_status") val assignmentStatus: String? = null,
     @SerializedName("disaster_id") val disasterId: Long? = null,
     val availability: String? = null,
-    @SerializedName("updated_at") val updatedAt: String? = null
+    @SerializedName("updated_at") val updatedAt: String? = null,
+    @SerializedName("assignment_notified_at") val assignmentNotifiedAt: String? = null,
+    @SerializedName("volunteer_code") val volunteerCode: String? = null,
+    @SerializedName("assignment_rejection_reason") val assignmentRejectionReason: String? = null,
+    @SerializedName("assigned_by") val assignedBy: String? = null
 )
 
 data class UpdateDisasterReportRequest(

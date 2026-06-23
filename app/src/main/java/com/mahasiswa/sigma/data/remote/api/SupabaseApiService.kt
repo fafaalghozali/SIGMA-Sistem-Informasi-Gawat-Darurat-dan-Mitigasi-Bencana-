@@ -80,6 +80,12 @@ interface SupabaseApiService {
         @Body updates: UpdateVolunteerRequest
     ): List<VolunteerDto>
 
+    @PATCH("volunteers")
+    suspend fun updateVolunteerMap(
+        @Query("id") id: String,
+        @Body updates: Map<String, @JvmSuppressWildcards Any?>
+    ): List<VolunteerDto>
+
     @DELETE("volunteers")
     suspend fun deleteVolunteer(
         @Query("id") id: String

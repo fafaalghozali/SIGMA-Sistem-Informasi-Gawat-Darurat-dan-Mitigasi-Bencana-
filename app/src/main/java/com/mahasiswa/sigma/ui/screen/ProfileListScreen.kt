@@ -12,6 +12,9 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.lazy.LazyRow
+import kotlinx.coroutines.launch
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,11 +47,25 @@ fun ProfileListScreen(
     viewModel: ProfileListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedRoleFilter by viewModel.selectedRoleFilter.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Data Pengguna", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Column {
+                        Text("Data Pengguna", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(
+                            "Kelola semua data pengguna terdaftar",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -56,21 +73,56 @@ fun ProfileListScreen(
                             contentDescription = "Kembali"
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
+                }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(Color(0xFFF5F7FA))
         ) {
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.setSearchQuery(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Cari nama atau email...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                )
+            )
+
+            // Filter Chips
+            LazyRow(
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val roles = listOf("Semua", "Admin", "Relawan", "Masyarakat")
+                items(roles) { role ->
+                    FilterChip(
+                        selected = selectedRoleFilter == role,
+                        onClick = { viewModel.setRoleFilter(role) },
+                        label = { Text(role) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = Color.White
+                        )
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier.fillMaxSize()
+            ) {
             when (val state = uiState) {
                 is ProfileListUiState.Idle -> {
                     // Initial state - could show placeholder
@@ -85,7 +137,18 @@ fun ProfileListScreen(
                         profiles = state.profiles,
                         onRefresh = { viewModel.refresh() },
                         onDeleteProfile = { profileId ->
-                            viewModel.deleteProfile(profileId)
+                            viewModel.deleteProfileWithUndo(profileId) {
+                                scope.launch {
+                                    val result = snackbarHostState.showSnackbar(
+                                        message = "Pengguna dihapus",
+                                        actionLabel = "BATALKAN",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        viewModel.undoDelete(profileId)
+                                    }
+                                }
+                            }
                         },
                         onEditProfile = { profileId, newName ->
                             viewModel.editProfile(profileId, newName)
@@ -109,6 +172,7 @@ fun ProfileListScreen(
             }
         }
     }
+}
 }
 
 @Composable
@@ -428,17 +492,18 @@ fun ProfileCard(
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                
-                IconButton(
-                    onClick = onDeleteClick,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Hapus",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(20.dp)
-                    )
+                if (profile.role != "Admin") {
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Hapus",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }

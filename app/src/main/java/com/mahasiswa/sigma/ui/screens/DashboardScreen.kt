@@ -2016,7 +2016,10 @@ fun AdminDashboardContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .clickable { isTotalReportsExpanded = !isTotalReportsExpanded }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { isTotalReportsExpanded = !isTotalReportsExpanded }
                     .animateContentSize(),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(

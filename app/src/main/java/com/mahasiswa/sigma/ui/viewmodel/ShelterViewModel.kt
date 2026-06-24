@@ -1,10 +1,12 @@
 package com.mahasiswa.sigma.ui.viewmodel
 
+import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mahasiswa.sigma.data.model.CreateShelterRequest
 import com.mahasiswa.sigma.data.model.ShelterDto
 import com.mahasiswa.sigma.data.model.UpdateShelterRequest
+import com.mahasiswa.sigma.data.remote.api.SupabaseStorageService
 import com.mahasiswa.sigma.data.repository.ShelterRepositoryRetrofit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +24,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ShelterViewModel @Inject constructor(
-    private val shelterRepository: ShelterRepositoryRetrofit
+    private val shelterRepository: ShelterRepositoryRetrofit,
+    private val storageService: SupabaseStorageService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState<List<ShelterDto>>>(UiState.Idle)
@@ -67,6 +70,52 @@ class ShelterViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _operationMessage.value = error.message ?: "Gagal menambahkan posko"
+                }
+            _isProcessing.value = false
+        }
+    }
+
+    fun createShelterWithPhoto(request: CreateShelterRequest, photoBitmap: Bitmap?) {
+        viewModelScope.launch {
+            _isProcessing.value = true
+            val photoUrl = if (photoBitmap != null) {
+                storageService.uploadImage(photoBitmap, "shelter")
+            } else null
+
+            val finalRequest = if (photoUrl != null) {
+                request.copy(photoUrl = photoUrl)
+            } else request
+
+            shelterRepository.createShelter(finalRequest)
+                .onSuccess {
+                    _operationMessage.value = "Posko \"${it.name}\" berhasil ditambahkan"
+                    loadShelters()
+                }
+                .onFailure { error ->
+                    _operationMessage.value = error.message ?: "Gagal menambahkan posko"
+                }
+            _isProcessing.value = false
+        }
+    }
+
+    fun updateShelterWithPhoto(id: String, request: UpdateShelterRequest, photoBitmap: Bitmap?) {
+        viewModelScope.launch {
+            _isProcessing.value = true
+            val photoUrl = if (photoBitmap != null) {
+                storageService.uploadImage(photoBitmap, "shelter")
+            } else null
+
+            val finalRequest = if (photoUrl != null) {
+                request.copy(photoUrl = photoUrl)
+            } else request
+
+            shelterRepository.updateShelter(id, finalRequest)
+                .onSuccess {
+                    _operationMessage.value = "Posko \"${it.name}\" berhasil diperbarui"
+                    loadShelters()
+                }
+                .onFailure { error ->
+                    _operationMessage.value = error.message ?: "Gagal memperbarui posko"
                 }
             _isProcessing.value = false
         }

@@ -46,10 +46,12 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -175,10 +177,10 @@ fun ManageShelterScreen(
         ShelterEditorDialog(
             initial = editing,
             onDismiss = { showEditor = false },
-            onSubmit = { name, address, lat, lng, capMax, capCurrent, status, logistics, contactPhone, photoUrl ->
+            onSubmit = { name, address, lat, lng, capMax, capCurrent, status, logistics, contactPhone, photoBitmap ->
                 val current = editing
                 if (current?.id != null) {
-                    viewModel.updateShelter(
+                    viewModel.updateShelterWithPhoto(
                         current.id.toString(),
                         UpdateShelterRequest(
                             name = name,
@@ -188,11 +190,12 @@ fun ManageShelterScreen(
                             status = status,
                             logistics = logistics,
                             contactPhone = contactPhone.ifBlank { null },
-                            photoUrl = photoUrl.ifBlank { null }
-                        )
+                            photoUrl = null
+                        ),
+                        photoBitmap
                     )
                 } else {
-                    viewModel.createShelter(
+                    viewModel.createShelterWithPhoto(
                         CreateShelterRequest(
                             name = name,
                             address = address,
@@ -203,8 +206,9 @@ fun ManageShelterScreen(
                             status = status,
                             logistics = logistics,
                             contactPhone = contactPhone.ifBlank { null },
-                            photoUrl = photoUrl.ifBlank { null }
-                        )
+                            photoUrl = null
+                        ),
+                        photoBitmap
                     )
                 }
                 showEditor = false
@@ -744,7 +748,7 @@ private val logisticsSuggestions = listOf(
 private fun ShelterEditorDialog(
     initial: ShelterDto?,
     onDismiss: () -> Unit,
-    onSubmit: (name: String, address: String, lat: Double, lng: Double, capMax: Int, capCurrent: Int, status: String, logistics: List<String>, contactPhone: String, photoUrl: String) -> Unit
+    onSubmit: (name: String, address: String, lat: Double, lng: Double, capMax: Int, capCurrent: Int, status: String, logistics: List<String>, contactPhone: String, photoBitmap: android.graphics.Bitmap?) -> Unit
 ) {
     var name by remember { mutableStateOf(initial?.name ?: "") }
     var address by remember { mutableStateOf(initial?.address ?: "") }
@@ -764,7 +768,11 @@ private fun ShelterEditorDialog(
     var logisticsCustomText by remember { mutableStateOf("") }
 
     var contactPhone by remember { mutableStateOf(initial?.contactPhone ?: "") }
-    var photoUrl by remember { mutableStateOf(initial?.photoUrl ?: "") }
+
+    // --- Photo picker state ---
+    var photoBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var showImagePicker by remember { mutableStateOf(false) }
+    val imagePickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     val isEdit = initial?.id != null
     val nameValid = name.isNotBlank()
@@ -773,6 +781,17 @@ private fun ShelterEditorDialog(
     val latValid = isEdit || latitude.toDoubleOrNull() != null
     val lngValid = isEdit || longitude.toDoubleOrNull() != null
     val formValid = nameValid && addressValid && capMaxValid && latValid && lngValid
+
+    if (showImagePicker) {
+        ImagePickerBottomSheet(
+            sheetState = imagePickerSheetState,
+            onDismiss = { showImagePicker = false },
+            onImageSelected = { bitmap ->
+                photoBitmap = bitmap
+                showImagePicker = false
+            }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -944,11 +963,69 @@ private fun ShelterEditorDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = photoUrl, onValueChange = { photoUrl = it },
-                    label = { Text("URL Foto") }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+
+                // Photo picker
+                Text(
+                    "Foto Posko",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (photoBitmap != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { showImagePicker = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = photoBitmap,
+                            contentDescription = "Foto posko",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    TextButton(onClick = { photoBitmap = null }) {
+                        Text("Hapus Foto", color = MaterialTheme.colorScheme.error)
+                    }
+                } else if (!initial?.photoUrl.isNullOrBlank() && photoBitmap == null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { showImagePicker = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(initial?.photoUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Foto posko saat ini",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Text(
+                        "Ketuk untuk mengganti foto",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    OutlinedButton(
+                        onClick = { showImagePicker = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Pilih Foto")
+                    }
+                }
             }
         },
         confirmButton = {
@@ -965,7 +1042,7 @@ private fun ShelterEditorDialog(
                         selectedStatus.value,
                         selectedLogistics.toList(),
                         contactPhone.trim(),
-                        photoUrl.trim()
+                        photoBitmap
                     )
                 }
             ) { Text(if (isEdit) "Simpan" else "Tambah") }

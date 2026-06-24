@@ -134,7 +134,15 @@ fun SigmaNavigation() {
                             }
                         )
                     }
-                    is Route.Map -> MapScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
+                    is Route.Map -> MapScreen(
+                        onBack = { backStack.removeAt(backStack.lastIndex) },
+                        onNavigateToDisasterDetail = { disasterId ->
+                            backStack.add(Route.DisasterDetail(disasterId))
+                        },
+                        onNavigateToShelterDetail = { shelterId ->
+                            backStack.add(Route.ShelterDetail(shelterId))
+                        }
+                    )
                     is Route.DisasterReport -> DisasterReportScreen(
                         userRole = userRole,
                         userEmail = userEmail,
@@ -150,6 +158,10 @@ fun SigmaNavigation() {
                     )
                     is Route.DisasterDetail -> DisasterDetailScreen(
                         disasterId = route.disasterId,
+                        onBack = { backStack.removeAt(backStack.lastIndex) }
+                    )
+                    is Route.ShelterDetail -> ShelterDetailScreen(
+                        shelterId = route.shelterId,
                         onBack = { backStack.removeAt(backStack.lastIndex) }
                     )
                     is Route.ShelterInfo -> ShelterInfoScreen(onBack = { backStack.removeAt(backStack.lastIndex) })

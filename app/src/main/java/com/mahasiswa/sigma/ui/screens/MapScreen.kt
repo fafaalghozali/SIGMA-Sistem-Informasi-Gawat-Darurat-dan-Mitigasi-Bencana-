@@ -138,6 +138,8 @@ private fun formatStatus(status: String): String = when (status.uppercase()) {
 @Composable
 fun MapScreen(
     onBack: () -> Unit,
+    onNavigateToDisasterDetail: (Int) -> Unit = {},
+    onNavigateToShelterDetail: (Int) -> Unit = {},
     viewModel: MapViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -295,7 +297,12 @@ fun MapScreen(
             ReportInfoSheet(
                 report = report,
                 onDismiss = { viewModel.dismissBottomSheet() },
-                modifier = Modifier.align(Alignment.BottomCenter)
+                onViewDetail = {
+                    report.id.toIntOrNull()?.let { id -> onNavigateToDisasterDetail(id) }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp)
             )
         }
 
@@ -303,7 +310,12 @@ fun MapScreen(
             ShelterMapInfoSheet(
                 shelter = shelter,
                 onDismiss = { viewModel.dismissBottomSheet() },
-                modifier = Modifier.align(Alignment.BottomCenter)
+                onViewDetail = {
+                    shelter.id?.let { id -> onNavigateToShelterDetail(id) }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp)
             )
         }
 
@@ -452,6 +464,7 @@ private fun LegendItem(color: Color, label: String, isHouse: Boolean = false) {
 private fun ReportInfoSheet(
     report: LocalDisasterReport,
     onDismiss: () -> Unit,
+    onViewDetail: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val statusColor = when (report.status.uppercase()) {
@@ -464,7 +477,7 @@ private fun ReportInfoSheet(
     }
 
     Surface(
-        modifier = modifier.fillMaxWidth().padding(12.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
@@ -487,30 +500,41 @@ private fun ReportInfoSheet(
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(report.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(report.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             Spacer(modifier = Modifier.height(4.dp))
             Surface(shape = RoundedCornerShape(6.dp), color = statusColor.copy(alpha = 0.15f)) {
                 Text(formatStatus(report.status), modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp), color = statusColor, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Text(report.description, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), maxLines = 3)
+            Text(report.description, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             Spacer(modifier = Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(report.location, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
-                    Text(report.location, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                     Text(report.reporter, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 }
+                Text(
+                    SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id")).format(Date(report.timestamp)),
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("id")).format(Date(report.timestamp)),
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onViewDetail,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Lihat Detail", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }
@@ -519,6 +543,7 @@ private fun ReportInfoSheet(
 private fun ShelterMapInfoSheet(
     shelter: ShelterMapItem,
     onDismiss: () -> Unit,
+    onViewDetail: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val parts = shelter.capacity.split("/")
@@ -536,7 +561,7 @@ private fun ShelterMapInfoSheet(
     val shelterBlue = Color(0xFF1565C0)
 
     Surface(
-        modifier = modifier.fillMaxWidth().padding(12.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp),
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
@@ -557,7 +582,7 @@ private fun ShelterMapInfoSheet(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(shelter.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                Text(shelter.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 Surface(
                     shape = RoundedCornerShape(6.dp),
                     color = if (isFull) Color(0xFFB71C1C).copy(alpha = 0.15f) else Color(0xFF2E7D32).copy(alpha = 0.15f)
@@ -574,7 +599,7 @@ private fun ShelterMapInfoSheet(
             Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
-                Text(shelter.address, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                Text(shelter.address, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
             Spacer(modifier = Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -616,6 +641,18 @@ private fun ShelterMapInfoSheet(
                     Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(13.dp), tint = MaterialTheme.colorScheme.primary)
                     Text(shelter.contactPhone, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onViewDetail,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0)),
+                contentPadding = PaddingValues(vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Lihat Detail", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

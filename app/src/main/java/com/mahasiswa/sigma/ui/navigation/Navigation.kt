@@ -110,7 +110,7 @@ fun SigmaNavigation() {
                                     3 -> backStack.add(Route.ShelterInfo)
                                     7 -> backStack.add(Route.SearchDisaster())
                                     10 -> PdfUtils.openPdfFromAssets(context)
-                                    5 -> backStack.add(Route.VolunteerRegistration(route.email))
+                                    5 -> backStack.add(Route.VolunteerRegistration(route.email, route.name))
                                     6 -> backStack.add(Route.ManageReport)
                                     11 -> backStack.add(Route.ManageShelter)
                                     12 -> backStack.add(Route.ManageVolunteer)
@@ -237,7 +237,13 @@ fun SigmaNavigation() {
                     )
                     is Route.VolunteerRegistration -> VolunteerRegistrationScreen(
                         userEmail = route.email,
-                        onBack = { backStack.removeAt(backStack.lastIndex) }
+                        userName = route.userName,
+                        onBack = { backStack.removeAt(backStack.lastIndex) },
+                        onRelogin = {
+                            // User terima penugasan → force logout → login ulang sebagai Relawan
+                            backStack.clear()
+                            backStack.add(Route.Login)
+                        }
                     )
                     is Route.ManageReport -> ManageReportScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
                     is Route.ManageShelter -> ManageShelterScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
@@ -254,7 +260,14 @@ fun SigmaNavigation() {
                     )
                     is Route.VolunteerReport -> VolunteerReportScreen(
                         userRole = userRole,
-                        onBack = { backStack.removeAt(backStack.lastIndex) }
+                        onBack = { backStack.removeAt(backStack.lastIndex) },
+                        onNavigateToCreateReport = {
+                            // Kembali ke dashboard lalu buka DisasterReport (ID 2)
+                            while (backStack.isNotEmpty() && backStack.last() !is Route.Dashboard) {
+                                backStack.removeAt(backStack.lastIndex)
+                            }
+                            backStack.add(Route.DisasterReport)
+                        }
                     )
                     is Route.ProfileList -> ProfileListScreen(
                         onBack = { backStack.removeAt(backStack.lastIndex) }

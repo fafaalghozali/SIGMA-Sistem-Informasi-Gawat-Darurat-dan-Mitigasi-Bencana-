@@ -125,31 +125,53 @@ class AuthManager @Inject constructor(
             val userId = session?.user?.id
                 ?: return Result.failure(Exception("Login berhasil tetapi gagal mendapatkan ID pengguna."))
 
+            // Ambil role dari tabel profiles
+            var roleStr = "Masyarakat"
             val profilesById = supabase.from("profiles")
-                .select {
-                    filter { eq("id", userId) }
-                    limit(1)
-                }
+                .select { filter { eq("id", userId) }; limit(1) }
                 .decodeList<JsonObject>()
 
             if (profilesById.isNotEmpty()) {
-                val roleStr = profilesById.first()["role"]?.jsonPrimitive?.contentOrNull ?: "Masyarakat"
-                return Result.success(UserRole.fromString(roleStr))
-            }
-
-            val profilesByEmail = supabase.from("profiles")
-                .select {
-                    filter { eq("email", email) }
-                    limit(1)
+                roleStr = profilesById.first()["role"]?.jsonPrimitive?.contentOrNull ?: "Masyarakat"
+            } else {
+                val profilesByEmail = supabase.from("profiles")
+                    .select { filter { eq("email", email) }; limit(1) }
+                    .decodeList<JsonObject>()
+                if (profilesByEmail.isNotEmpty()) {
+                    roleStr = profilesByEmail.first()["role"]?.jsonPrimitive?.contentOrNull ?: "Masyarakat"
+                } else {
+                    return Result.failure(Exception("Profil pengguna tidak ditemukan di database."))
                 }
-                .decodeList<JsonObject>()
-
-            if (profilesByEmail.isNotEmpty()) {
-                val roleStr = profilesByEmail.first()["role"]?.jsonPrimitive?.contentOrNull ?: "Masyarakat"
-                return Result.success(UserRole.fromString(roleStr))
             }
 
-            Result.failure(Exception("Profil pengguna tidak ditemukan di database."))
+            // Jika masih Masyarakat, cek tabel volunteers —
+            // kalau ada record APPROVED maka upgrade ke Relawan
+            val resolvedRole = if (UserRole.fromString(roleStr) == UserRole.MASYARAKAT) {
+                try {
+                    val volunteers = supabase.from("volunteers")
+                        .select { filter { eq("user_id", userId) }; limit(1) }
+                        .decodeList<JsonObject>()
+                    val volunteerStatus = volunteers.firstOrNull()
+                        ?.get("status")?.jsonPrimitive?.contentOrNull ?: ""
+                    if (volunteerStatus.equals("APPROVED", ignoreCase = true)) {
+                        // Sinkronkan role di profiles agar konsisten
+                        runCatching {
+                            supabase.from("profiles").update(
+                                mapOf("role" to "Relawan")
+                            ) { filter { eq("id", userId) } }
+                        }
+                        UserRole.RELAWAN
+                    } else {
+                        UserRole.fromString(roleStr)
+                    }
+                } catch (_: Exception) {
+                    UserRole.fromString(roleStr)
+                }
+            } else {
+                UserRole.fromString(roleStr)
+            }
+
+            Result.success(resolvedRole)
         } catch (e: AuthRestException) {
             val message = when {
                 e.message?.contains("Invalid login credentials", ignoreCase = true) == true ->
@@ -165,6 +187,27 @@ class AuthManager @Inject constructor(
             Result.failure(Exception("Gagal mengambil data profil: ${e.message}"))
         } catch (e: HttpRequestTimeoutException) {
             Result.failure(Exception("Tidak ada koneksi internet. Periksa jaringan Anda."))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Update kolom role di tabel profiles berdasarkan userId.
+     * Dipanggil saat admin approve volunteer.
+     */
+    suspend fun updateUserRole(userId: String, newRole: UserRole): Result<Unit> {
+        return try {
+            supabase.from("profiles").update(
+                mapOf("role" to newRole.displayName)
+            ) {
+                filter { eq("id", userId) }
+            }
+            Result.success(Unit)
+        } catch (e: RestException) {
+            Result.failure(Exception("Gagal update role: ${e.message}"))
+        } catch (e: HttpRequestTimeoutException) {
+            Result.failure(Exception("Tidak ada koneksi internet."))
         } catch (e: Exception) {
             Result.failure(e)
         }

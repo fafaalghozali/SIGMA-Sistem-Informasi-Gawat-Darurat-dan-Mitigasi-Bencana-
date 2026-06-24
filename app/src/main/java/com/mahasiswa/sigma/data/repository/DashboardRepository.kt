@@ -27,11 +27,10 @@ class DashboardRepository @Inject constructor() {
             }
             UserRole.RELAWAN -> {
                 listOf(
-                    DashboardMenuModel(2, "Kirim Laporan Tugas", "Kirim laporan tugas ke BNPB", Icons.Default.Report, MenuCategory.EMERGENCY),
-                    DashboardMenuModel(14, "Riwayat Laporan", "Lihat & kelola laporan tugas Anda", Icons.Default.Assignment, MenuCategory.EMERGENCY),
-                    DashboardMenuModel(5, "Registrasi Relawan", "Daftar sebagai relawan", Icons.Default.PersonAdd, MenuCategory.VOLUNTEER),
-                    DashboardMenuModel(10, "Panduan Mitigasi", "Buku saku menghadapi bencana", Icons.AutoMirrored.Filled.MenuBook, MenuCategory.MITIGATION),
-                    DashboardMenuModel(7, "Cari Informasi Bencana", "Cari riwayat & info bencana", Icons.Default.Search, MenuCategory.SEARCH)
+                    DashboardMenuModel(2,  "Kirim Laporan Tugas",  "Kirim laporan tugas ke BNPB",       Icons.Default.Report,                MenuCategory.EMERGENCY),
+                    DashboardMenuModel(14, "Riwayat Laporan",      "Lihat laporan tugas yang sudah dikirim", Icons.Default.Assignment,        MenuCategory.EMERGENCY),
+                    DashboardMenuModel(7,  "Cari Info Bencana",    "Cari riwayat & info kejadian",      Icons.Default.Search,                MenuCategory.SEARCH),
+                    DashboardMenuModel(10, "Panduan Mitigasi",     "Buku saku menghadapi bencana",      Icons.AutoMirrored.Filled.MenuBook,  MenuCategory.MITIGATION)
                 )
             }
             else -> {

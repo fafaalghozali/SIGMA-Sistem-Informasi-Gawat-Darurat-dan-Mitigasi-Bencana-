@@ -17,10 +17,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.mahasiswa.sigma.ui.theme.DarkElevatedSurface
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.VerifiedUser
-import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,11 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -168,6 +160,8 @@ fun DisasterReportScreen(
         sheetState = sheetState,
         userRole = userRole,
         volunteerSkill = viewModel.volunteerSkill,
+        volunteerAssignment = viewModel.volunteerAssignment,
+        disasterLocation = viewModel.disasterLocation,
         onSendVolunteerReport = { disasterTitle, dataLaporan, catatanTambahan ->
             viewModel.sendVolunteerReport(disasterTitle, dataLaporan, catatanTambahan)
         },
@@ -206,6 +200,8 @@ fun DisasterReportContent(
     sheetState: SheetState,
     userRole: UserRole = UserRole.MASYARAKAT,
     volunteerSkill: SkillsVolunteer? = null,
+    volunteerAssignment: String? = null,
+    disasterLocation: String? = null,
     onSendVolunteerReport: (String, String, String) -> Unit = { _, _, _ -> },
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
@@ -240,6 +236,8 @@ fun DisasterReportContent(
                 VolunteerReportLayout(
                     padding = padding,
                     volunteerSkill = volunteerSkill,
+                    volunteerAssignment = volunteerAssignment,
+                    disasterLocation = disasterLocation,
                     reportsList = reportsList,
                     onSendReport = onSendVolunteerReport,
                     onBack = onBack,
@@ -742,6 +740,8 @@ fun ReportItemCard(
 fun VolunteerReportLayout(
     padding: PaddingValues,
     volunteerSkill: SkillsVolunteer?,
+    volunteerAssignment: String? = null,
+    disasterLocation: String? = null,
     reportsList: List<LocalDisasterReport>,
     onSendReport: (String, String, String) -> Unit,
     onBack: () -> Unit,
@@ -875,6 +875,76 @@ fun VolunteerReportLayout(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
+                }
+            }
+        }
+
+        // ── Info Lokasi Otomatis ───────────────────────────────────────────
+        if (!volunteerAssignment.isNullOrBlank() || !disasterLocation.isNullOrBlank()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Informasi Penugasan",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (!volunteerAssignment.isNullOrBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.HomeWork,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    "Lokasi Posko",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    volunteerAssignment,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                    if (!disasterLocation.isNullOrBlank()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = Color(0xFFDC2626),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    "Lokasi Kejadian",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    disasterLocation,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

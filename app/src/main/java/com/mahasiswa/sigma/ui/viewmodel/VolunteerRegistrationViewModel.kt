@@ -48,6 +48,8 @@ class VolunteerRegistrationViewModel @Inject constructor(
     var isConfirmingAssignment by mutableStateOf(false)
     var confirmAssignmentError by mutableStateOf<String?>(null)
     var confirmAssignmentSuccess by mutableStateOf(false)
+    // true = user menerima penugasan, perlu relogin agar dashboard berubah ke RELAWAN
+    var needsRelogin by mutableStateOf(false)
 
     private fun nowTimestamp(): String =
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
@@ -59,17 +61,17 @@ class VolunteerRegistrationViewModel @Inject constructor(
         }
         viewModelScope.launch {
             val userId = authManager.getCurrentUserId() ?: return@launch
+            android.util.Log.d("VolunteerVM", "Loading for userId=$userId")
             val result = volunteerRepository.getVolunteerByUserId(userId)
             result.onSuccess { volunteerDto ->
+                android.util.Log.d("VolunteerVM", "Result: id=${volunteerDto?.id} status=${volunteerDto?.status} name=${volunteerDto?.name}")
                 if (volunteerDto != null) {
                     registeredVolunteerId = volunteerDto.id
                     registeredData = VolunteerRegistrationData(
                         name = volunteerDto.name,
                         skill = try {
                             SkillsVolunteer.valueOf(volunteerDto.skill.uppercase())
-                        } catch (_: Exception) {
-                            SkillsVolunteer.MEDIS
-                        },
+                        } catch (_: Exception) { SkillsVolunteer.MEDIS },
                         address = volunteerDto.address,
                         phoneNumber = volunteerDto.phoneNumber,
                         status = volunteerDto.status,
@@ -79,7 +81,15 @@ class VolunteerRegistrationViewModel @Inject constructor(
                         volunteerId = volunteerDto.id
                     )
                     isRegistered = true
+                    android.util.Log.d("VolunteerVM", "registeredData.status=${registeredData?.status}")
+                } else {
+                    isRegistered = false
+                    registeredData = null
+                    registeredVolunteerId = null
                 }
+            }
+            result.onFailure { e ->
+                android.util.Log.e("VolunteerVM", "Failed to load: ${e.message}", e)
             }
         }
     }
@@ -179,31 +189,69 @@ class VolunteerRegistrationViewModel @Inject constructor(
 
     /**
      * Relawan konfirmasi bersedia / tidak bersedia setelah admin menugaskan.
-     * assignment_status: "accepted" = bersedia, "rejected" = tidak bersedia
+     *
+     * Terima (accept = true):
+     *   - assignment_status = "accepted"
+     *   - role di profiles diupgrade ke RELAWAN
+     *   - needsRelogin = true → Navigation akan force logout agar user login ulang
+     *     dan dashboard berubah ke menu RELAWAN
+     *
+     * Tolak (accept = false):
+     *   - assignment_status = "rejected"
+     *   - status volunteer dikembalikan ke PENDING (menunggu penugasan lain)
+     *   - role tetap MASYARAKAT
+     *   - assignment & disasterId dikosongkan
      */
     fun confirmAssignment(accept: Boolean) {
         val vid = registeredVolunteerId ?: return
         viewModelScope.launch {
             isConfirmingAssignment = true
             confirmAssignmentError = null
-            val request = UpdateVolunteerRequest(
-                assignmentStatus = if (accept) "accepted" else "rejected",
-                updatedAt = nowTimestamp()
-            )
-            val result = volunteerRepository.updateVolunteer(vid.toString(), request)
-            result.onSuccess {
-                confirmAssignmentSuccess = true
-                refreshStatus()
-            }
-            result.onFailure { e ->
-                confirmAssignmentError = e.message ?: "Gagal mengonfirmasi. Coba lagi."
+
+            if (accept) {
+                // Terima: set assignment_status = accepted
+                val acceptRequest = UpdateVolunteerRequest(
+                    assignmentStatus = "accepted",
+                    updatedAt = nowTimestamp()
+                )
+                val result = volunteerRepository.updateVolunteer(vid.toString(), acceptRequest)
+                result.onSuccess {
+                    // Upgrade role ke RELAWAN di tabel profiles
+                    val userId = authManager.getCurrentUserId()
+                    if (!userId.isNullOrBlank()) {
+                        authManager.updateUserRole(userId, com.mahasiswa.sigma.data.model.UserRole.RELAWAN)
+                    }
+                    refreshStatus()
+                    needsRelogin = true   // trigger relogin di UI
+                }
+                result.onFailure { e ->
+                    confirmAssignmentError = e.message ?: "Gagal mengonfirmasi. Coba lagi."
+                }
+            } else {
+                // Tolak: reset ke PENDING, hapus penugasan, role tetap MASYARAKAT
+                val rejectRequest = UpdateVolunteerRequest(
+                    status = "PENDING",
+                    assignment = null,
+                    disasterId = null,
+                    assignmentStatus = null,
+                    updatedAt = nowTimestamp()
+                )
+                val result = volunteerRepository.updateVolunteer(vid.toString(), rejectRequest)
+                result.onSuccess {
+                    refreshStatus()
+                    confirmAssignmentSuccess = true
+                }
+                result.onFailure { e ->
+                    confirmAssignmentError = e.message ?: "Gagal menolak penugasan. Coba lagi."
+                }
             }
             isConfirmingAssignment = false
         }
     }
 
     fun dismissConfirmSuccess() { confirmAssignmentSuccess = false }
-    fun dismissConfirmError() { confirmAssignmentError = null }
+    fun dismissConfirmError()   { confirmAssignmentError = null }
+    fun dismissRelogin()        { needsRelogin = false }
 
     fun resetRegistration() {
         viewModelScope.launch {

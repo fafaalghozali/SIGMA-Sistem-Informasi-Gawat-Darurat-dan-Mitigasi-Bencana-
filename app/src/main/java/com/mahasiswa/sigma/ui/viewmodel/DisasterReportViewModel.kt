@@ -40,7 +40,10 @@ class DisasterReportViewModel @Inject constructor(
 
     var volunteerSkill by mutableStateOf<SkillsVolunteer?>(null)
     var volunteerName by mutableStateOf("")
+    var volunteerAssignment by mutableStateOf<String?>(null)   // lokasi posko dari admin
+    var disasterLocation by mutableStateOf<String?>(null)      // lokasi kejadian dari disasterId
     private var volunteerId: String? = null
+    private var volunteerDisasterId: Long? = null
 
     var showIncompleteDialog by mutableStateOf(false)
     var showPhotoSourceSheet by mutableStateOf(false)
@@ -54,13 +57,28 @@ class DisasterReportViewModel @Inject constructor(
             val result = volunteerRepository.getVolunteerByUserId(userId)
             result.onSuccess { volunteerDto ->
                 if (volunteerDto != null) {
-                    volunteerId = volunteerDto.id?.toString()
-                    volunteerSkill = try {
+                    volunteerId     = volunteerDto.id?.toString()
+                    volunteerSkill  = try {
                         SkillsVolunteer.valueOf(volunteerDto.skill.uppercase())
-                    } catch (_: Exception) {
-                        SkillsVolunteer.MEDIS
+                    } catch (_: Exception) { SkillsVolunteer.MEDIS }
+                    volunteerName       = volunteerDto.name
+                    volunteerAssignment = volunteerDto.assignment   // lokasi posko
+                    volunteerDisasterId = volunteerDto.disasterId
+
+                    // Fetch lokasi kejadian dari tabel disasters berdasarkan disasterId
+                    volunteerDto.disasterId?.let { did ->
+                        val disasterResult = repository.getDisasterReportById(did.toString())
+                        disasterResult.onSuccess { dto ->
+                            if (dto != null) {
+                                disasterLocation = buildString {
+                                    append(dto.location)
+                                    if (dto.latitude != 0.0 && dto.longitude != 0.0) {
+                                        append(" (${dto.latitude}, ${dto.longitude})")
+                                    }
+                                }
+                            }
+                        }
                     }
-                    volunteerName = volunteerDto.name
                 }
             }
         }

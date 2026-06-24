@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mahasiswa.sigma.data.model.DisasterReportDto
+import com.mahasiswa.sigma.data.model.ShelterDto
 import com.mahasiswa.sigma.data.model.VolunteerDto
 import com.mahasiswa.sigma.ui.viewmodel.ManageVolunteerViewModel
 import kotlinx.coroutines.launch
@@ -58,6 +59,7 @@ fun ManageVolunteerScreen(
 ) {
     val registrations by viewModel.registrations.collectAsState()
     val disasters     by viewModel.disasters.collectAsState()
+    val shelters      by viewModel.shelters.collectAsState()
     val isLoading     by viewModel.isLoading.collectAsState()
     val assignResult  by viewModel.assignResult.collectAsState()
 
@@ -384,6 +386,7 @@ fun ManageVolunteerScreen(
         AssignVolunteerDialog(
             volunteer = volunteer,
             disasters = disasters,
+            shelters = shelters,
             onDismiss = { assignTarget = null },
             onConfirm = { disasterId, location ->
                 val id = volunteer.id?.toString()
@@ -1130,12 +1133,14 @@ private fun VolunteerDetailDialog(
 private fun AssignVolunteerDialog(
     volunteer: VolunteerDto,
     disasters: List<DisasterReportDto>,
+    shelters: List<ShelterDto>,
     onDismiss: () -> Unit,
     onConfirm: (disasterId: Long, location: String) -> Unit
 ) {
     var selectedDisaster by remember { mutableStateOf<DisasterReportDto?>(null) }
-    var assignmentLocation by remember { mutableStateOf("") }
+    var selectedShelter by remember { mutableStateOf<ShelterDto?>(null) }
     var disasterExpanded by remember { mutableStateOf(false) }
+    var shelterExpanded by remember { mutableStateOf(false) }
     var locationError by remember { mutableStateOf(false) }
     var disasterError by remember { mutableStateOf(false) }
 
@@ -1312,9 +1317,6 @@ private fun AssignVolunteerDialog(
                                         },
                                         onClick = {
                                             selectedDisaster = disaster
-                                            if (assignmentLocation.isBlank()) {
-                                                assignmentLocation = disaster.location
-                                            }
                                             disasterExpanded = false
                                             disasterError = false
                                         }
@@ -1325,38 +1327,124 @@ private fun AssignVolunteerDialog(
                     }
 
                     Text(
-                        "Lokasi Penugasan / Posko *",
+                        "Pilih Posko *",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (isDark) Color.LightGray else Color(0xFF475569)
                     )
-                    OutlinedTextField(
-                        value = assignmentLocation,
-                        onValueChange = {
-                            assignmentLocation = it
-                            locationError = false
-                        },
-                        placeholder = { Text("Contoh: Stadion UNS, GOR Manahan") },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.LocationOn,
-                                null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
+                    ExposedDropdownMenuBox(
+                        expanded = shelterExpanded,
+                        onExpandedChange = { shelterExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedShelter?.name ?: "Pilih posko...",
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = shelterExpanded) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.HomeWork,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            isError = locationError,
+                            supportingText = if (locationError) {
+                                { Text("Posko wajib dipilih") }
+                            } else null,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
+                                unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White
                             )
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = locationError,
-                        supportingText = if (locationError) {
-                            { Text("Lokasi tidak boleh kosong") }
-                        } else null,
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White,
-                            unfocusedContainerColor = if (isDark) Color(0xFF1E293B) else Color.White
                         )
-                    )
+                        ExposedDropdownMenu(
+                            expanded = shelterExpanded,
+                            onDismissRequest = { shelterExpanded = false }
+                        ) {
+                            if (shelters.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("Tidak ada data posko", color = if (isDark) Color.LightGray else Color.Gray) },
+                                    onClick = {}
+                                )
+                            } else {
+                                shelters.forEach { shelter ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text(
+                                                    shelter.name,
+                                                    fontWeight = FontWeight.Medium,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Icon(Icons.Default.LocationOn, null,
+                                                        modifier = Modifier.size(11.dp),
+                                                        tint = if (isDark) Color.LightGray else Color.Gray)
+                                                    Text(
+                                                        shelter.address.take(30) + if (shelter.address.length > 30) "…" else "",
+                                                        fontSize = 11.sp,
+                                                        color = if (isDark) Color.LightGray else Color.Gray
+                                                    )
+                                                }
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Icon(Icons.Default.People, null,
+                                                        modifier = Modifier.size(11.dp),
+                                                        tint = if (isDark) Color.LightGray else Color.Gray)
+                                                    Text(
+                                                        "${shelter.capacityCurrent}/${shelter.capacityMax} orang",
+                                                        fontSize = 11.sp,
+                                                        color = if (isDark) Color.LightGray else Color.Gray
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            selectedShelter = shelter
+                                            shelterExpanded = false
+                                            locationError = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Info kapasitas posko yang dipilih
+                    selectedShelter?.let { shelter ->
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isDark) Color.White.copy(alpha = 0.05f) else Color(0xFFF0FDF4),
+                            border = BorderStroke(1.dp, if (isDark) Color.White.copy(alpha = 0.1f) else Color(0xFF22C55E).copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.People, null,
+                                    tint = Color(0xFF22C55E), modifier = Modifier.size(15.dp))
+                                Text(
+                                    "Kapasitas: ${shelter.capacityCurrent}/${shelter.capacityMax} orang  •  ${shelter.address}",
+                                    fontSize = 11.sp,
+                                    color = if (isDark) Color.LightGray else Color(0xFF15803D)
+                                )
+                            }
+                        }
+                    }
 
                     Surface(
                         shape = RoundedCornerShape(10.dp),
@@ -1392,12 +1480,15 @@ private fun AssignVolunteerDialog(
                                 disasterError = true
                                 valid = false
                             }
-                            if (assignmentLocation.isBlank()) {
+                            if (selectedShelter == null) {
                                 locationError = true
                                 valid = false
                             }
                             if (valid) {
-                                onConfirm(selectedDisaster!!.id!!.toLong(), assignmentLocation.trim())
+                                onConfirm(
+                                    selectedDisaster!!.id!!.toLong(),
+                                    selectedShelter!!.name
+                                )
                             }
                         },
                         shape = RoundedCornerShape(10.dp),

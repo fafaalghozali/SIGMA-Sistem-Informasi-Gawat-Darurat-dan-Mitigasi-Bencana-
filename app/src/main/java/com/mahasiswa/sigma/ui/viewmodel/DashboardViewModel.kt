@@ -56,7 +56,7 @@ data class DashboardUiState(
     val newsLastUpdated: Long? = null,
     val userCityName: String = "",
     val isAwaitingPermission: Boolean = false,
-    val volunteerStatus: String = "Pending",
+    val volunteerStatus: String = "available",
     val volunteerSkill: SkillsVolunteer? = null,
     val allReports: List<DisasterReportDto> = emptyList(),
     val allVolunteers: List<VolunteerDto> = emptyList(),
@@ -86,7 +86,8 @@ class DashboardViewModel @Inject constructor(
             result.onSuccess { volunteerDto ->
                 if (volunteerDto != null) {
                     _uiState.value = _uiState.value.copy(
-                        volunteerStatus = volunteerDto.status,
+                        // Baca kolom availability, default "available" jika null
+                        volunteerStatus = volunteerDto.availability ?: "available",
                         volunteerSkill = try {
                             SkillsVolunteer.valueOf(volunteerDto.skill.uppercase())
                         } catch (_: Exception) {
@@ -105,7 +106,7 @@ class DashboardViewModel @Inject constructor(
             result.onSuccess { volunteerDto ->
                 volunteerDto?.id?.let { volunteerId ->
                     val request = com.mahasiswa.sigma.data.model.UpdateVolunteerRequest(
-                        status = newStatus
+                        availability = newStatus   // FIX: update kolom availability, bukan status
                     )
                     volunteerRepo.updateVolunteer(volunteerId.toString(), request)
                     _uiState.value = _uiState.value.copy(volunteerStatus = newStatus)

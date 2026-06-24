@@ -2,12 +2,14 @@ package com.mahasiswa.sigma.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.mahasiswa.sigma.data.model.DisasterReportDto
-import com.mahasiswa.sigma.data.model.VolunteerDto
-import com.mahasiswa.sigma.data.model.UpdateVolunteerRequest
-import com.mahasiswa.sigma.data.repository.DisasterReportRepositoryRetrofit
-import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import com.mahasiswa.sigma.data.auth.AuthManager
+import com.mahasiswa.sigma.data.model.DisasterReportDto
+import com.mahasiswa.sigma.data.model.ShelterDto
+import com.mahasiswa.sigma.data.model.UpdateVolunteerRequest
+import com.mahasiswa.sigma.data.model.VolunteerDto
+import com.mahasiswa.sigma.data.repository.DisasterReportRepositoryRetrofit
+import com.mahasiswa.sigma.data.repository.ShelterRepositoryRetrofit
+import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +24,7 @@ import javax.inject.Inject
 class ManageVolunteerViewModel @Inject constructor(
     private val volunteerRepository: VolunteerRepositoryRetrofit,
     private val disasterRepository: DisasterReportRepositoryRetrofit,
+    private val shelterRepository: ShelterRepositoryRetrofit,
     private val authManager: AuthManager
 ) : ViewModel() {
 
@@ -30,6 +33,9 @@ class ManageVolunteerViewModel @Inject constructor(
 
     private val _disasters = MutableStateFlow<List<DisasterReportDto>>(emptyList())
     val disasters: StateFlow<List<DisasterReportDto>> = _disasters.asStateFlow()
+
+    private val _shelters = MutableStateFlow<List<ShelterDto>>(emptyList())
+    val shelters: StateFlow<List<ShelterDto>> = _shelters.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -44,6 +50,7 @@ class ManageVolunteerViewModel @Inject constructor(
     init {
         loadRegistrations()
         loadDisasters()
+        loadShelters()
     }
 
     fun loadRegistrations() {
@@ -63,6 +70,13 @@ class ManageVolunteerViewModel @Inject constructor(
         viewModelScope.launch {
             val result = disasterRepository.getAllDisasterReports()
             result.onSuccess { _disasters.value = it }
+        }
+    }
+
+    private fun loadShelters() {
+        viewModelScope.launch {
+            val result = shelterRepository.getAllShelters()
+            result.onSuccess { _shelters.value = it }
         }
     }
 

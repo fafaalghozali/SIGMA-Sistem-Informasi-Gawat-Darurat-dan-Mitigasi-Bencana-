@@ -1729,7 +1729,7 @@ fun AvailabilityStatusCard(
                     }
                 }
 
-                val isAvailable = currentStatus == "Tersedia" || currentStatus == "Accepted"
+                val isAvailable = currentStatus == "Tersedia" || currentStatus == "Accepted" || currentStatus == "available"
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = if (isAvailable) Color(0xFFE8F5E9) else Color(0xFFFFEBEE)
@@ -1762,13 +1762,13 @@ fun AvailabilityStatusCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val isAvailable = currentStatus == "Tersedia" || currentStatus == "Accepted"
+                val isAvailable = currentStatus == "Tersedia" || currentStatus == "Accepted" || currentStatus == "available"
 
                 Surface(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable { onStatusChange("Tersedia") },
+                        .clickable { onStatusChange("available") },
                     shape = RoundedCornerShape(12.dp),
                     color = if (isAvailable) {
                         if (isDark) Color(0xFF2E7D32).copy(alpha = 0.2f) else Color(0xFFE8F5E9)
@@ -1809,7 +1809,7 @@ fun AvailabilityStatusCard(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable { onStatusChange("Tidak Tersedia") },
+                        .clickable { onStatusChange("unavailable") },
                     shape = RoundedCornerShape(12.dp),
                     color = if (!isAvailable) {
                         if (isDark) Color(0xFFD32F2F).copy(alpha = 0.2f) else Color(0xFFFFEBEE)

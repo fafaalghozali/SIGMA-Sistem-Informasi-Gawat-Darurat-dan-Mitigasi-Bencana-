@@ -91,12 +91,24 @@ class DisasterReportViewModel @Inject constructor(
     fun loadReports() {
         viewModelScope.launch {
             val userId = authManager.getCurrentUserId()
+            if (userId == null) {
+                _reports.value = emptyList()
+                return@launch
+            }
             val result = repository.getAllDisasterReports()
             result.onSuccess { reports ->
                 // Only show reports belonging to current user
                 _reports.value = reports
                     .filter { it.userId == userId }
                     .map { dto ->
+                        val timestamp = try {
+                            dto.createdAt?.let {
+                                val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                                sdf.parse(it)?.time
+                            } ?: System.currentTimeMillis()
+                        } catch (_: Exception) {
+                            System.currentTimeMillis()
+                        }
                         LocalDisasterReport(
                             id = dto.id?.toString() ?: "",
                             title = dto.title,
@@ -106,6 +118,7 @@ class DisasterReportViewModel @Inject constructor(
                             status = dto.status,
                             latitude = dto.latitude,
                             longitude = dto.longitude,
+                            timestamp = timestamp,
                             photoUrl = dto.photoUrl,
                             disasterType = dto.disasterType
                         )
@@ -164,10 +177,29 @@ class DisasterReportViewModel @Inject constructor(
             
             val result = repository.createDisasterReport(request)
             if (result.isSuccess) {
+                val createdReport = result.getOrNull()
+                // Add to local list immediately for instant feedback
+                if (createdReport != null) {
+                    val newLocalReport = LocalDisasterReport(
+                        id = createdReport.id?.toString() ?: "",
+                        title = createdReport.title,
+                        description = createdReport.description,
+                        location = createdReport.location,
+                        reporter = createdReport.reporterName,
+                        status = createdReport.status,
+                        latitude = createdReport.latitude,
+                        longitude = createdReport.longitude,
+                        photoUrl = createdReport.photoUrl,
+                        disasterType = createdReport.disasterType
+                    )
+                    _reports.value = listOf(newLocalReport) + _reports.value
+                }
                 title = ""
                 description = ""
                 imageBitmap = null
                 saveSuccess = true
+                // Also refresh from server to sync
+                kotlinx.coroutines.delay(500)
                 loadReports()
             } else {
                 saveErrorMessage = result.exceptionOrNull()?.message

@@ -71,6 +71,7 @@ private fun statusBorderColor(status: String): Color = when (status.uppercase())
 @Composable
 fun SearchDisasterScreen(
     onBack: () -> Unit,
+    onDisasterClick: (Int) -> Unit = {},
     initialQuery: String? = null,
     initialStatus: String? = null,
     viewModel: SearchDisasterViewModel = hiltViewModel()
@@ -233,7 +234,10 @@ fun SearchDisasterScreen(
                             contentPadding = PaddingValues(bottom = 100.dp)
                         ) {
                             items(filtered, key = { it.id ?: it.title }) { report ->
-                                DisasterReportCard(report = report)
+                                DisasterReportCard(
+                                    report = report,
+                                    onClick = { report.id?.let { onDisasterClick(it) } }
+                                )
                             }
                         }
                     }
@@ -243,11 +247,13 @@ fun SearchDisasterScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DisasterReportCard(report: DisasterReportDto) {
+private fun DisasterReportCard(report: DisasterReportDto, onClick: () -> Unit = {}) {
     val borderColor = statusBorderColor(report.status)
     
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),

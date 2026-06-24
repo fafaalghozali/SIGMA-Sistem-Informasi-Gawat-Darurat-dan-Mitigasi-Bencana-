@@ -12,6 +12,7 @@ sealed class Route : Serializable {
     object Map : Route()
     object DisasterReport : Route()
     data class ReportDetail(val report: LocalDisasterReport) : Route()
+    data class DisasterDetail(val disasterId: Int) : Route()
     object ShelterInfo : Route()
     object Profile : Route()
     data class SearchDisaster(val query: String? = null, val status: String? = null) : Route()

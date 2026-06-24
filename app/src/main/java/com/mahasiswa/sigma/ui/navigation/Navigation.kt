@@ -148,6 +148,10 @@ fun SigmaNavigation() {
                         userRole = userRole,
                         onBack = { backStack.removeAt(backStack.lastIndex) }
                     )
+                    is Route.DisasterDetail -> DisasterDetailScreen(
+                        disasterId = route.disasterId,
+                        onBack = { backStack.removeAt(backStack.lastIndex) }
+                    )
                     is Route.ShelterInfo -> ShelterInfoScreen(onBack = { backStack.removeAt(backStack.lastIndex) })
                     is Route.Profile -> {
                         var showLogoutDialog by remember { mutableStateOf(false) }
@@ -232,6 +236,9 @@ fun SigmaNavigation() {
                     }
                     is Route.SearchDisaster -> SearchDisasterScreen(
                         onBack = { backStack.removeAt(backStack.lastIndex) },
+                        onDisasterClick = { disasterId ->
+                            backStack.add(Route.DisasterDetail(disasterId))
+                        },
                         initialQuery = route.query,
                         initialStatus = route.status
                     )

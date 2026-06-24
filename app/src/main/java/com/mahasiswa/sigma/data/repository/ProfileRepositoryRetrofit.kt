@@ -9,6 +9,8 @@ import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
 
 /**
  * Profile Repository using Retrofit for Supabase REST API
@@ -18,7 +20,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class ProfileRepositoryRetrofit @Inject constructor(
-    private val supabaseApi: SupabaseApiService
+    private val supabaseApi: SupabaseApiService,
+    private val supabaseClient: SupabaseClient
 ) {
 
     companion object {
@@ -148,28 +151,23 @@ class ProfileRepositoryRetrofit @Inject constructor(
      */
     suspend fun updateProfile(id: String, request: UpdateProfileRequest): Result<ProfileDto> {
         return try {
-            val profiles = supabaseApi.updateProfile(id = "eq.$id", updates = request)
+            val profiles = supabaseClient.postgrest["profiles"].update(
+                {
+                    request.fullName?.let { set("full_name", it) }
+                    request.photoUrl?.let { set("photo_url", it) }
+                }
+            ) {
+                filter { eq("id", id) }
+                select()
+            }.decodeList<ProfileDto>()
+            
             val profile = profiles.firstOrNull()
                 ?: throw Exception("Profile update did not return data")
             Log.d(TAG, "Updated profile: ${profile.email}")
             Result.success(profile)
-        } catch (e: HttpException) {
-            val errorMessage = when (e.code()) {
-                400 -> "Bad request: Invalid profile data"
-                401 -> "Unauthorized: Invalid API key or token"
-                403 -> "Forbidden: Insufficient permissions"
-                404 -> "Profile not found"
-                422 -> "Unprocessable entity: Validation failed"
-                else -> "HTTP error: ${e.message()}"
-            }
-            Log.e(TAG, "updateProfile HttpException: $errorMessage", e)
-            Result.failure(Exception(errorMessage))
-        } catch (e: IOException) {
-            Log.e(TAG, "updateProfile IOException: Network error", e)
-            Result.failure(Exception("Network error: Please check your internet connection"))
         } catch (e: Exception) {
             Log.e(TAG, "updateProfile Exception: ${e.message}", e)
-            Result.failure(e)
+            Result.failure(Exception("Gagal mengedit profil: ${e.message}"))
         }
     }
 
@@ -178,24 +176,16 @@ class ProfileRepositoryRetrofit @Inject constructor(
      */
     suspend fun deleteProfile(id: String): Result<Unit> {
         return try {
-            supabaseApi.deleteProfile(id = "eq.$id")
+            // Menggunakan SupabaseClient agar JWT Token dari user yang sedang login ikut terkirim,
+            // sehingga RLS (Row Level Security) bisa mengenali bahwa ini adalah aksi dari Admin.
+            supabaseClient.postgrest["profiles"].delete {
+                filter { eq("id", id) }
+            }
             Log.d(TAG, "Deleted profile: $id")
             Result.success(Unit)
-        } catch (e: HttpException) {
-            val errorMessage = when (e.code()) {
-                401 -> "Unauthorized: Invalid API key or token"
-                403 -> "Forbidden: Insufficient permissions"
-                404 -> "Profile not found"
-                else -> "HTTP error: ${e.message()}"
-            }
-            Log.e(TAG, "deleteProfile HttpException: $errorMessage", e)
-            Result.failure(Exception(errorMessage))
-        } catch (e: IOException) {
-            Log.e(TAG, "deleteProfile IOException: Network error", e)
-            Result.failure(Exception("Network error: Please check your internet connection"))
         } catch (e: Exception) {
             Log.e(TAG, "deleteProfile Exception: ${e.message}", e)
-            Result.failure(e)
+            Result.failure(Exception("Gagal menghapus profil: ${e.message}"))
         }
     }
 }

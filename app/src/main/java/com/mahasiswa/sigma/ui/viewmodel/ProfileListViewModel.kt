@@ -73,4 +73,21 @@ class ProfileListViewModel @Inject constructor(
                 }
         }
     }
+
+    fun editProfile(profileId: String, newName: String) {
+        viewModelScope.launch {
+            _uiState.value = ProfileListUiState.Loading
+
+            val request = com.mahasiswa.sigma.data.model.UpdateProfileRequest(fullName = newName)
+            profileRepository.updateProfile(profileId, request)
+                .onSuccess {
+                    loadProfiles()
+                }
+                .onFailure { error ->
+                    _uiState.value = ProfileListUiState.Error(
+                        error.message ?: "Failed to update profile"
+                    )
+                }
+        }
+    }
 }

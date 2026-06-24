@@ -9,25 +9,25 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
+    primary = Color(0xFF40C4FF), // Cyan brand accent
     secondary = PurpleGrey80,
     tertiary = Pink80
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
+    primary = Color(0xFF1A3A8F), // Deep blue brand accent
     secondary = PurpleGrey40,
     tertiary = Pink40
-
 )
 
 @Composable
 fun SIGMATheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Set to false by default for brand consistency
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

@@ -33,6 +33,9 @@ import androidx.compose.material3.*
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.mahasiswa.sigma.R
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.graphics.nativeCanvas
@@ -338,7 +341,7 @@ fun DashboardContent(
 
 @Composable
 fun DashboardHeader(userName: String, isDark: Boolean) {
-    val containerColor = if (isDark) DarkSurface else MaterialTheme.colorScheme.primary
+    val containerColor = if (isDark) DarkSurface else Color(0xFF1A3A8F)
     val contentColor = if (isDark) MaterialTheme.colorScheme.onSurface else Color.White
 
     Surface(
@@ -355,7 +358,7 @@ fun DashboardHeader(userName: String, isDark: Boolean) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Halo, $userName",
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -367,23 +370,17 @@ fun DashboardHeader(userName: String, isDark: Boolean) {
                 Text(
                     text = "Sistem Informasi Gawat Darurat & Mitigasi Bencana",
                     style = MaterialTheme.typography.labelSmall,
-                    color = contentColor.copy(alpha = 0.75f)
+                    color = contentColor.copy(alpha = 0.75f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = contentColor.copy(alpha = 0.15f)
-            ) {
-                Text(
-                    text = "SIGMA",
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
-                    ),
-                    color = contentColor
-                )
-            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Image(
+                painter = painterResource(id = R.drawable.sigma_logo),
+                contentDescription = "SIGMA Logo",
+                modifier = Modifier.size(36.dp)
+            )
         }
     }
 }

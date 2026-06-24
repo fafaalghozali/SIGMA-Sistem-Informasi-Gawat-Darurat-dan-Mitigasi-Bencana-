@@ -1,11 +1,14 @@
 package com.mahasiswa.sigma.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import com.mahasiswa.sigma.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -37,6 +40,7 @@ fun RegisterScreen(
     val isDark = isSystemInDarkTheme()
     val backgroundColor = if (isDark) DarkBackground else Color(0xFFF8F9FA)
     val cardColor = if (isDark) DarkSurface else Color.White
+    val accentBlue = Color(0xFF1A3A8F)
 
     val name = viewModel.name
     val email = viewModel.email
@@ -61,16 +65,24 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.sigma_logo),
+                contentDescription = "SIGMA Logo",
+                modifier = Modifier.size(80.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             Text(
                 text = "SIGMA",
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 3.sp
+                    letterSpacing = 6.sp
                 ),
-                color = if (isDark) Color.White else MaterialTheme.colorScheme.primary
+                color = if (isDark) Color.White else accentBlue
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = "Sistem Informasi Gawat Darurat\n dan Mitigasi Bencana",
@@ -80,7 +92,7 @@ fun RegisterScreen(
                 lineHeight = 20.sp
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -102,6 +114,10 @@ fun RegisterScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = cardColor,
                         unfocusedContainerColor = cardColor,
+                        focusedBorderColor = accentBlue,
+                        focusedLabelColor = accentBlue,
+                        focusedLeadingIconColor = accentBlue,
+                        focusedTrailingIconColor = accentBlue
                     )
                 )
 
@@ -122,6 +138,10 @@ fun RegisterScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = cardColor,
                         unfocusedContainerColor = cardColor,
+                        focusedBorderColor = accentBlue,
+                        focusedLabelColor = accentBlue,
+                        focusedLeadingIconColor = accentBlue,
+                        focusedTrailingIconColor = accentBlue
                     )
                 )
 
@@ -154,6 +174,10 @@ fun RegisterScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = cardColor,
                         unfocusedContainerColor = cardColor,
+                        focusedBorderColor = accentBlue,
+                        focusedLabelColor = accentBlue,
+                        focusedLeadingIconColor = accentBlue,
+                        focusedTrailingIconColor = accentBlue
                     )
                 )
 
@@ -186,6 +210,10 @@ fun RegisterScreen(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = cardColor,
                         unfocusedContainerColor = cardColor,
+                        focusedBorderColor = accentBlue,
+                        focusedLabelColor = accentBlue,
+                        focusedLeadingIconColor = accentBlue,
+                        focusedTrailingIconColor = accentBlue
                     )
                 )
             }
@@ -197,7 +225,11 @@ fun RegisterScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = accentBlue,
+                    contentColor = Color.White
+                )
             ) {
                 Text(
                     "Daftar Sekarang",
@@ -216,7 +248,7 @@ fun RegisterScreen(
                 Text(
                     text = "Masuk di sini",
                     modifier = Modifier.clickable { onNavigateToLogin() },
-                    color = MaterialTheme.colorScheme.primary,
+                    color = accentBlue,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
@@ -294,7 +326,7 @@ fun RegisterScreen(
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (registrationSuccess)
-                                    MaterialTheme.colorScheme.primary else EmergencyRed
+                                    accentBlue else EmergencyRed
                             )
                         ) {
                             Text(

@@ -157,7 +157,7 @@ class AuthManager @Inject constructor(
                         // Sinkronkan role di profiles agar konsisten
                         runCatching {
                             supabase.from("profiles").update(
-                                mapOf("role" to "Relawan")
+                                buildJsonObject { put("role", "Relawan") }
                             ) { filter { eq("id", userId) } }
                         }
                         UserRole.RELAWAN
@@ -199,7 +199,7 @@ class AuthManager @Inject constructor(
     suspend fun updateUserRole(userId: String, newRole: UserRole): Result<Unit> {
         return try {
             supabase.from("profiles").update(
-                mapOf("role" to newRole.displayName)
+                buildJsonObject { put("role", newRole.displayName) }
             ) {
                 filter { eq("id", userId) }
             }
@@ -283,11 +283,11 @@ class AuthManager @Inject constructor(
             val userId = getCurrentUserId()
                 ?: return Result.failure(Exception("Tidak ada pengguna yang sedang login."))
 
-            val updates = mutableMapOf<String, Any>(
-                "full_name" to newName
-            )
-            if (newEmail.isNotBlank()) {
-                updates["email"] = newEmail
+            val updates = buildJsonObject {
+                put("full_name", newName)
+                if (newEmail.isNotBlank()) {
+                    put("email", newEmail)
+                }
             }
 
             supabase.from("profiles").update(updates) {
@@ -364,7 +364,7 @@ class AuthManager @Inject constructor(
                 ?: return Result.failure(Exception("Tidak ada pengguna yang sedang login."))
 
             supabase.from("profiles").update(
-                mapOf("photo_url" to photoUrl)
+                buildJsonObject { put("photo_url", photoUrl) }
             ) {
                 filter {
                     eq("id", userId)

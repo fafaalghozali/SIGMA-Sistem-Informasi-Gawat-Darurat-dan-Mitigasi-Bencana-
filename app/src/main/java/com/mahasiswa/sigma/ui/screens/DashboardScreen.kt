@@ -74,6 +74,7 @@ fun DashboardScreen(
     @Suppress("UNUSED_PARAMETER") onNavigateToProfile: () -> Unit,
     onNavigateToSearchDisaster: (String?, String?) -> Unit = { _, _ -> },
     onNavigateToReportDetail: (LocalDisasterReport) -> Unit = {},
+    onForceRelogin: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -97,12 +98,57 @@ fun DashboardScreen(
         if (userRole == UserRole.RELAWAN && userEmail.isNotBlank()) {
             viewModel.loadVolunteerStatus(userEmail)
         }
+        // Mulai polling penugasan untuk Masyarakat
+        if (userRole == UserRole.MASYARAKAT) {
+            viewModel.checkPendingAssignment()
+            viewModel.startAssignmentPolling()
+        }
         viewModel.onPermissionRequested()
         permissionLauncher.launch(
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             )
+        )
+    }
+
+    // Otomatis logout ketika user menerima penugasan → kembali ke login sebagai Relawan
+    LaunchedEffect(uiState.needsForceRelogin) {
+        if (uiState.needsForceRelogin) {
+            viewModel.consumeForceRelogin()
+            onForceRelogin()
+        }
+    }
+
+    // Dialog notifikasi penugasan
+    if (uiState.showAssignmentNotification && uiState.pendingAssignment != null) {
+        AssignmentNotificationDialog(
+            volunteer = uiState.pendingAssignment!!,
+            isConfirming = uiState.isConfirmingAssignment,
+            onAccept = { viewModel.confirmAssignment(true) },
+            onReject = { viewModel.confirmAssignment(false) },
+            onDismiss = { viewModel.dismissAssignmentNotification() }
+        )
+    }
+
+    // Dialog error konfirmasi
+    if (uiState.assignmentConfirmError != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissAssignmentError() },
+            icon = {
+                Icon(Icons.Default.ErrorOutline, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(36.dp))
+            },
+            title = { Text("Gagal", fontWeight = FontWeight.Bold) },
+            text = { Text(uiState.assignmentConfirmError ?: "") },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissAssignmentError() },
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Tutup") }
+            },
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -2699,3 +2745,175 @@ private fun formatTimeAgo(dateStr: String): String {
     }
 }
 
+
+
+
+// ── Dialog Notifikasi Penugasan Relawan ───────────────────────────────────────
+@Composable
+fun AssignmentNotificationDialog(
+    volunteer: VolunteerDto,
+    isConfirming: Boolean,
+    onAccept: () -> Unit,
+    onReject: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isConfirming) onDismiss() },
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF16A34A).copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.NotificationsActive,
+                    contentDescription = null,
+                    tint = Color(0xFF16A34A),
+                    modifier = Modifier.size(40.dp)
+                )
+            }
+        },
+        title = {
+            Text(
+                text = "Penugasan Relawan",
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Selamat! Pendaftaran relawan Anda telah disetujui oleh Admin.",
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                    fontSize = 14.sp
+                )
+
+                if (!volunteer.assignment.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    "Lokasi Penugasan",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    volunteer.assignment,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFFFFBEB),
+                    border = BorderStroke(1.dp, Color(0xFFFCD34D))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            tint = Color(0xFFD97706),
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "Jika Anda menerima, akun akan diupgrade menjadi Relawan dan Anda akan login ulang secara otomatis.",
+                            fontSize = 11.sp,
+                            color = Color(0xFF92400E),
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Apakah Anda bersedia ditempatkan di penugasan ini?",
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.fillMaxWidth(),
+                    fontSize = 14.sp
+                )
+            }
+        },
+        confirmButton = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onAccept,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isConfirming,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (isConfirming) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Memproses...", fontWeight = FontWeight.Bold)
+                    } else {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("Ya, Saya Bersedia", fontWeight = FontWeight.Bold)
+                    }
+                }
+                OutlinedButton(
+                    onClick = onReject,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isConfirming,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Tolak Penugasan", fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        dismissButton = null,
+        shape = RoundedCornerShape(24.dp)
+    )
+}

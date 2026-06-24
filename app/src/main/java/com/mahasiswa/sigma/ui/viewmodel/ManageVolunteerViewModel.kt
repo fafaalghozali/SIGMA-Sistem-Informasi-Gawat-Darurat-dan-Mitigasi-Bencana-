@@ -122,6 +122,10 @@ class ManageVolunteerViewModel @Inject constructor(
             val result = volunteerRepository.updateVolunteer(volunteerId, request)
             result.fold(
                 onSuccess = {
+                    // Downgrade role kembali ke Masyarakat
+                    volunteer?.userId?.let { uid ->
+                        authManager.updateUserRole(uid, com.mahasiswa.sigma.data.model.UserRole.MASYARAKAT)
+                    }
                     _assignResult.value = "Relawan ${volunteer?.name ?: ""} berhasil ditolak."
                     loadRegistrations()
                 },
@@ -139,11 +143,18 @@ class ManageVolunteerViewModel @Inject constructor(
             val volunteer = _registrations.value.find { it.id?.toString() == volunteerId }
             val request = UpdateVolunteerRequest(
                 status = "PENDING",
+                assignment = null,
+                disasterId = null,
+                assignmentStatus = null,
                 updatedAt = nowTimestamp()
             )
             val result = volunteerRepository.updateVolunteer(volunteerId, request)
             result.fold(
                 onSuccess = {
+                    // Downgrade role kembali ke Masyarakat
+                    volunteer?.userId?.let { uid ->
+                        authManager.updateUserRole(uid, com.mahasiswa.sigma.data.model.UserRole.MASYARAKAT)
+                    }
                     _assignResult.value = "Status relawan ${volunteer?.name ?: ""} berhasil direset ke Pending."
                     loadRegistrations()
                 },
@@ -193,6 +204,7 @@ class ManageVolunteerViewModel @Inject constructor(
     fun cancelAssignment(volunteerId: String) {
         viewModelScope.launch {
             _isLoading.value = true
+            val volunteer = _registrations.value.find { it.id?.toString() == volunteerId }
             val updates = mapOf(
                 "disaster_id" to null,
                 "assignment" to null,
@@ -204,6 +216,10 @@ class ManageVolunteerViewModel @Inject constructor(
             val result = volunteerRepository.updateVolunteerMap(volunteerId, updates)
             result.fold(
                 onSuccess = {
+                    // Downgrade role kembali ke Masyarakat karena penugasan dibatalkan
+                    volunteer?.userId?.let { uid ->
+                        authManager.updateUserRole(uid, com.mahasiswa.sigma.data.model.UserRole.MASYARAKAT)
+                    }
                     _assignResult.value = "Penugasan berhasil dibatalkan."
                     loadRegistrations()
                 },
@@ -218,9 +234,14 @@ class ManageVolunteerViewModel @Inject constructor(
     fun deleteVolunteer(volunteerId: String) {
         viewModelScope.launch {
             _isLoading.value = true
+            val volunteer = _registrations.value.find { it.id?.toString() == volunteerId }
             val result = volunteerRepository.deleteVolunteer(volunteerId)
             result.fold(
                 onSuccess = {
+                    // Downgrade role kembali ke Masyarakat karena data relawan dihapus
+                    volunteer?.userId?.let { uid ->
+                        authManager.updateUserRole(uid, com.mahasiswa.sigma.data.model.UserRole.MASYARAKAT)
+                    }
                     _assignResult.value = "Data relawan berhasil dihapus."
                     loadRegistrations()
                 },

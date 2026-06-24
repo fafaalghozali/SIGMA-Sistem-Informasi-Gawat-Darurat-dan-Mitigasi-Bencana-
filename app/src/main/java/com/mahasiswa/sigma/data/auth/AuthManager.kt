@@ -145,7 +145,8 @@ class AuthManager @Inject constructor(
             }
 
             // Jika masih Masyarakat, cek tabel volunteers —
-            // kalau ada record APPROVED maka upgrade ke Relawan
+            // kalau ada record APPROVED + assignment_status accepted maka upgrade ke Relawan
+            // Jika Relawan, verifikasi volunteer status masih valid — kalau tidak, downgrade
             val resolvedRole = if (UserRole.fromString(roleStr) == UserRole.MASYARAKAT) {
                 try {
                     val volunteers = supabase.from("volunteers")
@@ -153,7 +154,11 @@ class AuthManager @Inject constructor(
                         .decodeList<JsonObject>()
                     val volunteerStatus = volunteers.firstOrNull()
                         ?.get("status")?.jsonPrimitive?.contentOrNull ?: ""
-                    if (volunteerStatus.equals("APPROVED", ignoreCase = true)) {
+                    val assignmentStatus = volunteers.firstOrNull()
+                        ?.get("assignment_status")?.jsonPrimitive?.contentOrNull ?: ""
+                    // Hanya upgrade jika APPROVED DAN assignment_status = accepted
+                    if (volunteerStatus.equals("APPROVED", ignoreCase = true) &&
+                        assignmentStatus.equals("accepted", ignoreCase = true)) {
                         // Sinkronkan role di profiles agar konsisten
                         runCatching {
                             supabase.from("profiles").update(
@@ -166,6 +171,33 @@ class AuthManager @Inject constructor(
                     }
                 } catch (_: Exception) {
                     UserRole.fromString(roleStr)
+                }
+            } else if (UserRole.fromString(roleStr) == UserRole.RELAWAN) {
+                // Verifikasi: cek apakah volunteer masih APPROVED + accepted
+                // Jika tidak (misal admin reset ke PENDING/hapus), downgrade ke Masyarakat
+                try {
+                    val volunteers = supabase.from("volunteers")
+                        .select { filter { eq("user_id", userId) }; limit(1) }
+                        .decodeList<JsonObject>()
+                    val volunteerStatus = volunteers.firstOrNull()
+                        ?.get("status")?.jsonPrimitive?.contentOrNull ?: ""
+                    val assignmentStatus = volunteers.firstOrNull()
+                        ?.get("assignment_status")?.jsonPrimitive?.contentOrNull ?: ""
+                    if (volunteers.isEmpty() ||
+                        !volunteerStatus.equals("APPROVED", ignoreCase = true) ||
+                        !assignmentStatus.equals("accepted", ignoreCase = true)) {
+                        // Volunteer tidak valid lagi → downgrade ke Masyarakat
+                        runCatching {
+                            supabase.from("profiles").update(
+                                buildJsonObject { put("role", "Masyarakat") }
+                            ) { filter { eq("id", userId) } }
+                        }
+                        UserRole.MASYARAKAT
+                    } else {
+                        UserRole.RELAWAN
+                    }
+                } catch (_: Exception) {
+                    UserRole.RELAWAN
                 }
             } else {
                 UserRole.fromString(roleStr)

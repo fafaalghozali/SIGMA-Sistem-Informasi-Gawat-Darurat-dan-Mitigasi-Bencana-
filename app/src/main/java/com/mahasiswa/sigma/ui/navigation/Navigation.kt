@@ -131,6 +131,11 @@ fun SigmaNavigation() {
                             },
                             onNavigateToReportDetail = { report ->
                                 backStack.add(Route.ReportDetail(report))
+                            },
+                            onForceRelogin = {
+                                // User terima penugasan → force logout → login ulang sebagai Relawan
+                                backStack.clear()
+                                backStack.add(Route.Login)
                             }
                         )
                     }

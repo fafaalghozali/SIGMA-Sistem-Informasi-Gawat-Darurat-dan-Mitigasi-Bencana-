@@ -23,6 +23,7 @@ import com.mahasiswa.sigma.data.repository.NewsRepositoryRetrofit
 import com.mahasiswa.sigma.data.repository.WeatherRepository
 import com.mahasiswa.sigma.data.repository.VolunteerRepositoryRetrofit
 import com.mahasiswa.sigma.data.model.SkillsVolunteer
+import com.mahasiswa.sigma.data.model.UpdateVolunteerRequest
 import com.mahasiswa.sigma.data.model.VolunteerDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -60,7 +61,13 @@ data class DashboardUiState(
     val volunteerSkill: SkillsVolunteer? = null,
     val allReports: List<DisasterReportDto> = emptyList(),
     val allVolunteers: List<VolunteerDto> = emptyList(),
-    val isAdminDataLoading: Boolean = false
+    val isAdminDataLoading: Boolean = false,
+    // Notifikasi penugasan relawan
+    val pendingAssignment: VolunteerDto? = null,
+    val showAssignmentNotification: Boolean = false,
+    val isConfirmingAssignment: Boolean = false,
+    val assignmentConfirmError: String? = null,
+    val needsForceRelogin: Boolean = false
 )
 
 @HiltViewModel
@@ -397,13 +404,145 @@ class DashboardViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showNotification = false)
     }
 
+    // ==================== ASSIGNMENT NOTIFICATION FOR MASYARAKAT ====================
+
+    private var assignmentPollingJob: Job? = null
+
+    /**
+     * Mulai polling penugasan relawan untuk user yang login sebagai Masyarakat.
+     * Jika admin approve volunteer & beri penugasan, notifikasi muncul di Dashboard.
+     */
+    fun startAssignmentPolling() {
+        assignmentPollingJob?.cancel()
+        assignmentPollingJob = viewModelScope.launch {
+            while (isActive) {
+                checkPendingAssignment()
+                delay(ASSIGNMENT_POLL_INTERVAL_MS)
+            }
+        }
+    }
+
+    /**
+     * Cek sekali apakah ada penugasan yang perlu dikonfirmasi relawan.
+     */
+    fun checkPendingAssignment() {
+        viewModelScope.launch {
+            val userId = authManager.getCurrentUserId() ?: return@launch
+            val result = volunteerRepo.getVolunteerByUserId(userId)
+            result.onSuccess { volunteerDto ->
+                if (volunteerDto != null) {
+                    val isApproved = volunteerDto.status.equals("APPROVED", ignoreCase = true) ||
+                            volunteerDto.status.equals("ACCEPTED", ignoreCase = true)
+                    val hasPendingAssignment = isApproved &&
+                            (volunteerDto.assignmentStatus.isNullOrBlank() ||
+                                    volunteerDto.assignmentStatus.equals("pending", ignoreCase = true))
+                    if (hasPendingAssignment) {
+                        _uiState.value = _uiState.value.copy(
+                            pendingAssignment = volunteerDto,
+                            showAssignmentNotification = true
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Relawan konfirmasi bersedia / menolak penugasan dari Dashboard.
+     *
+     * accept = true → assignment_status = "accepted", role → RELAWAN, force relogin
+     * accept = false → status = PENDING, assignment dihapus, role tetap MASYARAKAT
+     */
+    fun confirmAssignment(accept: Boolean) {
+        val volunteer = _uiState.value.pendingAssignment ?: return
+        val vid = volunteer.id ?: return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                isConfirmingAssignment = true,
+                assignmentConfirmError = null
+            )
+
+            if (accept) {
+                val request = UpdateVolunteerRequest(
+                    assignmentStatus = "accepted",
+                    updatedAt = nowTimestamp()
+                )
+                val result = volunteerRepo.updateVolunteer(vid.toString(), request)
+                result.onSuccess {
+                    // Upgrade role ke RELAWAN
+                    val userId = authManager.getCurrentUserId()
+                    if (!userId.isNullOrBlank()) {
+                        authManager.updateUserRole(userId, UserRole.RELAWAN)
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        isConfirmingAssignment = false,
+                        showAssignmentNotification = false,
+                        needsForceRelogin = true
+                    )
+                }
+                result.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isConfirmingAssignment = false,
+                        assignmentConfirmError = e.message ?: "Gagal mengonfirmasi. Coba lagi."
+                    )
+                }
+            } else {
+                // Tolak: reset ke PENDING, hapus penugasan, downgrade role ke MASYARAKAT
+                val request = UpdateVolunteerRequest(
+                    status = "PENDING",
+                    assignment = null,
+                    disasterId = null,
+                    assignmentStatus = null,
+                    updatedAt = nowTimestamp()
+                )
+                val result = volunteerRepo.updateVolunteer(vid.toString(), request)
+                result.onSuccess {
+                    // Downgrade role kembali ke MASYARAKAT
+                    val userId = authManager.getCurrentUserId()
+                    if (!userId.isNullOrBlank()) {
+                        authManager.updateUserRole(userId, UserRole.MASYARAKAT)
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        isConfirmingAssignment = false,
+                        showAssignmentNotification = false,
+                        pendingAssignment = null
+                    )
+                }
+                result.onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isConfirmingAssignment = false,
+                        assignmentConfirmError = e.message ?: "Gagal menolak penugasan. Coba lagi."
+                    )
+                }
+            }
+        }
+    }
+
+    fun dismissAssignmentNotification() {
+        _uiState.value = _uiState.value.copy(showAssignmentNotification = false)
+    }
+
+    fun dismissAssignmentError() {
+        _uiState.value = _uiState.value.copy(assignmentConfirmError = null)
+    }
+
+    fun consumeForceRelogin() {
+        _uiState.value = _uiState.value.copy(needsForceRelogin = false)
+    }
+
+    private fun nowTimestamp(): String =
+        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).format(Date())
+
     override fun onCleared() {
         super.onCleared()
         autoRefreshJob?.cancel()
+        assignmentPollingJob?.cancel()
     }
 
     companion object {
         private const val NEWS_REFRESH_INTERVAL_MS = 10 * 60 * 1_000L
+        private const val ASSIGNMENT_POLL_INTERVAL_MS = 15_000L // 15 detik
     }
 
     private fun isEventRelevant(eventLocation: String, userCity: String): Boolean {

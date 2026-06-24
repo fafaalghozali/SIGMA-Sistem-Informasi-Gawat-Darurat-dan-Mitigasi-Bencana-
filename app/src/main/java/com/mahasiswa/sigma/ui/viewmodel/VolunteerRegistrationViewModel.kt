@@ -238,6 +238,11 @@ class VolunteerRegistrationViewModel @Inject constructor(
                 )
                 val result = volunteerRepository.updateVolunteer(vid.toString(), rejectRequest)
                 result.onSuccess {
+                    // Downgrade role kembali ke MASYARAKAT di tabel profiles
+                    val userId = authManager.getCurrentUserId()
+                    if (!userId.isNullOrBlank()) {
+                        authManager.updateUserRole(userId, com.mahasiswa.sigma.data.model.UserRole.MASYARAKAT)
+                    }
                     refreshStatus()
                     confirmAssignmentSuccess = true
                 }

@@ -250,37 +250,21 @@ fun ProfileScreen(
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-                var skillExpanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = skillExpanded,
-                    onExpandedChange = { skillExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        value = viewModel.selectedSkill.name,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Keahlian / Skill") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = skillExpanded) },
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
+                OutlinedTextField(
+                    value = viewModel.selectedSkill.name,
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text("Keahlian / Skill") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        disabledLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
                     )
-                    ExposedDropdownMenu(
-                        expanded = skillExpanded,
-                        onDismissRequest = { skillExpanded = false }
-                    ) {
-                        SkillsVolunteer.entries.forEach { skillOption ->
-                            DropdownMenuItem(
-                                text = { Text(skillOption.name) },
-                                onClick = {
-                                    viewModel.selectedSkill = skillOption
-                                    skillExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
